@@ -67,15 +67,15 @@ These are settings that might be, and probably is, specific to my setup.
 - Display Pin Assignments  --->
 
     (23) GPIO for MOSI (Master Out Slave In)  
-    [\*] GPIO for MISO (Master In Slave Out)  
+    [x] GPIO for MISO (Master In Slave Out)  
     (19)    GPIO for MISO (Master In Slave Out)  
     (0)     MISO Input Delay (ns)  
     (18) GPIO for CLK (SCK / Serial Clock)  
-    [\*] Use CS signal to control the display  
+    [x] Use CS signal to control the display  
     (5)     GPIO for CS (Slave Select)  
-    [\*] Use DC signal to control the display  
+    [x] Use DC signal to control the display  
     (27)    GPIO for DC (Data / Command)  
-    [\*] Use a GPIO for resetting the display  
+    [x] Use a GPIO for resetting the display  
     (33)    GPIO for Reset  
 
     *These are specific to what pins i use for the communication.*
@@ -103,10 +103,10 @@ These are settings that might be, and probably is, specific to my setup.
     (1850) Maximum Y coordinate value.  
     *All values above were painstakingly guessed and works good enough but not perfectly, which is a bit annoying.  
     Need a better way to calibrate the touch screen for LVGL.*
-    - [\*] Swap XY.   -->  
+    - [x] Swap XY.   -->  
     *These needs to be swapped, as it is portrait*
     - [ ] Invert X coordinate value.  
-    - [\*] Invert Y coordinate value.  
+    - [x] Invert Y coordinate value.  
     *Yep. For some reason Y is inverted.*  
     - Select touch detection method. (IRQ pin only)  --->  
     *Have tried both, needs to evaluate this further.*
@@ -117,7 +117,7 @@ These are settings that might be, and probably is, specific to my setup.
 These are slightly strange configs that needs to be investigate so that they are really needed and understood:  
 
 - CONFIG_LV_USE_USER_DATA=y
-     [\*] Add a 'user_data' to drivers and objects.  
+     [x] Add a 'user_data' to drivers and objects.  
      *Huh?*
 - (0) Default image cache size.  
 *This is probably only used in some cases?*

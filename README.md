@@ -41,7 +41,7 @@ These are settings that might be, and probably is, specific to my setup.
 
 - Flash SPI mode (DIO)  --->
 - Flash SPI speed (40 MHz)  --->  
-*These where the flashsettings that worked for the LilyGO-T-SIM7000G*
+*These were the flash settings that worked for the LilyGO-T-SIM7000G.*
 ### Component config 
 
 #### LVGL configuration
@@ -112,12 +112,12 @@ These are settings that might be, and probably is, specific to my setup.
     - [x] Invert Y coordinate value.  
     *Yep. For some reason Y is inverted.*  
     - Select touch detection method. (IRQ pin only)  --->  
-    *Have tried both, needs to evaluate this further.*
+    *Have tried both, needs to evaluate this further. (this is the PEN-pin)*
 
 
-    ## TODO:
+## TODO:
 
-These are slightly strange configs that needs to be investigate so that they are really needed and understood:  
+These are slightly strange configs that needs to be investigated so that they're really needed and understood:  
 
 - CONFIG_LV_USE_USER_DATA=y
      [x] Add a 'user_data' to drivers and objects.  

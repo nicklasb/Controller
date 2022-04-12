@@ -16,12 +16,12 @@ The first evolution is hard-coded to a specific setup, the next will attempt to 
 ## Platform
 
 ### Software
-This is an esp-idf project, but as I like platform IO, so I use the /src rather than /main folder structure. 
+This is an esp-idf project, but as I also like PlatformIO, I use /src rather than /main folder structure. 
 Otherwise it looks the same. Also not sure why esp-idf wants to deviate from the norm.
 
 ### Hardware
 
-- LilyGO-T-SIM7000G ()
+- LilyGO-T-SIM7000G
     - With built-in GSM and GPS-modules
     - ESP32 WROVER-E
 - ILI9488 4" TFT 
@@ -42,9 +42,11 @@ These are settings that might be, and probably is, specific to my setup.
 ### Component config 
 
 #### LVGL configuration
-(320) Maximal horizontal resolution to support by the library.
+(320) Maximal horizontal resolution to support by the library.  
 (480) Maximal vertical resolution to support by the library.
-    Color depth. (16: RGB565)  --->
+    Color depth. (16: RGB565)  --->  
+*It is a multicolor display*
+
 #### LVGL ESP Drivers  
 ##### LVGL TFT Display controller
 
@@ -54,7 +56,7 @@ These are settings that might be, and probably is, specific to my setup.
 
 - Select a display controller model. (ILI9488)  --->
   
-  *The model of the TFT display chip set.*
+  *The TFT display chipset.*
 
 
 - Use custom SPI clock frequency.
@@ -65,15 +67,15 @@ These are settings that might be, and probably is, specific to my setup.
 - Display Pin Assignments  --->
 
     (23) GPIO for MOSI (Master Out Slave In)  
-    [*] GPIO for MISO (Master In Slave Out)  
+    [\*] GPIO for MISO (Master In Slave Out)  
     (19)    GPIO for MISO (Master In Slave Out)  
     (0)     MISO Input Delay (ns)  
     (18) GPIO for CLK (SCK / Serial Clock)  
-    [*] Use CS signal to control the display  
+    [\*] Use CS signal to control the display  
     (5)     GPIO for CS (Slave Select)  
-    [*] Use DC signal to control the display  
+    [\*] Use DC signal to control the display  
     (27)    GPIO for DC (Data / Command)  
-    [*] Use a GPIO for resetting the display  
+    [\*] Use a GPIO for resetting the display  
     (33)    GPIO for Reset  
 
     *These are specific to what pins i use for the communication.*
@@ -81,12 +83,10 @@ These are settings that might be, and probably is, specific to my setup.
 
 ##### LVGL Touch controller
 
-- Select a touch panel controller model. (XPT2046)  --->
-
+- Select a touch panel controller model. (XPT2046)  --->  
     *Well, that is the controller.*
-- Touch Controller SPI Bus. (SPI2_HOST)  --->
-    
-    *The Wroom-E has two SPI controllers*
+- Touch Controller SPI Bus. (SPI2_HOST)  --->  
+    *The WROOM-E has two SPI controllers*
 - Touchpanel (XPT2046) Pin Assignments  --->  
 (19) GPIO for MISO (Master In Slave Out) -- Maps to "TDO"
 (23) GPIO for MOSI (Master Out Slave In) -- Maps to "TDI"  
@@ -101,8 +101,8 @@ These are settings that might be, and probably is, specific to my setup.
     (150) Minimum Y coordinate value.  
     (1900) Maximum X coordinate value.  
     (1850) Maximum Y coordinate value.  
-    *All values above was painstakingly guessed.  
-    Need a better way to discern these*
+    *All values above were painstakingly guessed and works good enough but not perfectly, which is a bit annoying.  
+    Need a better way to calibrate the touch screen for LVGL.*
     - [\*] Swap XY.   -->  
     *These needs to be swapped, as it is portrait*
     - [ ] Invert X coordinate value.  

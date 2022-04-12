@@ -1,4 +1,7 @@
 
+    NOTE: Project is in progress, the code is not here yet. :-)
+
+
 # Controller
 
 This is a central unit for managing and collecting data from sensors using:

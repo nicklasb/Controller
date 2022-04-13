@@ -1,10 +1,9 @@
 
 # Controller
 
-This is a central unit for managing and collecting data from sensors using:
-* Wake on GPIO, then BLE for low-power situations and alarms.  
-* LGVL-driven touch TFT for interaction -- Added
-* Competent multi-core usage for maximal performance and stability -- Added
+This is a central unit for managing and collecting data from sensors using:  
+* LGVL-driven touch TFT for interaction -- Done
+* Competent multi-core usage for maximal performance and stability -- Done
 * BLE for common, always-on situations -- WIP
 * GSM SMS reporting and control -- TBA
 * GPS for positioning -- TBA

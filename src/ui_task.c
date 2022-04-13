@@ -23,7 +23,7 @@ static void lv_tick_task(void *arg);
 static void ui_task(void *pvParameter);
 
 
-void init_ui() {
+void ui_init() {
    // Create pinned GUI-task to avoid concurrency issues, Core 0 because it is not Bluetooth or Wifi
     xTaskCreatePinnedToCore(ui_task, "GUI task", 4096*2, NULL, 0, NULL, 0);
 }

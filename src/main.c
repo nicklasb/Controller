@@ -35,7 +35,7 @@
  **********************/
 
 #include "ui_task.h"
-
+#include "ble_task.h"
 /**********************
  *  STATIC PROTOTYPES
  **********************/
@@ -44,5 +44,6 @@
  *   APPLICATION MAIN
  **********************/
 void app_main() {
-    init_ui();
+    ble_init();
+    ui_init();
 }

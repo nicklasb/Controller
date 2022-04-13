@@ -2,14 +2,29 @@
 # Controller
 
 This is a central unit for managing and collecting data from sensors using:  
-* LGVL-driven touch TFT for interaction -- Done
-* Competent multi-core usage for maximal performance and stability -- Done
-* BLE for common, always-on situations -- WIP
-* GSM SMS reporting and control -- TBA
-* GPS for positioning -- TBA
-* Wake on GPIO, then BLE for low-power situations and alarms. -- TBA    
+* LGVL-driven touch TFT for interaction
+* Competent multi-core usage for maximal performance and stability
+* BLE for common, always-on situations 
+* GSM SMS reporting and control
+* GPS for positioning
+* Wake on GPIO, then BLE for low-power situations and alarms.   
 *Like intrusion (theft, camera), danger (fire, leaks)*
 
+# Progress
+Currently implemented:
+* A basic UI implementation with touch
+* BLE client+server, based on an unholy mix of the esp-idf client/server demos
+
+WIP:
+
+* Create a custom BLE service that just does what is needed
+* Make it so that the central only discovers peripherals that are a part of the network
+* Create a project for peripherals that work in unison with the controller 
+* Make data from peripherals appear on the controller screen 
+
+Upcoming:
+* Implement a support for a lot ofdifferent sensors in the peripherals (see that repo)
+* Add GSM reporting and control
 
 
 The first evolution is hard-coded to a specific setup, the next will attempt to be more dynamic. 

@@ -40,7 +40,7 @@ SemaphoreHandle_t xGuiSemaphore;
 /**********************
  * GLOBAL PROTOTYPES
  **********************/
-void init_ui(); 
+void ui_init(); 
 
 /**********************
  *      MACROS

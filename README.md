@@ -1,18 +1,17 @@
 
-    NOTE: Project is in progress, the code is not here yet. :-)
-
-
 # Controller
 
 This is a central unit for managing and collecting data from sensors using:
-* BLE for common, always-on situations
 * Wake on GPIO, then BLE for low-power situations and alarms.  
+* LGVL-driven touch TFT for interaction -- Added
+* Competent multi-core usage for maximal performance and stability -- Added
+* BLE for common, always-on situations -- WIP
+* GSM SMS reporting and control -- TBA
+* GPS for positioning -- TBA
+* Wake on GPIO, then BLE for low-power situations and alarms. -- TBA    
 *Like intrusion (theft, camera), danger (fire, leaks)*
-* GSM SMS reporting and control
-* GPS for positioning
-* LGVL-driven touch TFT for interaction
-* Competent multi-core usage for maximal performance and stability
-* The ESP32 WROVER-E MCU
+
+
 
 The first evolution is hard-coded to a specific setup, the next will attempt to be more dynamic. 
 

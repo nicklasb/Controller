@@ -26,6 +26,7 @@ Otherwise it looks the same. Also not sure why esp-idf wants to deviate from the
 
 - LilyGO-T-SIM7000G
     - With built-in GSM and GPS-modules
+    - Bluetooth Low Energy (BLE)
     - ESP32 WROVER-E
 - ILI9488 4" TFT 
     - 320*400 pixels  
@@ -41,7 +42,7 @@ These are settings that might be, and probably is, specific to my setup.
 
 - Flash SPI mode (DIO)  --->
 - Flash SPI speed (40 MHz)  --->  
-*These where the flash settings that worked for the LilyGO-T-SIM7000G*
+*These were the flash settings that worked for the LilyGO-T-SIM7000G.*
 ### Component config 
 
 #### LVGL configuration
@@ -112,17 +113,18 @@ These are settings that might be, and probably is, specific to my setup.
     - [x] Invert Y coordinate value.  
     *Yep. For some reason Y is inverted.*  
     - Select touch detection method. (IRQ pin only)  --->  
-    *Have tried both, needs to evaluate this further.*
+    *Have tried both, needs to evaluate this further. (this is the PEN-pin)*
 
 
-    ## TODO:
+## TODO:
 
-These are slightly strange configs that needs to be investigate so that they are really needed and understood:  
+These are slightly strange configs in the sdkconfig.esp-wrover-kit file that I am not yet sure how they got there.
+The need to be investigated to make sure that they're really needed and understood:  
 
 - CONFIG_LV_USE_USER_DATA=y
-     [x] Add a 'user_data' to drivers and objects.  
-     *Huh?*
+      [x] Add a 'user_data' to drivers and objects.  
+     *Not sure I will use those.*
 - (0) Default image cache size.  
-*This is probably only used in some cases?*
+*This is probably only used in some cases? Could it be something not used by multicolor screens like double buffering?*
 - CONFIG_LV_LABEL_LONG_TXT_HINT  
 *Not sure about this one either.*

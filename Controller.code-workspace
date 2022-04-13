@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"files.associations": {
+			"ui_builder.h": "c",
+			"ui_task.h": "c",
+			"lv_obj.h": "c"
+		}
+	}
+}

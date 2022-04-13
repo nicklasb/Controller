@@ -41,7 +41,7 @@ These are settings that might be, and probably is, specific to my setup.
 
 - Flash SPI mode (DIO)  --->
 - Flash SPI speed (40 MHz)  --->  
-*These where the flashsettings that worked for the LilyGO-T-SIM7000G*
+*These where the flash settings that worked for the LilyGO-T-SIM7000G*
 ### Component config 
 
 #### LVGL configuration

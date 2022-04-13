@@ -10,6 +10,8 @@ This is a central unit for managing and collecting data from sensors using:
 * Wake on GPIO, then BLE for low-power situations and alarms.   
 *Like intrusion (theft, camera), danger (fire, leaks)*
 
+The first evolution is hard-coded to a specific setup, the next will attempt to be more dynamic. 
+
 # Progress
 Currently implemented:
 * A basic UI implementation with touch
@@ -23,11 +25,10 @@ WIP:
 * Make data from peripherals appear on the controller screen 
 
 Upcoming:
-* Implement a support for a lot ofdifferent sensors in the peripherals (see that repo)
+* Implement support for a lot of different sensors in the peripherals (see that repo)
 * Add GSM reporting and control
 
 
-The first evolution is hard-coded to a specific setup, the next will attempt to be more dynamic. 
 
 ## Platform
 

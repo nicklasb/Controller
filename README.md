@@ -45,7 +45,7 @@ These are settings that might be, and probably is, specific to my setup.
 
 #### LVGL configuration
 (320) Maximal horizontal resolution to support by the library.  
-(480) Maximal vertical resolution to support by the library.
+(480) Maximal vertical resolution to support by the library.  
     Color depth. (16: RGB565)  --->  
 *It is a multicolor display*
 

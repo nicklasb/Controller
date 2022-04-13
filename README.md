@@ -125,6 +125,6 @@ The need to be investigated to make sure that they're really needed and understo
       [x] Add a 'user_data' to drivers and objects.  
      *Not sure I will use those.*
 - (0) Default image cache size.  
-*This is probably only used in some cases? Could it be something not used by multicolor screens like double buffering?*
+*This is probably only used in some cases? Could it be opposite to something not being used by multicolor screens like double buffering?*
 - CONFIG_LV_LABEL_LONG_TXT_HINT  
 *Not sure about this one either.*

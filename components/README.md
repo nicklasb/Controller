@@ -9,4 +9,4 @@ Remember to follow the instructions at the repo of the ESP32 port of lgvl:
 https://github.com/lvgl/lv_port_esp32 
 
 The right versions are important, currently it won't work with 8.x. 
-Or at least the demos don't..
+Or at least the demos doesn't..

@@ -70,6 +70,7 @@ test_multi_heap_host
 
 # VS Code Settings
 .vscode/
+.code-workspace
 
 # VIM files
 *.swp

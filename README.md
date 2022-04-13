@@ -114,6 +114,17 @@ These are settings that might be, and probably is, specific to my setup.
     *Have tried both, needs to evaluate this further. (this is the PEN-pin)*
 
 
+#### Bluetooth
+Uses Nimble, and mostly defaults.  
+*(in contrast, the [ble_server](https://github.com/nicklasb/ble_server) and [ble_client](https://github.com/nicklasb/ble_client) repos explore the extremes of MTU sizes and transfer rates and other tricks, if that is of interest)*  
+
+- [x] Bluetooth
+    - Bluetooth controller(ESP32 Dual Mode Bluetooth)  --->  
+     Bluetooth controller mode (BR/EDR/BLE/DUALMODE) (BLE Only)  --->  
+    - Bluetooth Host (NimBLE - BLE only)  --->  
+    - NimBLE Options  --->  
+
+
 ## TODO:
 
 These are slightly strange configs in the sdkconfig.esp-wrover-kit file that I am not yet sure how they got there.

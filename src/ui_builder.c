@@ -330,5 +330,5 @@ static void kb_event_cb(lv_obj_t * kb, lv_event_t e)
         lv_obj_set_height(tv, LV_VER_RES);
     }
 }
-#endid
+#endif
 

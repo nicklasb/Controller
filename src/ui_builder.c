@@ -139,7 +139,7 @@ static void home_create(lv_obj_t * parent)
     lv_label_set_text(aft, "Aft cabin - 28ºC 70%");   
     
 }
-/*
+#if 0
 static void selectors_create(lv_obj_t * parent)
 {
     lv_page_set_scrl_layout(parent, LV_LAYOUT_COLUMN_MID);
@@ -222,7 +222,7 @@ static void msgbox_create(void)
     lv_obj_set_style_local_bg_color(lv_layer_top(), LV_OBJ_PART_MAIN, LV_STATE_DEFAULT, LV_COLOR_GRAY);
     lv_obj_set_click(lv_layer_top(), true);
 }
-*/
+
 
 static void msgbox_event_cb(lv_obj_t * msgbox, lv_event_t e)
 {
@@ -236,7 +236,7 @@ static void msgbox_event_cb(lv_obj_t * msgbox, lv_event_t e)
         }
     }
 }
-
+#endif
 static void focus_cb(lv_group_t * group)
 {
     lv_obj_t * obj = lv_group_get_focused(group);
@@ -284,7 +284,7 @@ static void tv_event_cb(lv_obj_t * ta, lv_event_t e)
     }
 
 }
-
+#if 0
 static void ta_event_cb(lv_obj_t * ta, lv_event_t e)
 {
     /*Create a virtual keyboard for the encoders*/
@@ -330,5 +330,5 @@ static void kb_event_cb(lv_obj_t * kb, lv_event_t e)
         lv_obj_set_height(tv, LV_VER_RES);
     }
 }
-
+#endid
 

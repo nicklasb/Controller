@@ -9,22 +9,20 @@ extern "C" {
 /*********************
  *      INCLUDES
  *********************/
-#include "freertos/FreeRTOS.h"
-#include "freertos/semphr.h"
+
 
 /**********************
  *      TYPEDEFS
  **********************/
-/* Creates a semaphore to handle concurrent call to lvgl stuff
- * If you wish to call *any* lvgl function from other threads/tasks
- * you should lock on the very same semaphore! */
-SemaphoreHandle_t xBLESemaphore;
+uint16_t connection_handle;
+uint16_t attribute_handle;
 
 /**********************
  * GLOBAL PROTOTYPES
  **********************/
-void ble_init(void);
-
+void ble_spp_client_on_reset(int reason);
+void ble_spp_client_on_sync(void);
+void ble_spp_client_host_task(void *param);
 /**********************
  *      MACROS
  **********************/
@@ -32,5 +30,4 @@ void ble_init(void);
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
-
 

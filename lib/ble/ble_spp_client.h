@@ -7,7 +7,6 @@
 #ifndef H_BLESPPCLIENT_
 #define H_BLESPPCLIENT_
 
-#include "modlog/modlog.h"
 #ifdef __cplusplus
 extern "C" {
 #endif

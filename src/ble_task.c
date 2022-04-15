@@ -9,7 +9,7 @@
 #include "ble_spp_client.h"
 #include "gatt_svr.c"
 #include "esp_nimble_hci.h"
-#include "ble_services.h"
+#include "ble_service.h"
 #include "nimble/nimble_port_freertos.h"
 
 static const char *tag = "BLE_CENTRAL_TASK";
@@ -18,25 +18,29 @@ void ble_client_my_task(void *pvParameters)
 {
     char myarray[13] = "anyfukingdat\0";
     int rc;
-	ESP_LOGI(tag,"My Task: BLE client UART task started\n");
-    for (;;) {
+    ESP_LOGI(tag, "My Task: BLE client UART task started\n");
+    for (;;)
+    {
         vTaskDelay(2000);
-        if (pdTRUE == xSemaphoreTake(xBLESemaphore, portMAX_DELAY)) {
+        if (pdTRUE == xSemaphoreTake(xBLESemaphore, portMAX_DELAY))
+        {
             rc = ble_gattc_write_flat(connection_handle, attribute_handle, &myarray, 13, NULL, NULL);
-            if (rc == 0){
-                ESP_LOGI(tag,"My Task: Write in uart task success!");
+            if (rc == 0)
+            {
+                ESP_LOGI(tag, "My Task: Write in uart task success!");
             }
-            else {
-                ESP_LOGI(tag,"My Task: Error in writing characteristic");
+            else
+            {
+                ESP_LOGI(tag, "My Task: Error in writing characteristic");
             }
             xSemaphoreGive(xBLESemaphore);
-        }else {
-                ESP_LOGI(tag,"My Task: Couldn't get semaphore");
         }
-        
+        else
+        {
+            ESP_LOGI(tag, "My Task: Couldn't get semaphore");
+        }
     }
-     vTaskDelete(NULL);
-
+    vTaskDelete(NULL);
 }
 
 void ble_init(void)
@@ -44,7 +48,8 @@ void ble_init(void)
     int rc;
     /* Initialize NVS — it is used to store PHY calibration data */
     esp_err_t ret = nvs_flash_init();
-    if  (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND)
+    {
         ESP_ERROR_CHECK(nvs_flash_erase());
         ret = nvs_flash_init();
     }
@@ -60,16 +65,11 @@ void ble_init(void)
 
     /* Register custom service */
     rc = gatt_svr_register();
-    assert(rc == 0);   
+    assert(rc == 0);
 
     xBLESemaphore = xSemaphoreCreateMutex();
-    /* Initialize UART driver and start uart task */
-    //ble_spp_uart_init();
-    // Special stuff
-    //ble_att_set_preferred_mtu(1024);
 
-    xTaskCreatePinnedToCore(ble_client_my_task, "myTask", 8192, NULL, 8, NULL,0);
-
+    xTaskCreatePinnedToCore(ble_client_my_task, "myTask", 8192, NULL, 8, NULL, 0);
 
     /* Configure the host. */
     ble_hs_cfg.reset_cb = ble_spp_client_on_reset;

@@ -1,4 +1,7 @@
-
+/*
+ * BLE service handling
+ * Loosely based on the ESP-IDF-demo
+ */
 
 #ifdef __cplusplus
 extern "C" {

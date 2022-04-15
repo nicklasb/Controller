@@ -1,12 +1,11 @@
-
+/*********************
+ *      Here, the lvgl user interface is built
+ *********************/
 
 /*********************
  *      INCLUDES
  *********************/
 #include "ui_builder.h"
-
-
-
 
 /*********************
  *      DEFINES
@@ -19,42 +18,44 @@
 /**********************
  *  STATIC PROTOTYPES
  **********************/
-static void home_create(lv_obj_t * parent);
-//static void selectors_create(lv_obj_t * parent);
-//static void text_input_create(lv_obj_t * parent);
-//static void msgbox_create(void);
+static void home_create(lv_obj_t *parent);
+// static void selectors_create(lv_obj_t * parent);
+// static void text_input_create(lv_obj_t * parent);
+// static void msgbox_create(void);
 
-static void focus_cb(lv_group_t * g);
-static void msgbox_event_cb(lv_obj_t * msgbox, lv_event_t e);
-static void tv_event_cb(lv_obj_t * ta, lv_event_t e);
-static void ta_event_cb(lv_obj_t * ta, lv_event_t e);
-static void kb_event_cb(lv_obj_t * kb, lv_event_t e);
+static void focus_cb(lv_group_t *g);
+static void msgbox_event_cb(lv_obj_t *msgbox, lv_event_t e);
+static void tv_event_cb(lv_obj_t *ta, lv_event_t e);
+static void ta_event_cb(lv_obj_t *ta, lv_event_t e);
+static void kb_event_cb(lv_obj_t *kb, lv_event_t e);
 
 /**********************
  *  STATIC VARIABLES
  **********************/
-static lv_group_t*  g;
-static lv_obj_t * tv;
-static lv_obj_t * tv_home;
-static lv_obj_t * tv_security;
-static lv_obj_t * tv_admin;
+static lv_group_t *g;
+static lv_obj_t *tv;
+static lv_obj_t *tv_home;
+static lv_obj_t *tv_security;
+static lv_obj_t *tv_admin;
 
-struct {
-    lv_obj_t * btn;
-    lv_obj_t * cb;
-    lv_obj_t * slider;
-    lv_obj_t * sw;
-    lv_obj_t * spinbox;
-    lv_obj_t * dropdown;
-    lv_obj_t * roller;
-    lv_obj_t * list;
-}selector_objs;
+struct
+{
+    lv_obj_t *btn;
+    lv_obj_t *cb;
+    lv_obj_t *slider;
+    lv_obj_t *sw;
+    lv_obj_t *spinbox;
+    lv_obj_t *dropdown;
+    lv_obj_t *roller;
+    lv_obj_t *list;
+} selector_objs;
 
-struct {
-    lv_obj_t * ta1;
-    lv_obj_t * ta2;
-    lv_obj_t * kb;
-}textinput_objs;
+struct
+{
+    lv_obj_t *ta1;
+    lv_obj_t *ta2;
+    lv_obj_t *kb;
+} textinput_objs;
 
 /**********************
  *      MACROS
@@ -66,7 +67,8 @@ struct {
 
 LV_EVENT_CB_DECLARE(dd_enc)
 {
-    if(e == LV_EVENT_VALUE_CHANGED) {
+    if (e == LV_EVENT_VALUE_CHANGED)
+    {
         /*printf("chg\n");*/
     }
 }
@@ -76,10 +78,12 @@ void build_ui(void)
     g = lv_group_create();
     lv_group_set_focus_cb(g, focus_cb);
 
-    lv_indev_t* cur_drv = NULL;
-    for (;;) {
+    lv_indev_t *cur_drv = NULL;
+    for (;;)
+    {
         cur_drv = lv_indev_get_next(cur_drv);
-        if (!cur_drv) {
+        if (!cur_drv)
+        {
             break;
         }
     }
@@ -89,55 +93,54 @@ void build_ui(void)
 
     tv_home = lv_tabview_add_tab(tv, "Home");
     tv_security = lv_tabview_add_tab(tv, "Security");
-    tv_admin= lv_tabview_add_tab(tv, "Admin");
-    lv_group_add_obj(g, tv); 
-    lv_obj_set_drag(tv, false);  
-    lv_obj_set_drag(tv, false);  
+    tv_admin = lv_tabview_add_tab(tv, "Admin");
+    lv_group_add_obj(g, tv);
+    lv_obj_set_drag(tv, false);
+    lv_obj_set_drag(tv, false);
     home_create(tv_home);
 
- //   selectors_create(t2);
- //   text_input_create(t3);
+    //   selectors_create(t2);
+    //   text_input_create(t3);
 
- //   msgbox_create();
+    //   msgbox_create();
 }
 
 /**********************
  *   STATIC FUNCTIONS
  **********************/
 
-static void home_create(lv_obj_t * parent) 
+static void home_create(lv_obj_t *parent)
 {
     lv_page_set_scrl_layout(parent, LV_LAYOUT_COLUMN_LEFT);
-    lv_obj_t * main_table = lv_table_create(parent,NULL);
+    lv_obj_t *main_table = lv_table_create(parent, NULL);
     lv_table_set_col_cnt(main_table, 3);
     lv_table_set_row_cnt(main_table, 3);
     lv_table_set_col_width(main_table, 0, 100);
     lv_table_set_col_width(main_table, 1, 100);
     lv_table_set_col_width(main_table, 2, 100);
-    lv_table_set_cell_value(main_table,0,0,"Waste");
-    lv_table_set_cell_value(main_table,0,1,"10L");
-    lv_table_set_cell_value(main_table,0,2,"50%");
+    lv_table_set_cell_value(main_table, 0, 0, "Waste");
+    lv_table_set_cell_value(main_table, 0, 1, "10L");
+    lv_table_set_cell_value(main_table, 0, 2, "50%");
     // TODO: Try lv_grid instead
     /*lv_obj_t * waste_bar = lv_bar_create(parent, NULL);
     lv_bar_set_value(waste_bar, 40, false);
     lv_bar_set_range(waste_bar, 0, 100);
     */
-    lv_obj_t * waste = lv_label_create(parent, NULL);
-    lv_label_set_text(waste, "Waste 60%");   
-    lv_obj_t * water = lv_label_create(parent, NULL);
-    lv_label_set_text(water, "Water 10L / 10%");   
-    lv_obj_t * fuel = lv_label_create(parent, NULL);
-    lv_label_set_text(fuel, "Fuel - 20L/15%");   
-    lv_obj_t * power = lv_label_create(parent, NULL);
-    lv_label_set_text(power, "Power  - 1200wH/35%");   
-    lv_obj_t * testsep = lv_label_create(parent, NULL);
+    lv_obj_t *waste = lv_label_create(parent, NULL);
+    lv_label_set_text(waste, "Waste 60%");
+    lv_obj_t *water = lv_label_create(parent, NULL);
+    lv_label_set_text(water, "Water 10L / 10%");
+    lv_obj_t *fuel = lv_label_create(parent, NULL);
+    lv_label_set_text(fuel, "Fuel - 20L/15%");
+    lv_obj_t *power = lv_label_create(parent, NULL);
+    lv_label_set_text(power, "Power  - 1200wH/35%");
+    lv_obj_t *testsep = lv_label_create(parent, NULL);
     vberth = lv_label_create(parent, NULL);
-    lv_label_set_text(vberth, "V-berth - 24ºC 60%");   
-    lv_obj_t * saloon = lv_label_create(parent, NULL);
-    lv_label_set_text(saloon, "Saloon T/H - 24ºC 80%");   
-    lv_obj_t * aft = lv_label_create(parent, NULL);
-    lv_label_set_text(aft, "Aft cabin - 28ºC 70%");   
-    
+    lv_label_set_text(vberth, "V-berth - 24ºC 60%");
+    lv_obj_t *saloon = lv_label_create(parent, NULL);
+    lv_label_set_text(saloon, "Saloon T/H - 24ºC 80%");
+    lv_obj_t *aft = lv_label_create(parent, NULL);
+    lv_label_set_text(aft, "Aft cabin - 28ºC 70%");
 }
 #if 0
 static void selectors_create(lv_obj_t * parent)
@@ -237,12 +240,14 @@ static void msgbox_event_cb(lv_obj_t * msgbox, lv_event_t e)
     }
 }
 #endif
-static void focus_cb(lv_group_t * group)
+static void focus_cb(lv_group_t *group)
 {
-    lv_obj_t * obj = lv_group_get_focused(group);
-    if(obj != tv) {
+    lv_obj_t *obj = lv_group_get_focused(group);
+    if (obj != tv)
+    {
         uint16_t tab = lv_tabview_get_tab_act(tv);
-        switch(tab) {
+        switch (tab)
+        {
         case 0:
             lv_page_focus(tv_home, obj, LV_ANIM_OFF);
             break;
@@ -256,33 +261,36 @@ static void focus_cb(lv_group_t * group)
     }
 }
 
-static void tv_event_cb(lv_obj_t * ta, lv_event_t e)
+static void tv_event_cb(lv_obj_t *ta, lv_event_t e)
 {
-    if(e == LV_EVENT_VALUE_CHANGED || e == LV_EVENT_REFRESH) {
+    if (e == LV_EVENT_VALUE_CHANGED || e == LV_EVENT_REFRESH)
+    {
         lv_group_remove_all_objs(g);
 
         uint16_t tab = lv_tabview_get_tab_act(tv);
         size_t size = 0;
-        lv_obj_t ** objs = NULL;
-        if(tab == 0) {
+        lv_obj_t **objs = NULL;
+        if (tab == 0)
+        {
             size = sizeof(selector_objs);
-            objs = (lv_obj_t**) &selector_objs;
+            objs = (lv_obj_t **)&selector_objs;
         }
-        else if(tab == 1) {
+        else if (tab == 1)
+        {
             size = sizeof(textinput_objs);
-            objs = (lv_obj_t**) &textinput_objs;
+            objs = (lv_obj_t **)&textinput_objs;
         }
 
         lv_group_add_obj(g, tv);
 
         uint32_t i;
-        for(i = 0; i < size / sizeof(lv_obj_t *); i++) {
-            if(objs[i] == NULL) continue;
+        for (i = 0; i < size / sizeof(lv_obj_t *); i++)
+        {
+            if (objs[i] == NULL)
+                continue;
             lv_group_add_obj(g, objs[i]);
         }
-
     }
-
 }
 #if 0
 static void ta_event_cb(lv_obj_t * ta, lv_event_t e)
@@ -331,4 +339,3 @@ static void kb_event_cb(lv_obj_t * kb, lv_event_t e)
     }
 }
 #endif
-

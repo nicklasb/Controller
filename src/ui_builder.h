@@ -1,6 +1,7 @@
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 /*********************
@@ -17,19 +18,19 @@ extern "C" {
 #include "lvgl.h"
 #include "lv_core/lv_obj.h"
 
-/**********************
- *      TYPEDEFS
- **********************/
-lv_obj_t * vberth;
+    /**********************
+     *      TYPEDEFS
+     **********************/
+    lv_obj_t *vberth;
 
-/**********************
- * GLOBAL PROTOTYPES
- **********************/
-void build_ui(void);
+    /**********************
+     * GLOBAL PROTOTYPES
+     **********************/
+    void build_ui(void);
 
-/**********************
- *      MACROS
- **********************/
+    /**********************
+     *      MACROS
+     **********************/
 
 #ifdef __cplusplus
 } /* extern "C" */

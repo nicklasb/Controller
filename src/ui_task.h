@@ -3,13 +3,6 @@ extern "C"
 {
 #endif
 
-    /*********************
-     * PRERQUISITES
-     * *******************/
-
-#if CONFIG_LV_TOUCH_CONTROLLER == TOUCH_CONTROLLER_NONE
-#error "This application needs a touch controller!"
-#endif
 
     /*********************
      * INCLUDES
@@ -19,6 +12,16 @@ extern "C"
 #include "esp_log.h"
 #include "lvgl_helpers.h"
 #include "freertos/semphr.h"
+    
+    /*********************
+     * PRERQUISITES
+     * *******************/
+
+#if CONFIG_LV_TOUCH_CONTROLLER == TOUCH_CONTROLLER_NONE
+    #error "This application needs a touch controller!"
+#endif
+
+
 
 /*********************
  *      DEFINES

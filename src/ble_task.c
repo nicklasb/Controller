@@ -14,18 +14,24 @@
 
 static const char *tag = "BLE_CENTRAL_TASK";
 
+/* 
+This is the running task of the client (the central), if connect to the server (actually peripheral) and asks for data.
+Either after periodically being woken from a timer signal,
+or because a GPIO went high, which is likely to be because of an alarm. 
+*/
+
 void ble_client_my_task(void *pvParameters)
 {
     char myarray[13] = "anyfukingdat\0";
-    int rc;
+    int ret;
     ESP_LOGI(tag, "My Task: BLE client UART task started\n");
     for (;;)
     {
         vTaskDelay(2000);
         if (pdTRUE == xSemaphoreTake(xBLESemaphore, portMAX_DELAY))
         {
-            rc = ble_gattc_write_flat(connection_handle, attribute_handle, &myarray, 13, NULL, NULL);
-            if (rc == 0)
+            ret = ble_gattc_write_flat(connection_handle, attribute_handle, &myarray, 13, NULL, NULL);
+            if (ret == 0)
             {
                 ESP_LOGI(tag, "My Task: Write in uart task success!");
             }
@@ -43,9 +49,17 @@ void ble_client_my_task(void *pvParameters)
     vTaskDelete(NULL);
 }
 
+/*
+Initialize BLE
+*/
 void ble_init(void)
 {
-    int rc;
+    /* TODO: add a TaskFunction_t pvTaskCode-parameter, a taskname, client name (perhaps a suffix?) here,
+     *and move this into the BLE lib-folder.
+    This doesn't need to be in-scope of adjusted of or by the implementor
+    */ 
+    
+
     /* Initialize NVS — it is used to store PHY calibration data */
     esp_err_t ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND)
@@ -57,35 +71,46 @@ void ble_init(void)
 
     ESP_ERROR_CHECK(esp_nimble_hci_and_controller_init());
 
+    /* Initialize the host stack */
     nimble_port_init();
-
+    
+    // TODO: Check out if ESP_ERROR_CHECK could't be used.
     // Server as well
-    rc = new_gatt_svr_init();
-    assert(rc == 0);
+    ret = new_gatt_svr_init();
+    assert(ret == 0);
 
     /* Register custom service */
-    rc = gatt_svr_register();
-    assert(rc == 0);
+    ret = gatt_svr_register();
+    assert(ret == 0);
 
+    /* Use a special semaphore for BLE. 
+    TODO: Consider if there instead should be one for Core 0 instead 
+     (that might not be possible if not a param here; should a controller init exist?)
+    */
     xBLESemaphore = xSemaphoreCreateMutex();
 
+    /* Start the client task.
+    We are running it on Core 0, or PRO as it is called traditionally (cores are basically the same now) 
+    Feels more reasonable to focus on comms on 0 and applications on 1, traditionally called APP */
     xTaskCreatePinnedToCore(ble_client_my_task, "myTask", 8192, NULL, 8, NULL, 0);
 
-    /* Configure the host. */
+    /* Configure the host callbacks */
     ble_hs_cfg.reset_cb = ble_spp_client_on_reset;
     ble_hs_cfg.sync_cb = ble_spp_client_on_sync;
     ble_hs_cfg.store_status_cb = ble_store_util_status_rr;
 
-    /* Initialize data structures to track connected peers. */
-    rc = peer_init(MYNEWT_VAL(BLE_MAX_CONNECTIONS), 64, 64, 64);
-    assert(rc == 0);
+    /* Initialize data structures to track connected peers. 
+    There is a local pool in peer.c */
+    ret = peer_init(MYNEWT_VAL(BLE_MAX_CONNECTIONS), 64, 64, 64);
+    assert(ret == 0);
 
-    /* Set the default device name. */
-    rc = ble_svc_gap_device_name_set("nimble-ble-spp-client");
-    assert(rc == 0);
+    /* Set the default device name. TODO: This should probably change. */
+    ret = ble_svc_gap_device_name_set("nimble-ble-spp-client");
+    assert(ret == 0);
 
     /* XXX Need to have template for store */
     ble_store_config_init();
 
+    /* Start the thread for the host stack, pass the client task which nimble_port_run */
     nimble_port_freertos_init(ble_spp_client_host_task);
 }

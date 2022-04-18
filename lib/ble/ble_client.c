@@ -18,7 +18,6 @@
 
 static int ble_spp_client_gap_event(struct ble_gap_event *event, void *arg);
 
-static bool is_connect = false;
 
 
 
@@ -239,7 +238,7 @@ ble_spp_client_gap_event(struct ble_gap_event *event, void *arg)
         {
             /* Connection successfully established. */
             MODLOG_DFLT(INFO, "Connection established ");
-            is_connect = true;
+
             rc = ble_gap_conn_find(event->connect.conn_handle, &desc);
             assert(rc == 0);
             print_conn_desc(&desc);

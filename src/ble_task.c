@@ -52,14 +52,14 @@ void ble_client_my_task(void *pvParameters)
 /*
 Initialize BLE
 */
-void ble_init(const char *prefix)
+void ble_init(const char *log_prefix)
 {
     /* TODO: add a TaskFunction_t pvTaskCode-parameter, a taskname, client name (perhaps a suffix?) here,
      *and move this into the BLE lib-folder.
     This doesn't need to be in-scope of adjusted of or by the implementor
     */ 
 
-    strcpy(task_tag,prefix);
+    strcpy(task_tag,log_prefix);
     strupr(task_tag);
     strcat(task_tag, "_CENTRAL_TASK\0");
 
@@ -97,9 +97,8 @@ void ble_init(const char *prefix)
 
 
     char taskname[35] = "\0";
-    strcpy(taskname, prefix);
-    strcat(taskname, " task")
-    
+    strcpy(taskname, log_prefix);
+    strcat(taskname, " BLE main task");
     
     /* Register the client task.
     We are running it on Core 0, or PRO as it is called traditionally (cores are basically the same now) 
@@ -120,7 +119,7 @@ void ble_init(const char *prefix)
 
     /* Generate and set the GAP device name. */
     char gapname[35] = "\0";
-    strcpy(gapname, prefix);
+    strcpy(gapname, log_prefix);
     ret = ble_svc_gap_device_name_set(strncat(strlwr(gapname), "-ble-client", 100));
     assert(ret == 0);
 
@@ -128,7 +127,7 @@ void ble_init(const char *prefix)
     ble_store_config_init();
 
     /* Generate and set the log for the client */
-    strupr(strcpy(client_tag,prefix));
+    strupr(strcpy(client_tag,log_prefix));
     strcat(client_tag, "_CENTRAL_CLIENT\0");
     /* Start the thread for the host stack, pass the client task which nimble_port_run */
     nimble_port_freertos_init(ble_spp_client_host_task);

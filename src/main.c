@@ -13,22 +13,6 @@
  * CONDITIONS OF ANY KIND, either express or implied.
  */
 
-/*
-#include <stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-*/
-
-
-
-//#include "freertos/FreeRTOS.h"
-//#include "freertos/task.h"
-//#include "esp_freertos_hooks.h"
-
-//#include "esp_system.h"
-//#include "driver/gpio.h"
-
 
 /**********************
  *  INCLUDES
@@ -45,5 +29,5 @@
  **********************/
 void app_main() {
     ble_init("Controller\0");
-    ui_init();
+    ui_init("Controller\0");
 }

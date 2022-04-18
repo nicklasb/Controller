@@ -24,10 +24,19 @@ lv_color_t *buf1;
 static void lv_tick_task(void *arg);
 static void ui_task(void *pvParameter);
 
-void ui_init()
+void ui_init(const char *log_prefix)
 {
+    strcpy(ui_tag,log_prefix);
+    strupr(ui_tag);
+    strcat(ui_tag, "_UI_TASK\0");
+
+    char taskname[35] = "\0";
+    strcpy(taskname, log_prefix);
+    strcat(taskname, " UI task");
+    ESP_LOGI(ui_tag, "Initialising UI task, name: %s", taskname);
+
     // Create pinned GUI-task to avoid concurrency issues, Core 0 because it is not Bluetooth or Wifi
-    xTaskCreatePinnedToCore(ui_task, "GUI task", 4096 * 2, NULL, 0, NULL, 0);
+    xTaskCreatePinnedToCore(ui_task, taskname, 8192, NULL, 0, NULL, 0);
 }
 
 static void init_task(void *pvParameter)

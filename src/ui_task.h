@@ -26,7 +26,8 @@ extern "C"
 /*********************
  *      DEFINES
  *********************/
-#define TAG "Controller"
+char ui_tag[35];
+
 #define LV_TICK_PERIOD_MS 1
 
     /**********************
@@ -40,7 +41,7 @@ extern "C"
     /**********************
      * GLOBAL PROTOTYPES
      **********************/
-    void ui_init();
+    void ui_init(const char *log_prefix);
 
     /**********************
      *      MACROS

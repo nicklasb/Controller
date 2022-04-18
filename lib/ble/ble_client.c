@@ -20,7 +20,7 @@ static int ble_spp_client_gap_event(struct ble_gap_event *event, void *arg);
 
 static bool is_connect = false;
 
-static const char *tag = "BLE_CENTRAL_CLIENT";
+
 
 static void
 ble_spp_client_set_handles(const struct peer *peer)
@@ -231,7 +231,7 @@ ble_spp_client_gap_event(struct ble_gap_event *event, void *arg)
         ble_spp_client_connect_if_interesting(&event->disc);
         return 0;
 
-        ESP_LOGI(tag, "Got somefing %u", event->type);
+        ESP_LOGI(client_tag, "Got somefing %u", event->type);
 
     case BLE_GAP_EVENT_CONNECT:
         /* A new connection was established or a connection attempt failed. */
@@ -332,10 +332,15 @@ void ble_spp_client_on_sync(void)
     /* Begin scanning for a peripheral to connect to. */
     ble_spp_client_scan();
 }
-
+/**
+ * @brief The general client host task
+ * @details This is the actual task the host runs in.
+ * TODO: Does this have to be sticked to core 0? Set in the config?
+ */
 void ble_spp_client_host_task(void *param)
 {
-    ESP_LOGI(tag, "BLE Host Task Started");
+    ESP_LOGI(client_tag, "BLE Host Task Started");
+    // TODO: Set the log tag here name (pass it in params, I think)
     /* This function will return only when nimble_port_stop() is executed */
     nimble_port_run();
 

@@ -12,7 +12,7 @@
 #include "ble_service.h"
 #include "nimble/nimble_port_freertos.h"
 
-static const char *tag = "BLE_CENTRAL_TASK";
+
 
 /* 
 This is the running task of the client (the central), if connect to the server (actually peripheral) and asks for data.
@@ -24,7 +24,7 @@ void ble_client_my_task(void *pvParameters)
 {
     char myarray[13] = "anyfukingdat\0";
     int ret;
-    ESP_LOGI(tag, "My Task: BLE client UART task started\n");
+    ESP_LOGI(task_tag, "My Task: BLE client UART task started\n");
     for (;;)
     {
         vTaskDelay(2000);
@@ -33,17 +33,17 @@ void ble_client_my_task(void *pvParameters)
             ret = ble_gattc_write_flat(connection_handle, attribute_handle, &myarray, 13, NULL, NULL);
             if (ret == 0)
             {
-                ESP_LOGI(tag, "My Task: Write in uart task success!");
+                ESP_LOGI(task_tag, "My Task: Write in uart task success!");
             }
             else
             {
-                ESP_LOGI(tag, "My Task: Error in writing characteristic");
+                ESP_LOGI(task_tag, "My Task: Error in writing characteristic");
             }
             xSemaphoreGive(xBLESemaphore);
         }
         else
         {
-            ESP_LOGI(tag, "My Task: Couldn't get semaphore");
+            ESP_LOGI(task_tag, "My Task: Couldn't get semaphore");
         }
     }
     vTaskDelete(NULL);
@@ -52,13 +52,19 @@ void ble_client_my_task(void *pvParameters)
 /*
 Initialize BLE
 */
-void ble_init(void)
+void ble_init(const char *prefix)
 {
     /* TODO: add a TaskFunction_t pvTaskCode-parameter, a taskname, client name (perhaps a suffix?) here,
      *and move this into the BLE lib-folder.
     This doesn't need to be in-scope of adjusted of or by the implementor
     */ 
+
+    strcpy(task_tag,prefix);
+    strupr(task_tag);
+    strcat(task_tag, "_CENTRAL_TASK\0");
+
     
+    ESP_LOGI(task_tag, "In BLE init..");
 
     /* Initialize NVS — it is used to store PHY calibration data */
     esp_err_t ret = nvs_flash_init();
@@ -92,7 +98,10 @@ void ble_init(void)
     /* Start the client task.
     We are running it on Core 0, or PRO as it is called traditionally (cores are basically the same now) 
     Feels more reasonable to focus on comms on 0 and applications on 1, traditionally called APP */
-    xTaskCreatePinnedToCore(ble_client_my_task, "myTask", 8192, NULL, 8, NULL, 0);
+
+    char taskname[35] = "\0";
+    strcpy(taskname, prefix);
+    xTaskCreatePinnedToCore(ble_client_my_task, strcat(taskname, " task"), 8192, NULL, 8, NULL, 0);
 
     /* Configure the host callbacks */
     ble_hs_cfg.reset_cb = ble_spp_client_on_reset;
@@ -105,12 +114,17 @@ void ble_init(void)
     assert(ret == 0);
 
     /* Set the default device name. TODO: This should probably change. */
-    ret = ble_svc_gap_device_name_set("nimble-ble-spp-client");
+    char gapname[35] = "\0";
+    strcpy(gapname, prefix);
+    ret = ble_svc_gap_device_name_set(strncat(strlwr(gapname), "-ble-client", 100));
     assert(ret == 0);
 
     /* XXX Need to have template for store */
     ble_store_config_init();
 
+    strcpy(client_tag,prefix);
+    strupr(client_tag);
+    strcat(client_tag, "_CENTRAL_CLIENT\0");
     /* Start the thread for the host stack, pass the client task which nimble_port_run */
     nimble_port_freertos_init(ble_spp_client_host_task);
 }

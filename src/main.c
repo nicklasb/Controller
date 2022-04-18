@@ -44,6 +44,6 @@
  *   APPLICATION MAIN
  **********************/
 void app_main() {
-    ble_init();
+    ble_init("Controller\0");
     ui_init();
 }

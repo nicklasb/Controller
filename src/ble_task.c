@@ -22,7 +22,7 @@ or because a GPIO went high, which is likely to be because of an alarm.
 
 void ble_client_my_task(void *pvParameters)
 {
-    char myarray[13] = "anyfukingdat\0";
+    char myarray[13] = "datatosend\0";
     int ret;
     ESP_LOGI(task_tag, "My Task: BLE client UART task started\n");
     for (;;)
@@ -64,7 +64,7 @@ void ble_init(const char *prefix)
     strcat(task_tag, "_CENTRAL_TASK\0");
 
     
-    ESP_LOGI(task_tag, "In BLE init..");
+    ESP_LOGI(task_tag, "Initialising BLE..");
 
     /* Initialize NVS — it is used to store PHY calibration data */
     esp_err_t ret = nvs_flash_init();
@@ -95,13 +95,18 @@ void ble_init(const char *prefix)
     */
     xBLESemaphore = xSemaphoreCreateMutex();
 
-    /* Start the client task.
-    We are running it on Core 0, or PRO as it is called traditionally (cores are basically the same now) 
-    Feels more reasonable to focus on comms on 0 and applications on 1, traditionally called APP */
 
     char taskname[35] = "\0";
     strcpy(taskname, prefix);
-    xTaskCreatePinnedToCore(ble_client_my_task, strcat(taskname, " task"), 8192, NULL, 8, NULL, 0);
+    strcat(taskname, " task")
+    
+    
+    /* Register the client task.
+    We are running it on Core 0, or PRO as it is called traditionally (cores are basically the same now) 
+    Feels more reasonable to focus on comms on 0 and applications on 1, traditionally called APP */   
+    ESP_LOGI(task_tag, "Register the client task. Name: %s", taskname);
+    xTaskCreatePinnedToCore(ble_client_my_task, taskname, 8192, NULL, 8, NULL, 0);
+    /* TODO: Add setting for stack size (it might need to become bigger) */
 
     /* Configure the host callbacks */
     ble_hs_cfg.reset_cb = ble_spp_client_on_reset;
@@ -113,7 +118,7 @@ void ble_init(const char *prefix)
     ret = peer_init(MYNEWT_VAL(BLE_MAX_CONNECTIONS), 64, 64, 64);
     assert(ret == 0);
 
-    /* Set the default device name. TODO: This should probably change. */
+    /* Generate and set the GAP device name. */
     char gapname[35] = "\0";
     strcpy(gapname, prefix);
     ret = ble_svc_gap_device_name_set(strncat(strlwr(gapname), "-ble-client", 100));
@@ -122,8 +127,8 @@ void ble_init(const char *prefix)
     /* XXX Need to have template for store */
     ble_store_config_init();
 
-    strcpy(client_tag,prefix);
-    strupr(client_tag);
+    /* Generate and set the log for the client */
+    strupr(strcpy(client_tag,prefix));
     strcat(client_tag, "_CENTRAL_CLIENT\0");
     /* Start the thread for the host stack, pass the client task which nimble_port_run */
     nimble_port_freertos_init(ble_spp_client_host_task);

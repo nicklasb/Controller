@@ -29,8 +29,11 @@
  * @param log_prefix The prefix for logging and naming
  * @param pvTaskFunction A function containing the task to run
  */
-void ble_init(const char *log_prefix, TaskFunction_t pvTaskFunction)
+void ble_init(const char *log_prefix, TaskFunction_t pvTaskFunction, bool is_controller)
 {
+
+    
+
 
     char task_tag[35] = "\0";
     strcpy(task_tag,log_prefix);
@@ -78,7 +81,9 @@ void ble_init(const char *log_prefix, TaskFunction_t pvTaskFunction)
     ble_hs_cfg.reset_cb = ble_spp_client_on_reset;
     ble_hs_cfg.sync_cb = ble_spp_client_on_sync;
     ble_hs_cfg.store_status_cb = ble_store_util_status_rr;
-
+    ble_hs_cfg.gatts_register_cb = gatt_svr_register_cb;
+    //Not secure connections
+    ble_hs_cfg.sm_sc = 0;
     /* Initialize data structures to track connected peers. 
     There is a local pool in peer.c */
     ret = peer_init(MYNEWT_VAL(BLE_MAX_CONNECTIONS), 64, 64, 64);

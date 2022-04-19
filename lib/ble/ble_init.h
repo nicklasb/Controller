@@ -17,7 +17,7 @@ extern "C"
     /**********************
      * GLOBAL PROTOTYPES
      **********************/
-    void ble_init(const char *prefix, TaskFunction_t pvTaskCode);
+    void ble_init(const char *prefix, TaskFunction_t pvTaskCode, bool is_controller);
 
     /**********************
      *      MACROS

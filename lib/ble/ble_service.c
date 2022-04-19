@@ -63,15 +63,15 @@ static const struct ble_gatt_svc_def new_ble_svc_gatt_defs[] = {
         .uuid = BLE_UUID16_DECLARE(BLE_SVC_ANS_UUID16),
         .characteristics =
             (struct ble_gatt_chr_def[]){{
-                                            /* Support new alert category */
-                                            .uuid = BLE_UUID16_DECLARE(BLE_SVC_ANS_CHR_UUID16_SUP_NEW_ALERT_CAT),
-                                            .access_cb = ble_svc_gatt_handler,
-                                            .val_handle = &ble_svc_gatt_read_val_handle,
-                                            .flags = BLE_GATT_CHR_F_READ | BLE_GATT_CHR_F_WRITE | BLE_GATT_CHR_F_NOTIFY | BLE_GATT_CHR_F_INDICATE,
-                                        },
-                                        {
-                                            0, /* No more characteristics */
-                                        }},
+                    /* Support new alert category */
+                    .uuid = BLE_UUID16_DECLARE(BLE_SVC_ANS_CHR_UUID16_SUP_NEW_ALERT_CAT),
+                    .access_cb = ble_svc_gatt_handler,
+                    .val_handle = &ble_svc_gatt_read_val_handle,
+                    .flags = BLE_GATT_CHR_F_READ | BLE_GATT_CHR_F_WRITE | BLE_GATT_CHR_F_NOTIFY | BLE_GATT_CHR_F_INDICATE,
+                },
+                {
+                    0, /* No more characteristics */
+                }},
     },
     {
         /*** Service: SPP */
@@ -79,15 +79,15 @@ static const struct ble_gatt_svc_def new_ble_svc_gatt_defs[] = {
         .uuid = BLE_UUID16_DECLARE(BLE_SVC_SPP_UUID16),
         .characteristics =
             (struct ble_gatt_chr_def[]){{
-                                            /* Support SPP service */
-                                            .uuid = BLE_UUID16_DECLARE(BLE_SVC_SPP_CHR_UUID16),
-                                            .access_cb = ble_svc_gatt_handler,
-                                            .val_handle = &ble_spp_svc_gatt_read_val_handle,
-                                            .flags = BLE_GATT_CHR_F_READ | BLE_GATT_CHR_F_WRITE | BLE_GATT_CHR_F_NOTIFY | BLE_GATT_CHR_F_INDICATE,
-                                        },
-                                        {
-                                            0, /* No more characteristics */
-                                        }},
+                        /* Support SPP service */
+                        .uuid = BLE_UUID16_DECLARE(BLE_SVC_SPP_CHR_UUID16),
+                        .access_cb = ble_svc_gatt_handler,
+                        .val_handle = &ble_spp_svc_gatt_read_val_handle,
+                        .flags = BLE_GATT_CHR_F_READ | BLE_GATT_CHR_F_WRITE | BLE_GATT_CHR_F_NOTIFY | BLE_GATT_CHR_F_INDICATE,
+                    },
+                    {
+                        0, /* No more characteristics */
+                    }},
     },
     {
         0, /* No more services. */

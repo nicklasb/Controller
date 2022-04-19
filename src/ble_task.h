@@ -10,8 +10,9 @@ extern "C"
 /*********************
  *      INCLUDES
  *********************/
-#include "freertos/FreeRTOS.h"
-#include "freertos/semphr.h"
+
+#include "ble_init.h"
+#include "ble_client.h"
 
     /**********************
      *      TYPEDEFS
@@ -24,7 +25,7 @@ extern "C"
     /**********************
      * GLOBAL PROTOTYPES
      **********************/
-    void ble_init(const char *prefix);
+    void ble_client_my_task(void *pvParameters);
 
     /**********************
      *      MACROS

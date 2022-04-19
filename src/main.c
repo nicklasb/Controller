@@ -28,6 +28,6 @@
  *   APPLICATION MAIN
  **********************/
 void app_main() {
-    ble_init("Controller\0");
+    ble_init("Controller\0", ble_client_my_task);
     ui_init("Controller\0");
 }

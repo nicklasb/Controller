@@ -17,9 +17,7 @@ extern "C"
     /**********************
      *      TYPEDEFS
      **********************/
-    /* Creates a semaphore to handle concurrent call to lvgl stuff
-     * If you wish to call *any* lvgl function from other threads/tasks
-     * you should lock on the very same semaphore! */
+    /* Creates a semaphore to handle concurrent call to BLE stuff */
     SemaphoreHandle_t xBLESemaphore;
     char task_tag[35];
     /**********************

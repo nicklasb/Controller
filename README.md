@@ -1,7 +1,7 @@
 
 # Controller
 
-This is a central unit for managing and collecting data from sensors using:  
+This is a central unit for managing and collecting sensor data from [peripherals](https://github.com/nicklasb/Peripheral) using:  
 * LGVL-driven touch TFT for interaction
 * Competent multi-core usage for maximal performance and stability
 * BLE for common, always-on situations 

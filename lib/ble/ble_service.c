@@ -4,8 +4,7 @@
  */
 
 #include "host/ble_hs.h"
-#include "ble_spp_client.h"
-#include "ble_spp_server.h"
+#include "ble_spp.h"
 #include "ble_service.h"
 
 static const char *tag = "BLE_CENTRAL_SERVICE";

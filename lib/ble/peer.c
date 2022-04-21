@@ -7,7 +7,7 @@
 #include <assert.h>
 #include <string.h>
 #include "host/ble_hs.h"
-#include "ble_spp_client.h"
+#include "ble_spp.h"
 
 static void *peer_svc_mem;
 static struct os_mempool peer_svc_pool;
@@ -44,7 +44,6 @@ static int
 peer_dsc_disced(uint16_t conn_handle, const struct ble_gatt_error *error,
                 uint16_t chr_val_handle, const struct ble_gatt_dsc *dsc,
                 void *arg);
-
 struct peer *
 peer_find(uint16_t conn_handle)
 {

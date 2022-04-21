@@ -7,18 +7,18 @@
 #include "ble_init.h"
 #include "ble_client.h"
 #include "ble_service.h"
+#include "ble_server.h"
 
 #include "esp_log.h"
 
 #include "host/ble_hs.h"
-#include "ble_spp_client.h" // This needs to be after ble_hs.h
+#include "ble_spp.h" // This needs to be after ble_hs.h
 
 #include "nvs.h"  
 #include "nvs_flash.h"
 
-#include "gatt_svr.c"
 #include "esp_nimble_hci.h"
-
+#include "services/gap/ble_svc_gap.h"
 #include "nimble/nimble_port.h"
 #include "nimble/nimble_port_freertos.h"
 
@@ -32,7 +32,18 @@
 void ble_init(const char *log_prefix, TaskFunction_t pvTaskFunction, bool is_controller)
 {
 
-    
+    /**
+     * TODO: We have the is_controller param. 
+     * Figure out what should be the difference between a controller and a peripheral.
+     * They should probably both be both server and client.
+     * But likely, they should have mostly different API:s. 
+     * Do they have any common functions? Check-alive? Status?
+     * Maybe that is where to start? 
+     * Remember to make it test driven from now on, should not be hard given the protocol.
+     * Create constants for commands. See 
+     * Figure out if there should be a menuconfig for this?
+     * Add network name/ID/UUID (list of clients?) whatever to ensure that only those belonging to the network is connected to.
+     */
 
 
     char task_tag[35] = "\0";
@@ -77,9 +88,16 @@ void ble_init(const char *log_prefix, TaskFunction_t pvTaskFunction, bool is_con
     xTaskCreatePinnedToCore(pvTaskFunction, taskname, 8192, NULL, 8, NULL, 0);
     /* TODO: Add setting for stack size (it might need to become bigger) */
 
-    /* Configure the host callbacks */
-    ble_hs_cfg.reset_cb = ble_spp_client_on_reset;
-    ble_hs_cfg.sync_cb = ble_spp_client_on_sync;
+    if (is_controller) {
+        /* Configure the host callbacks */
+        ble_hs_cfg.reset_cb = ble_spp_client_on_reset;
+        ble_hs_cfg.sync_cb = ble_spp_client_on_sync;
+    } else {
+        /* Initialize the NimBLE host configuration. */
+    ble_hs_cfg.reset_cb = ble_spp_server_on_reset;
+    ble_hs_cfg.sync_cb = ble_spp_server_on_sync;
+    }
+
     ble_hs_cfg.store_status_cb = ble_store_util_status_rr;
     ble_hs_cfg.gatts_register_cb = gatt_svr_register_cb;
     //Not secure connections

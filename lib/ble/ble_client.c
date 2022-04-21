@@ -11,14 +11,12 @@
 
 #include "ble_client.h"
 #include "ble_service.h"
-#include "ble_spp_client.h"
+#include "ble_spp.h"
 #include "host/util/util.h"
 #include "nimble/nimble_port.h"
 #include "nimble/nimble_port_freertos.h"
 
 static int ble_spp_client_gap_event(struct ble_gap_event *event, void *arg);
-
-
 
 
 static void

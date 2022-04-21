@@ -11,7 +11,7 @@
 #include "host/ble_uuid.h"
 #include "services/gap/ble_svc_gap.h"
 #include "services/gatt/ble_svc_gatt.h"
-#include "ble_spp_server.h"
+#include "ble_spp.h"
 
 /* 16 Bit Alert Notification Service UUID */
 #define BLE_SVC_ANS_UUID16 0x1811

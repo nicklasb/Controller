@@ -4,25 +4,43 @@
  * SPDX-License-Identifier: Unlicense OR CC0-1.0
  */
 
-#ifndef H_BLESPPCLIENT_
-#define H_BLESPPCLIENT_
+
+
+
+// Client
+#include <stdbool.h>
+#include "nimble/ble.h"
+#include "modlog/modlog.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+// Client
 struct ble_hs_adv_fields;
 struct ble_gap_conn_desc;
 struct ble_hs_cfg;
 union ble_store_value;
 union ble_store_key;
 
+//Server
+//struct ble_hs_cfg;
+struct ble_gatt_register_ctxt;
+
+/** GATT server. */
 #define GATT_SVR_SVC_ALERT_UUID              0x1811
 #define GATT_SVR_CHR_SUP_NEW_ALERT_CAT_UUID  0x2A47
 #define GATT_SVR_CHR_NEW_ALERT               0x2A46
 #define GATT_SVR_CHR_SUP_UNR_ALERT_CAT_UUID  0x2A48
 #define GATT_SVR_CHR_UNR_ALERT_STAT_UUID     0x2A45
 #define GATT_SVR_CHR_ALERT_NOT_CTRL_PT       0x2A44
+
+void gatt_svr_register_cb(struct ble_gatt_register_ctxt *ctxt, void *arg);
+int new_gatt_svr_init(void);
+
+/* Console - from server */
+int scli_init(void);
+int scli_receive_key(int *key);
 
 /** Misc. */
 void print_bytes(const uint8_t *bytes, int len);
@@ -31,7 +49,7 @@ char *addr_str(const void *addr);
 void print_uuid(const ble_uuid_t *uuid);
 void print_conn_desc(const struct ble_gap_conn_desc *desc);
 void print_adv_fields(const struct ble_hs_adv_fields *fields);
-
+void print_addr(const void *addr);
 /** Peer. */
 struct peer_dsc {
     SLIST_ENTRY(peer_dsc) next;
@@ -88,12 +106,11 @@ peer_svc_find_uuid(const struct peer *peer, const ble_uuid_t *uuid);
 int peer_delete(uint16_t conn_handle);
 int peer_add(uint16_t conn_handle);
 int peer_init(int max_peers, int max_svcs, int max_chrs, int max_dscs);
-struct peer *
-peer_find(uint16_t conn_handle);
+
+struct peer * peer_find(uint16_t conn_handle);
 
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif

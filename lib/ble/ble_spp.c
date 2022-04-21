@@ -9,7 +9,7 @@
 #include <string.h>
 #include "host/ble_hs.h"
 #include "host/ble_uuid.h"
-#include "ble_spp_client.h"
+#include "ble_spp.h"
 
 /**
  * Utility function to log an array of bytes.
@@ -195,4 +195,13 @@ print_adv_fields(const struct ble_hs_adv_fields *fields)
         print_bytes(fields->mfg_data, fields->mfg_data_len);
         MODLOG_DFLT(DEBUG, "\n");
     }
+}
+void
+print_addr(const void *addr)
+{
+    const uint8_t *u8p;
+
+    u8p = addr;
+    MODLOG_DFLT(INFO, "%02x:%02x:%02x:%02x:%02x:%02x",
+                u8p[5], u8p[4], u8p[3], u8p[2], u8p[1], u8p[0]);
 }

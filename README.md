@@ -16,17 +16,19 @@ The first evolution is hard-coded to a specific setup, the next will attempt to 
 Currently implemented:
 * A basic UI implementation with touch
 * BLE client+server, based on an unholy mix of the esp-idf client/server demos
+* Create a project for peripherals that work in unison with the controller 
 
 WIP:
 
 * Create a custom BLE service that just does what is needed
 * Make it so that the central only discovers peripherals that are a part of the network
-* Create a project for peripherals that work in unison with the controller 
 * Make data from peripherals appear on the controller screen 
 
 Upcoming:
+* Implement proper protocol for communicating structured sensor data
 * Implement support for a lot of different sensors in the peripherals (see that repo)
 * Add GSM reporting and control
+* Implement next version protocol and architecture for dynamic configuration of entire network where peripherals are configured (and programmed OTA?) by controller
 
 
 

@@ -11,10 +11,12 @@
 
 #include "ble_client.h"
 #include "ble_service.h"
-#include "ble_spp.h"
 #include "host/util/util.h"
 #include "nimble/nimble_port.h"
 #include "nimble/nimble_port_freertos.h"
+
+#include "ble_global.h"
+#include "ble_spp.h"
 
 static int ble_spp_client_gap_event(struct ble_gap_event *event, void *arg);
 
@@ -26,8 +28,8 @@ ble_spp_client_set_handles(const struct peer *peer)
     chr = peer_chr_find_uuid(peer,
                              BLE_UUID16_DECLARE(GATT_SPP_SVC_UUID),
                              BLE_UUID16_DECLARE(GATT_SPP_CHR_UUID));
-    connection_handle = peer->conn_handle;
-    attribute_handle = chr->chr.val_handle;
+    /*((connection_handle = peer->conn_handle;
+    attribute_handle = chr->chr.val_handle;*/
 }
 
 /**
@@ -236,14 +238,22 @@ ble_spp_client_gap_event(struct ble_gap_event *event, void *arg)
         {
             /* Connection successfully established. */
             MODLOG_DFLT(INFO, "Connection established ");
-
+            /*
+            // Let the server decide on MTU length, no need to do that here
+            rc = ble_negotiate_mtu(event->connect.conn_handle);
+            if (rc != 0)
+            {
+                MODLOG_DFLT(ERROR, "Failed to negotiate MTU; rc=%d\n", rc);
+                return 0;
+            }
+            */
             rc = ble_gap_conn_find(event->connect.conn_handle, &desc);
             assert(rc == 0);
             print_conn_desc(&desc);
             MODLOG_DFLT(INFO, "\n");
 
             /* Remember peer. */
-            rc = peer_add(event->connect.conn_handle);
+            rc = peer_add(event->connect.conn_handle, desc);
             if (rc != 0)
             {
                 MODLOG_DFLT(ERROR, "Failed to add peer; rc=%d\n", rc);
@@ -258,6 +268,8 @@ ble_spp_client_gap_event(struct ble_gap_event *event, void *arg)
                 MODLOG_DFLT(ERROR, "Failed to discover services; rc=%d\n", rc);
                 return 0;
             }
+
+
         }
         else
         {
@@ -295,6 +307,9 @@ ble_spp_client_gap_event(struct ble_gap_event *event, void *arg)
                     event->notify_rx.conn_handle,
                     event->notify_rx.attr_handle,
                     OS_MBUF_PKTLEN(event->notify_rx.om));
+
+        MODLOG_DFLT(INFO, "Data:\n%s", (char *) (event->notify_rx.om->om_data));
+
 
         /* Attribute data is contained in event->notify_rx.om. Use
          * `os_mbuf_copydata` to copy the data received in notification mbuf */

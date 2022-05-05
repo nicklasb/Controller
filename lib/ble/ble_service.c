@@ -14,7 +14,7 @@ QueueHandle_t spp_common_uart_queue = NULL;
 /* 16 Bit Alert Notification Service UUID */
 #define GATT_SVR_SVC_ALERT_UUID 0x1811
 
-static uint16_t ble_svc_gatt_read_val_handle, ble_spp_svc_gatt_read_val_handle;
+
 
 /* 16 Bit Alert Notification Service UUID */
 #define BLE_SVC_ANS_UUID16 0x1811
@@ -43,7 +43,7 @@ static int ble_svc_gatt_handler(uint16_t conn_handle, uint16_t attr_handle, stru
         // TODO: So this is where data comes IN, how to combine the to directions?
         // ESP_LOGI(tag,"Data received in write event,conn_handle = %x,attr_handle = %x",conn_handle,attr_handle);
         ESP_LOGI(tag, "Payload length: %i, call count %i", ctxt->om->om_len, callcount++);
-        // ESP_LOGI(tag,"Some text maybe: %i: %s iiii", ctxt->om->om_len, ctxt->om->om_data);
+        ESP_LOGI(tag,"Some text maybe: %i: %s ", ctxt->om->om_len, ctxt->om->om_data);
 
         break;
 

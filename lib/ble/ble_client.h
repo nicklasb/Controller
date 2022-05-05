@@ -14,8 +14,6 @@ extern "C"
     /**********************
      *      TYPEDEFS
      **********************/
-    uint16_t connection_handle;
-    uint16_t attribute_handle;
 
     char client_tag[35];
     /**********************

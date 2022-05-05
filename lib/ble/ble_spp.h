@@ -81,6 +81,9 @@ struct peer {
 
     uint16_t conn_handle;
 
+    /** Connection info */
+    struct ble_gap_conn_desc desc;
+
     /** List of discovered GATT services. */
     struct peer_svc_list svcs;
 
@@ -104,7 +107,7 @@ peer_chr_find_uuid(const struct peer *peer, const ble_uuid_t *svc_uuid,
 const struct peer_svc *
 peer_svc_find_uuid(const struct peer *peer, const ble_uuid_t *uuid);
 int peer_delete(uint16_t conn_handle);
-int peer_add(uint16_t conn_handle);
+int peer_add(uint16_t conn_handle, struct ble_gap_conn_desc desc);
 int peer_init(int max_peers, int max_svcs, int max_chrs, int max_dscs);
 
 struct peer * peer_find(uint16_t conn_handle);

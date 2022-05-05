@@ -23,6 +23,7 @@
 #include "nimble/nimble_port_freertos.h"
 
 
+
 /**
  * @brief Initialize the  BLE server
  * 
@@ -104,6 +105,7 @@ void ble_init(const char *log_prefix, TaskFunction_t pvTaskFunction, bool is_con
     ble_hs_cfg.sm_sc = 0;
     /* Initialize data structures to track connected peers. 
     There is a local pool in peer.c */
+    ESP_LOGI(task_tag,"Init peer with %i ", MYNEWT_VAL(BLE_MAX_CONNECTIONS));
     ret = peer_init(MYNEWT_VAL(BLE_MAX_CONNECTIONS), 64, 64, 64);
     assert(ret == 0);
 

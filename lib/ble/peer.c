@@ -27,13 +27,11 @@ peer_svc_find_range(struct peer *peer, uint16_t attr_handle);
 static struct peer_svc *
 peer_svc_find(struct peer *peer, uint16_t svc_start_handle,
               struct peer_svc **out_prev);
-int
-peer_svc_is_empty(const struct peer_svc *svc);
+int peer_svc_is_empty(const struct peer_svc *svc);
 
 uint16_t
 chr_end_handle(const struct peer_svc *svc, const struct peer_chr *chr);
-int
-chr_is_empty(const struct peer_svc *svc, const struct peer_chr *chr);
+int chr_is_empty(const struct peer_svc *svc, const struct peer_chr *chr);
 static struct peer_chr *
 peer_chr_find(const struct peer_svc *svc, uint16_t chr_def_handle,
               struct peer_chr **out_prev);
@@ -44,13 +42,16 @@ static int
 peer_dsc_disced(uint16_t conn_handle, const struct ble_gatt_error *error,
                 uint16_t chr_val_handle, const struct ble_gatt_dsc *dsc,
                 void *arg);
+
 struct peer *
 peer_find(uint16_t conn_handle)
 {
     struct peer *peer;
 
-    SLIST_FOREACH(peer, &peers, next) {
-        if (peer->conn_handle == conn_handle) {
+    SLIST_FOREACH(peer, &peers, next)
+    {
+        if (peer->conn_handle == conn_handle)
+        {
             return peer;
         }
     }
@@ -64,7 +65,8 @@ peer_disc_complete(struct peer *peer, int rc)
     peer->disc_prev_chr_val = 0;
 
     /* Notify caller that discovery has completed. */
-    if (peer->disc_cb != NULL) {
+    if (peer->disc_cb != NULL)
+    {
         peer->disc_cb(peer, rc, peer->disc_cb_arg);
     }
 }
@@ -76,8 +78,10 @@ peer_dsc_find_prev(const struct peer_chr *chr, uint16_t dsc_handle)
     struct peer_dsc *dsc;
 
     prev = NULL;
-    SLIST_FOREACH(dsc, &chr->dscs, next) {
-        if (dsc->dsc.handle >= dsc_handle) {
+    SLIST_FOREACH(dsc, &chr->dscs, next)
+    {
+        if (dsc->dsc.handle >= dsc_handle)
+        {
             break;
         }
 
@@ -95,17 +99,22 @@ peer_dsc_find(const struct peer_chr *chr, uint16_t dsc_handle,
     struct peer_dsc *dsc;
 
     prev = peer_dsc_find_prev(chr, dsc_handle);
-    if (prev == NULL) {
+    if (prev == NULL)
+    {
         dsc = SLIST_FIRST(&chr->dscs);
-    } else {
+    }
+    else
+    {
         dsc = SLIST_NEXT(prev, next);
     }
 
-    if (dsc != NULL && dsc->dsc.handle != dsc_handle) {
+    if (dsc != NULL && dsc->dsc.handle != dsc_handle)
+    {
         dsc = NULL;
     }
 
-    if (out_prev != NULL) {
+    if (out_prev != NULL)
+    {
         *out_prev = prev;
     }
     return dsc;
@@ -121,7 +130,8 @@ peer_dsc_add(struct peer *peer, uint16_t chr_val_handle,
     struct peer_chr *chr;
 
     svc = peer_svc_find_range(peer, chr_val_handle);
-    if (svc == NULL) {
+    if (svc == NULL)
+    {
         /* Can't find service for discovered descriptor; this shouldn't
          * happen.
          */
@@ -130,7 +140,8 @@ peer_dsc_add(struct peer *peer, uint16_t chr_val_handle,
     }
 
     chr = peer_chr_find(svc, chr_val_handle, NULL);
-    if (chr == NULL) {
+    if (chr == NULL)
+    {
         /* Can't find characteristic for discovered descriptor; this shouldn't
          * happen.
          */
@@ -139,23 +150,28 @@ peer_dsc_add(struct peer *peer, uint16_t chr_val_handle,
     }
 
     dsc = peer_dsc_find(chr, gatt_dsc->handle, &prev);
-    if (dsc != NULL) {
+    if (dsc != NULL)
+    {
         /* Descriptor already discovered. */
         return 0;
     }
 
     dsc = os_memblock_get(&peer_dsc_pool);
-    if (dsc == NULL) {
+    if (dsc == NULL)
+    {
         /* Out of memory. */
         return BLE_HS_ENOMEM;
     }
-    memset(dsc, 0, sizeof * dsc);
+    memset(dsc, 0, sizeof *dsc);
 
     dsc->dsc = *gatt_dsc;
 
-    if (prev == NULL) {
+    if (prev == NULL)
+    {
         SLIST_INSERT_HEAD(&chr->dscs, dsc, next);
-    } else {
+    }
+    else
+    {
         SLIST_NEXT(prev, next) = dsc;
     }
 
@@ -173,17 +189,21 @@ peer_disc_dscs(struct peer *peer)
      * characteristic that contains undiscovered descriptors.  Then, discover
      * all descriptors belonging to that characteristic.
      */
-    SLIST_FOREACH(svc, &peer->svcs, next) {
-        SLIST_FOREACH(chr, &svc->chrs, next) {
+    SLIST_FOREACH(svc, &peer->svcs, next)
+    {
+        SLIST_FOREACH(chr, &svc->chrs, next)
+        {
             if (!chr_is_empty(svc, chr) &&
-                    SLIST_EMPTY(&chr->dscs) &&
-                    peer->disc_prev_chr_val <= chr->chr.def_handle) {
+                SLIST_EMPTY(&chr->dscs) &&
+                peer->disc_prev_chr_val <= chr->chr.def_handle)
+            {
 
                 rc = ble_gattc_disc_all_dscs(peer->conn_handle,
                                              chr->chr.val_handle,
                                              chr_end_handle(svc, chr),
                                              peer_dsc_disced, peer);
-                if (rc != 0) {
+                if (rc != 0)
+                {
                     peer_disc_complete(peer, rc);
                 }
 
@@ -208,7 +228,8 @@ peer_dsc_disced(uint16_t conn_handle, const struct ble_gatt_error *error,
     peer = arg;
     assert(peer->conn_handle == conn_handle);
 
-    switch (error->status) {
+    switch (error->status)
+    {
     case 0:
         rc = peer_dsc_add(peer, chr_val_handle, dsc);
         break;
@@ -217,7 +238,8 @@ peer_dsc_disced(uint16_t conn_handle, const struct ble_gatt_error *error,
         /* All descriptors in this characteristic discovered; start discovering
          * descriptors in the next characteristic.
          */
-        if (peer->disc_prev_chr_val > 0) {
+        if (peer->disc_prev_chr_val > 0)
+        {
             peer_disc_dscs(peer);
         }
         rc = 0;
@@ -229,7 +251,8 @@ peer_dsc_disced(uint16_t conn_handle, const struct ble_gatt_error *error,
         break;
     }
 
-    if (rc != 0) {
+    if (rc != 0)
+    {
         /* Error; abort discovery. */
         peer_disc_complete(peer, rc);
     }
@@ -243,15 +266,17 @@ chr_end_handle(const struct peer_svc *svc, const struct peer_chr *chr)
     const struct peer_chr *next_chr;
 
     next_chr = SLIST_NEXT(chr, next);
-    if (next_chr != NULL) {
+    if (next_chr != NULL)
+    {
         return next_chr->chr.def_handle - 1;
-    } else {
+    }
+    else
+    {
         return svc->svc.end_handle;
     }
 }
 
-int
-chr_is_empty(const struct peer_svc *svc, const struct peer_chr *chr)
+int chr_is_empty(const struct peer_svc *svc, const struct peer_chr *chr)
 {
     return chr_end_handle(svc, chr) <= chr->chr.val_handle;
 }
@@ -263,8 +288,10 @@ peer_chr_find_prev(const struct peer_svc *svc, uint16_t chr_val_handle)
     struct peer_chr *chr;
 
     prev = NULL;
-    SLIST_FOREACH(chr, &svc->chrs, next) {
-        if (chr->chr.val_handle >= chr_val_handle) {
+    SLIST_FOREACH(chr, &svc->chrs, next)
+    {
+        if (chr->chr.val_handle >= chr_val_handle)
+        {
             break;
         }
 
@@ -282,17 +309,22 @@ peer_chr_find(const struct peer_svc *svc, uint16_t chr_val_handle,
     struct peer_chr *chr;
 
     prev = peer_chr_find_prev(svc, chr_val_handle);
-    if (prev == NULL) {
+    if (prev == NULL)
+    {
         chr = SLIST_FIRST(&svc->chrs);
-    } else {
+    }
+    else
+    {
         chr = SLIST_NEXT(prev, next);
     }
 
-    if (chr != NULL && chr->chr.val_handle != chr_val_handle) {
+    if (chr != NULL && chr->chr.val_handle != chr_val_handle)
+    {
         chr = NULL;
     }
 
-    if (out_prev != NULL) {
+    if (out_prev != NULL)
+    {
         *out_prev = prev;
     }
     return chr;
@@ -303,7 +335,8 @@ peer_chr_delete(struct peer_chr *chr)
 {
     struct peer_dsc *dsc;
 
-    while ((dsc = SLIST_FIRST(&chr->dscs)) != NULL) {
+    while ((dsc = SLIST_FIRST(&chr->dscs)) != NULL)
+    {
         SLIST_REMOVE_HEAD(&chr->dscs, next);
         os_memblock_put(&peer_dsc_pool, dsc);
     }
@@ -312,7 +345,7 @@ peer_chr_delete(struct peer_chr *chr)
 }
 
 static int
-peer_chr_add(struct peer *peer,  uint16_t svc_start_handle,
+peer_chr_add(struct peer *peer, uint16_t svc_start_handle,
              const struct ble_gatt_chr *gatt_chr)
 {
     struct peer_chr *prev;
@@ -320,7 +353,8 @@ peer_chr_add(struct peer *peer,  uint16_t svc_start_handle,
     struct peer_svc *svc;
 
     svc = peer_svc_find(peer, svc_start_handle, NULL);
-    if (svc == NULL) {
+    if (svc == NULL)
+    {
         /* Can't find service for discovered characteristic; this shouldn't
          * happen.
          */
@@ -329,23 +363,28 @@ peer_chr_add(struct peer *peer,  uint16_t svc_start_handle,
     }
 
     chr = peer_chr_find(svc, gatt_chr->def_handle, &prev);
-    if (chr != NULL) {
+    if (chr != NULL)
+    {
         /* Characteristic already discovered. */
         return 0;
     }
 
     chr = os_memblock_get(&peer_chr_pool);
-    if (chr == NULL) {
+    if (chr == NULL)
+    {
         /* Out of memory. */
         return BLE_HS_ENOMEM;
     }
-    memset(chr, 0, sizeof * chr);
+    memset(chr, 0, sizeof *chr);
 
     chr->chr = *gatt_chr;
 
-    if (prev == NULL) {
+    if (prev == NULL)
+    {
         SLIST_INSERT_HEAD(&svc->chrs, chr, next);
-    } else {
+    }
+    else
+    {
         SLIST_NEXT(prev, next) = chr;
     }
 
@@ -362,7 +401,8 @@ peer_chr_disced(uint16_t conn_handle, const struct ble_gatt_error *error,
     peer = arg;
     assert(peer->conn_handle == conn_handle);
 
-    switch (error->status) {
+    switch (error->status)
+    {
     case 0:
         rc = peer_chr_add(peer, peer->cur_svc->svc.start_handle, chr);
         break;
@@ -371,7 +411,8 @@ peer_chr_disced(uint16_t conn_handle, const struct ble_gatt_error *error,
         /* All characteristics in this service discovered; start discovering
          * characteristics in the next service.
          */
-        if (peer->disc_prev_chr_val > 0) {
+        if (peer->disc_prev_chr_val > 0)
+        {
             peer_disc_chrs(peer);
         }
         rc = 0;
@@ -382,7 +423,8 @@ peer_chr_disced(uint16_t conn_handle, const struct ble_gatt_error *error,
         break;
     }
 
-    if (rc != 0) {
+    if (rc != 0)
+    {
         /* Error; abort discovery. */
         peer_disc_complete(peer, rc);
     }
@@ -400,14 +442,17 @@ peer_disc_chrs(struct peer *peer)
      * contains undiscovered characteristics.  Then, discover all
      * characteristics belonging to that service.
      */
-    SLIST_FOREACH(svc, &peer->svcs, next) {
-        if (!peer_svc_is_empty(svc) && SLIST_EMPTY(&svc->chrs)) {
+    SLIST_FOREACH(svc, &peer->svcs, next)
+    {
+        if (!peer_svc_is_empty(svc) && SLIST_EMPTY(&svc->chrs))
+        {
             peer->cur_svc = svc;
             rc = ble_gattc_disc_all_chrs(peer->conn_handle,
                                          svc->svc.start_handle,
                                          svc->svc.end_handle,
                                          peer_chr_disced, peer);
-            if (rc != 0) {
+            if (rc != 0)
+            {
                 peer_disc_complete(peer, rc);
             }
             return;
@@ -418,8 +463,7 @@ peer_disc_chrs(struct peer *peer)
     peer_disc_dscs(peer);
 }
 
-int
-peer_svc_is_empty(const struct peer_svc *svc)
+int peer_svc_is_empty(const struct peer_svc *svc)
 {
     return svc->svc.end_handle <= svc->svc.start_handle;
 }
@@ -431,8 +475,10 @@ peer_svc_find_prev(struct peer *peer, uint16_t svc_start_handle)
     struct peer_svc *svc;
 
     prev = NULL;
-    SLIST_FOREACH(svc, &peer->svcs, next) {
-        if (svc->svc.start_handle >= svc_start_handle) {
+    SLIST_FOREACH(svc, &peer->svcs, next)
+    {
+        if (svc->svc.start_handle >= svc_start_handle)
+        {
             break;
         }
 
@@ -450,17 +496,22 @@ peer_svc_find(struct peer *peer, uint16_t svc_start_handle,
     struct peer_svc *svc;
 
     prev = peer_svc_find_prev(peer, svc_start_handle);
-    if (prev == NULL) {
+    if (prev == NULL)
+    {
         svc = SLIST_FIRST(&peer->svcs);
-    } else {
+    }
+    else
+    {
         svc = SLIST_NEXT(prev, next);
     }
 
-    if (svc != NULL && svc->svc.start_handle != svc_start_handle) {
+    if (svc != NULL && svc->svc.start_handle != svc_start_handle)
+    {
         svc = NULL;
     }
 
-    if (out_prev != NULL) {
+    if (out_prev != NULL)
+    {
         *out_prev = prev;
     }
     return svc;
@@ -471,9 +522,11 @@ peer_svc_find_range(struct peer *peer, uint16_t attr_handle)
 {
     struct peer_svc *svc;
 
-    SLIST_FOREACH(svc, &peer->svcs, next) {
+    SLIST_FOREACH(svc, &peer->svcs, next)
+    {
         if (svc->svc.start_handle <= attr_handle &&
-                svc->svc.end_handle >= attr_handle) {
+            svc->svc.end_handle >= attr_handle)
+        {
 
             return svc;
         }
@@ -487,8 +540,10 @@ peer_svc_find_uuid(const struct peer *peer, const ble_uuid_t *uuid)
 {
     const struct peer_svc *svc;
 
-    SLIST_FOREACH(svc, &peer->svcs, next) {
-        if (ble_uuid_cmp(&svc->svc.uuid.u, uuid) == 0) {
+    SLIST_FOREACH(svc, &peer->svcs, next)
+    {
+        if (ble_uuid_cmp(&svc->svc.uuid.u, uuid) == 0)
+        {
             return svc;
         }
     }
@@ -504,12 +559,15 @@ peer_chr_find_uuid(const struct peer *peer, const ble_uuid_t *svc_uuid,
     const struct peer_chr *chr;
 
     svc = peer_svc_find_uuid(peer, svc_uuid);
-    if (svc == NULL) {
+    if (svc == NULL)
+    {
         return NULL;
     }
 
-    SLIST_FOREACH(chr, &svc->chrs, next) {
-        if (ble_uuid_cmp(&chr->chr.uuid.u, chr_uuid) == 0) {
+    SLIST_FOREACH(chr, &svc->chrs, next)
+    {
+        if (ble_uuid_cmp(&chr->chr.uuid.u, chr_uuid) == 0)
+        {
             return chr;
         }
     }
@@ -525,12 +583,15 @@ peer_dsc_find_uuid(const struct peer *peer, const ble_uuid_t *svc_uuid,
     const struct peer_dsc *dsc;
 
     chr = peer_chr_find_uuid(peer, svc_uuid, chr_uuid);
-    if (chr == NULL) {
+    if (chr == NULL)
+    {
         return NULL;
     }
 
-    SLIST_FOREACH(dsc, &chr->dscs, next) {
-        if (ble_uuid_cmp(&dsc->dsc.uuid.u, dsc_uuid) == 0) {
+    SLIST_FOREACH(dsc, &chr->dscs, next)
+    {
+        if (ble_uuid_cmp(&dsc->dsc.uuid.u, dsc_uuid) == 0)
+        {
             return dsc;
         }
     }
@@ -545,24 +606,29 @@ peer_svc_add(struct peer *peer, const struct ble_gatt_svc *gatt_svc)
     struct peer_svc *svc;
 
     svc = peer_svc_find(peer, gatt_svc->start_handle, &prev);
-    if (svc != NULL) {
+    if (svc != NULL)
+    {
         /* Service already discovered. */
         return 0;
     }
 
     svc = os_memblock_get(&peer_svc_pool);
-    if (svc == NULL) {
+    if (svc == NULL)
+    {
         /* Out of memory. */
         return BLE_HS_ENOMEM;
     }
-    memset(svc, 0, sizeof * svc);
+    memset(svc, 0, sizeof *svc);
 
     svc->svc = *gatt_svc;
     SLIST_INIT(&svc->chrs);
 
-    if (prev == NULL) {
+    if (prev == NULL)
+    {
         SLIST_INSERT_HEAD(&peer->svcs, svc, next);
-    } else {
+    }
+    else
+    {
         SLIST_INSERT_AFTER(prev, svc, next);
     }
 
@@ -574,7 +640,8 @@ peer_svc_delete(struct peer_svc *svc)
 {
     struct peer_chr *chr;
 
-    while ((chr = SLIST_FIRST(&svc->chrs)) != NULL) {
+    while ((chr = SLIST_FIRST(&svc->chrs)) != NULL)
+    {
         SLIST_REMOVE_HEAD(&svc->chrs, next);
         peer_chr_delete(chr);
     }
@@ -592,14 +659,16 @@ peer_svc_disced(uint16_t conn_handle, const struct ble_gatt_error *error,
     peer = arg;
     assert(peer->conn_handle == conn_handle);
 
-    switch (error->status) {
+    switch (error->status)
+    {
     case 0:
         rc = peer_svc_add(peer, service);
         break;
 
     case BLE_HS_EDONE:
         /* All services discovered; start discovering characteristics. */
-        if (peer->disc_prev_chr_val > 0) {
+        if (peer->disc_prev_chr_val > 0)
+        {
             peer_disc_chrs(peer);
         }
         rc = 0;
@@ -610,7 +679,8 @@ peer_svc_disced(uint16_t conn_handle, const struct ble_gatt_error *error,
         break;
     }
 
-    if (rc != 0) {
+    if (rc != 0)
+    {
         /* Error; abort discovery. */
         peer_disc_complete(peer, rc);
     }
@@ -618,21 +688,21 @@ peer_svc_disced(uint16_t conn_handle, const struct ble_gatt_error *error,
     return rc;
 }
 
-
-int
-peer_disc_all(uint16_t conn_handle, peer_disc_fn *disc_cb, void *disc_cb_arg)
+int peer_disc_all(uint16_t conn_handle, peer_disc_fn *disc_cb, void *disc_cb_arg)
 {
     struct peer_svc *svc;
     struct peer *peer;
     int rc;
 
     peer = peer_find(conn_handle);
-    if (peer == NULL) {
+    if (peer == NULL)
+    {
         return BLE_HS_ENOTCONN;
     }
 
     /* Undiscover everything first. */
-    while ((svc = SLIST_FIRST(&peer->svcs)) != NULL) {
+    while ((svc = SLIST_FIRST(&peer->svcs)) != NULL)
+    {
         SLIST_REMOVE_HEAD(&peer->svcs, next);
         peer_svc_delete(svc);
     }
@@ -642,59 +712,64 @@ peer_disc_all(uint16_t conn_handle, peer_disc_fn *disc_cb, void *disc_cb_arg)
     peer->disc_cb_arg = disc_cb_arg;
 
     rc = ble_gattc_disc_all_svcs(conn_handle, peer_svc_disced, peer);
-    if (rc != 0) {
+    if (rc != 0)
+    {
         return rc;
     }
 
     return 0;
 }
 
-int
-peer_delete(uint16_t conn_handle)
+int peer_delete(uint16_t conn_handle)
 {
     struct peer_svc *svc;
     struct peer *peer;
     int rc;
 
     peer = peer_find(conn_handle);
-    if (peer == NULL) {
+    if (peer == NULL)
+    {
         return BLE_HS_ENOTCONN;
     }
 
     SLIST_REMOVE(&peers, peer, peer, next);
 
-    while ((svc = SLIST_FIRST(&peer->svcs)) != NULL) {
+    while ((svc = SLIST_FIRST(&peer->svcs)) != NULL)
+    {
         SLIST_REMOVE_HEAD(&peer->svcs, next);
         peer_svc_delete(svc);
     }
 
     rc = os_memblock_put(&peer_pool, peer);
-    if (rc != 0) {
+    if (rc != 0)
+    {
         return BLE_HS_EOS;
     }
 
     return 0;
 }
 
-int
-peer_add(uint16_t conn_handle)
+int peer_add(uint16_t conn_handle, struct ble_gap_conn_desc desc)
 {
     struct peer *peer;
 
     /* Make sure the connection handle is unique. */
     peer = peer_find(conn_handle);
-    if (peer != NULL) {
+    if (peer != NULL)
+    {
         return BLE_HS_EALREADY;
     }
 
     peer = os_memblock_get(&peer_pool);
-    if (peer == NULL) {
+    if (peer == NULL)
+    {
         /* Out of memory. */
         return BLE_HS_ENOMEM;
     }
 
-    memset(peer, 0, sizeof * peer);
+    memset(peer, 0, sizeof *peer);
     peer->conn_handle = conn_handle;
+    peer->desc = desc;
 
     SLIST_INSERT_HEAD(&peers, peer, next);
 
@@ -717,8 +792,7 @@ peer_free_mem(void)
     peer_dsc_mem = NULL;
 }
 
-int
-peer_init(int max_peers, int max_svcs, int max_chrs, int max_dscs)
+int peer_init(int max_peers, int max_svcs, int max_chrs, int max_dscs)
 {
     int rc;
 
@@ -726,61 +800,69 @@ peer_init(int max_peers, int max_svcs, int max_chrs, int max_dscs)
     peer_free_mem();
 
     peer_mem = malloc(
-                   OS_MEMPOOL_BYTES(max_peers, sizeof (struct peer)));
-    if (peer_mem == NULL) {
+        OS_MEMPOOL_BYTES(max_peers, sizeof(struct peer)));
+    if (peer_mem == NULL)
+    {
         rc = BLE_HS_ENOMEM;
         goto err;
     }
 
     rc = os_mempool_init(&peer_pool, max_peers,
-                         sizeof (struct peer), peer_mem,
+                         sizeof(struct peer), peer_mem,
                          "peer_pool");
-    if (rc != 0) {
+    if (rc != 0)
+    {
         rc = BLE_HS_EOS;
         goto err;
     }
 
     peer_svc_mem = malloc(
-                       OS_MEMPOOL_BYTES(max_svcs, sizeof (struct peer_svc)));
-    if (peer_svc_mem == NULL) {
+        OS_MEMPOOL_BYTES(max_svcs, sizeof(struct peer_svc)));
+    if (peer_svc_mem == NULL)
+    {
         rc = BLE_HS_ENOMEM;
         goto err;
     }
 
     rc = os_mempool_init(&peer_svc_pool, max_svcs,
-                         sizeof (struct peer_svc), peer_svc_mem,
+                         sizeof(struct peer_svc), peer_svc_mem,
                          "peer_svc_pool");
-    if (rc != 0) {
+    if (rc != 0)
+    {
         rc = BLE_HS_EOS;
         goto err;
     }
 
     peer_chr_mem = malloc(
-                       OS_MEMPOOL_BYTES(max_chrs, sizeof (struct peer_chr)));
-    if (peer_chr_mem == NULL) {
+        OS_MEMPOOL_BYTES(max_chrs, sizeof(struct peer_chr)));
+    if (peer_chr_mem == NULL)
+    {
         rc = BLE_HS_ENOMEM;
         goto err;
     }
 
     rc = os_mempool_init(&peer_chr_pool, max_chrs,
-                         sizeof (struct peer_chr), peer_chr_mem,
+                         sizeof(struct peer_chr), peer_chr_mem,
                          "peer_chr_pool");
-    if (rc != 0) {
+    if (rc != 0)
+    {
         rc = BLE_HS_EOS;
         goto err;
     }
 
     peer_dsc_mem = malloc(
-                       OS_MEMPOOL_BYTES(max_dscs, sizeof (struct peer_dsc)));
-    if (peer_dsc_mem == NULL) {
+        OS_MEMPOOL_BYTES(max_dscs, sizeof(struct peer_dsc)));
+    if (peer_dsc_mem == NULL)
+    {
         rc = BLE_HS_ENOMEM;
         goto err;
     }
 
     rc = os_mempool_init(&peer_dsc_pool, max_dscs,
-                         sizeof (struct peer_dsc), peer_dsc_mem,
+                         sizeof(struct peer_dsc), peer_dsc_mem,
                          "peer_dsc_pool");
-    if (rc != 0) {
+    if (rc != 0)
+    {
         rc = BLE_HS_EOS;
         goto err;
     }

@@ -7,15 +7,11 @@
 #include "esp_nimble_hci.h"
 #include "services/gap/ble_svc_gap.h"
 #include "ble_spp.h"
-
-
-
-
+#include "ble_global.h"
 
 
 
 static uint8_t own_addr_type;
-uint16_t connection_handle;
 
 static int ble_spp_server_gap_event(struct ble_gap_event *event, void *arg);
 
@@ -38,7 +34,7 @@ ble_spp_server_print_conn_desc(struct ble_gap_conn_desc *desc)
                 desc->peer_id_addr.type);
     print_addr(desc->peer_id_addr.val);
     MODLOG_DFLT(INFO, " conn_itvl=%d conn_latency=%d supervision_timeout=%d "
-                "encrypted=%d authenticated=%d bonded=%d\n",
+                      "encrypted=%d authenticated=%d bonded=%d\n",
                 desc->conn_itvl, desc->conn_latency,
                 desc->supervision_timeout,
                 desc->sec_state.encrypted,
@@ -112,6 +108,36 @@ ble_spp_server_advertise(void)
         return;
     }
 }
+
+/**
+ * Called when service discovery of the specified peer has completed.
+ */
+static void
+ble_spp_server_on_disc_complete(const struct peer *peer, int status, void *arg)
+{
+
+    if (status != 0)
+    {
+        /* Service discovery failed.  Terminate the connection. */
+        MODLOG_DFLT(ERROR, "Error: Service discovery failed; status=%d "
+                           "conn_handle=%d\n",
+                    status, peer->conn_handle);
+        ble_gap_terminate(peer->conn_handle, BLE_ERR_REM_USER_CONN_TERM);
+        return;
+    }
+
+    /* Service discovery has completed successfully.  Now we have a complete
+     * list of services, characteristics, and descriptors that the peer
+     * supports.
+     */
+    MODLOG_DFLT(INFO, "Service discovery complete; status=%d "
+                      "conn_handle=%d\n",
+                status, peer->conn_handle);
+
+    
+}
+
+
 /**
  * The nimble host executes this callback when a GAP event occurs.  The
  * application associates a GAP event callback with each connection that forms.
@@ -145,9 +171,36 @@ ble_spp_server_gap_event(struct ble_gap_event *event, void *arg)
             rc = ble_gap_conn_find(event->connect.conn_handle, &desc);
             assert(rc == 0);
             ble_spp_server_print_conn_desc(&desc);
-            //is_connect = true;
-            connection_handle = event->connect.conn_handle;
-            //xTaskCreatePinnedToCore(ble_client_my_task, "myTask", 8192 * 2, NULL, 8, NULL, 0);
+
+            rc = ble_negotiate_mtu(event->connect.conn_handle);
+            if (rc != 0)
+            {
+                MODLOG_DFLT(ERROR, "Failed to negotiate MTU; rc=%d\n", rc);
+                return 0;
+            }
+            /* Remember peer. */
+            rc = peer_add(event->connect.conn_handle, desc);
+            if (rc != 0)
+            {
+                MODLOG_DFLT(ERROR, "Failed to add peer; rc=%d\n", rc);
+                return 0;
+            }
+            MODLOG_DFLT(INFO, "Added peer.");
+            /* Perform service discovery. */
+            rc = peer_disc_all(event->connect.conn_handle,
+                               ble_spp_server_on_disc_complete, NULL);
+            if (rc != 0)
+            {
+                MODLOG_DFLT(ERROR, "Failed to discover services; rc=%d\n", rc);
+                return 0;
+            }
+            //desc.peer_ota_addr
+            char *name = malloc(15);
+            
+            sprintf(name, "%i_conn%s", event->connect.conn_handle, "\0");
+            ESP_LOGI("sdfsdf", "Adding %s, %i", name, event->connect.conn_handle);
+            
+            
         }
         MODLOG_DFLT(INFO, "\n");
         if (event->connect.status != 0)
@@ -161,8 +214,7 @@ ble_spp_server_gap_event(struct ble_gap_event *event, void *arg)
         MODLOG_DFLT(INFO, "disconnect; reason=%d ", event->disconnect.reason);
         ble_spp_server_print_conn_desc(&event->disconnect.conn);
         MODLOG_DFLT(INFO, "\n");
-        connection_handle = 9999;
-
+        
         /* Connection terminated; resume advertising. */
         ble_spp_server_advertise();
         return 0;
@@ -194,8 +246,6 @@ ble_spp_server_gap_event(struct ble_gap_event *event, void *arg)
         return 0;
     }
 }
-
-
 
 void ble_spp_server_on_reset(int reason)
 {

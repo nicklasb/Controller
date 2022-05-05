@@ -13,6 +13,8 @@ extern "C" {
 /* 16 Bit SPP Service Characteristic UUID */
 #define GATT_SPP_CHR_UUID                                  0xABF1
 
+uint16_t ble_svc_gatt_read_val_handle, ble_spp_svc_gatt_read_val_handle;
+
 /** Misc. */
 void print_bytes(const uint8_t *bytes, int len);
 void print_addr(const void *addr);

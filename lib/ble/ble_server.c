@@ -1,46 +1,23 @@
 
+/***********************
+ * This is general server level handling
+ ***********************/
 
 #include "ble_server.h"
 
-#include "host/ble_hs.h"
 #include "host/util/util.h"
+#include "host/ble_hs.h"
+
 #include "esp_nimble_hci.h"
 #include "services/gap/ble_svc_gap.h"
-#include "ble_spp.h"
+
 #include "ble_global.h"
-
-
+#include "ble_spp.h"
 
 static uint8_t own_addr_type;
 
 static int ble_spp_server_gap_event(struct ble_gap_event *event, void *arg);
 
-/**
- * Logs information about a connection to the console.
- */
-static void
-ble_spp_server_print_conn_desc(struct ble_gap_conn_desc *desc)
-{
-    MODLOG_DFLT(INFO, "handle=%d our_ota_addr_type=%d our_ota_addr=",
-                desc->conn_handle, desc->our_ota_addr.type);
-    print_addr(desc->our_ota_addr.val);
-    MODLOG_DFLT(INFO, " our_id_addr_type=%d our_id_addr=",
-                desc->our_id_addr.type);
-    print_addr(desc->our_id_addr.val);
-    MODLOG_DFLT(INFO, " peer_ota_addr_type=%d peer_ota_addr=",
-                desc->peer_ota_addr.type);
-    print_addr(desc->peer_ota_addr.val);
-    MODLOG_DFLT(INFO, " peer_id_addr_type=%d peer_id_addr=",
-                desc->peer_id_addr.type);
-    print_addr(desc->peer_id_addr.val);
-    MODLOG_DFLT(INFO, " conn_itvl=%d conn_latency=%d supervision_timeout=%d "
-                      "encrypted=%d authenticated=%d bonded=%d\n",
-                desc->conn_itvl, desc->conn_latency,
-                desc->supervision_timeout,
-                desc->sec_state.encrypted,
-                desc->sec_state.authenticated,
-                desc->sec_state.bonded);
-}
 /**
  * Enables advertising with the following parameters:
  *     o General discoverable mode.
@@ -110,35 +87,6 @@ ble_spp_server_advertise(void)
 }
 
 /**
- * Called when service discovery of the specified peer has completed.
- */
-static void
-ble_spp_server_on_disc_complete(const struct peer *peer, int status, void *arg)
-{
-
-    if (status != 0)
-    {
-        /* Service discovery failed.  Terminate the connection. */
-        MODLOG_DFLT(ERROR, "Error: Service discovery failed; status=%d "
-                           "conn_handle=%d\n",
-                    status, peer->conn_handle);
-        ble_gap_terminate(peer->conn_handle, BLE_ERR_REM_USER_CONN_TERM);
-        return;
-    }
-
-    /* Service discovery has completed successfully.  Now we have a complete
-     * list of services, characteristics, and descriptors that the peer
-     * supports.
-     */
-    MODLOG_DFLT(INFO, "Service discovery complete; status=%d "
-                      "conn_handle=%d\n",
-                status, peer->conn_handle);
-
-    
-}
-
-
-/**
  * The nimble host executes this callback when a GAP event occurs.  The
  * application associates a GAP event callback with each connection that forms.
  * ble_spp_server uses the same callback for all connections.
@@ -168,9 +116,12 @@ ble_spp_server_gap_event(struct ble_gap_event *event, void *arg)
                     event->connect.status);
         if (event->connect.status == 0)
         {
+            /* Connection successfully established. */
+
             rc = ble_gap_conn_find(event->connect.conn_handle, &desc);
             assert(rc == 0);
-            ble_spp_server_print_conn_desc(&desc);
+            print_conn_desc(&desc);
+            MODLOG_DFLT(INFO, "\n");
 
             rc = ble_negotiate_mtu(event->connect.conn_handle);
             if (rc != 0)
@@ -188,21 +139,14 @@ ble_spp_server_gap_event(struct ble_gap_event *event, void *arg)
             MODLOG_DFLT(INFO, "Added peer.");
             /* Perform service discovery. */
             rc = peer_disc_all(event->connect.conn_handle,
-                               ble_spp_server_on_disc_complete, NULL);
+                               ble_on_disc_complete, NULL);
             if (rc != 0)
             {
                 MODLOG_DFLT(ERROR, "Failed to discover services; rc=%d\n", rc);
                 return 0;
             }
-            //desc.peer_ota_addr
-            char *name = malloc(15);
-            
-            sprintf(name, "%i_conn%s", event->connect.conn_handle, "\0");
-            ESP_LOGI("sdfsdf", "Adding %s, %i", name, event->connect.conn_handle);
-            
-            
         }
-        MODLOG_DFLT(INFO, "\n");
+        
         if (event->connect.status != 0)
         {
             /* Connection failed; resume advertising. */
@@ -212,9 +156,9 @@ ble_spp_server_gap_event(struct ble_gap_event *event, void *arg)
 
     case BLE_GAP_EVENT_DISCONNECT:
         MODLOG_DFLT(INFO, "disconnect; reason=%d ", event->disconnect.reason);
-        ble_spp_server_print_conn_desc(&event->disconnect.conn);
+        print_conn_desc(&event->disconnect.conn);
         MODLOG_DFLT(INFO, "\n");
-        
+
         /* Connection terminated; resume advertising. */
         ble_spp_server_advertise();
         return 0;
@@ -225,7 +169,7 @@ ble_spp_server_gap_event(struct ble_gap_event *event, void *arg)
                     event->conn_update.status);
         rc = ble_gap_conn_find(event->conn_update.conn_handle, &desc);
         assert(rc == 0);
-        ble_spp_server_print_conn_desc(&desc);
+        print_conn_desc(&desc);
         MODLOG_DFLT(INFO, "\n");
         return 0;
 
@@ -247,10 +191,6 @@ ble_spp_server_gap_event(struct ble_gap_event *event, void *arg)
     }
 }
 
-void ble_spp_server_on_reset(int reason)
-{
-    MODLOG_DFLT(ERROR, "Resetting state; reason=%d\n", reason);
-}
 
 void ble_spp_server_on_sync(void)
 {

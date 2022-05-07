@@ -6,8 +6,19 @@
 #include "host/ble_uuid.h"
 #include "ble_service.h"
 
-
-
+/**
+ * @brief Handles incoming data
+ * 
+ * @param conn_handle The connection handle of the peer
+ * @param attr_handle The handle of the attribute being sent
+ * @param ctxt Access context information
+ */
+void on_ble_data(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt *ctxt) {
+        ESP_LOGI(task_tag,"In ble data callback on the controller!");
+        if (strcmp((char *) (ctxt->om->om_data), (char *)"status") == 0) {
+            ESP_LOGI(task_tag,"Got asked for status!");
+            }
+}
 
 /* 
 This is the running task of the client (the central), it currently connects to the server (actually peripheral) and sends data.
@@ -26,9 +37,9 @@ void ble_client_my_task(void *pvParameters)
      (that might not be possible if not a param here; should a controller init exist?)
     */
     xBLESemaphore = xSemaphoreCreateMutex();
-
+    on_ble_data_cb = on_ble_data;
        
-    char myarray[25] = "Controller_Sending!!!!!!\0";
+    char myarray[7] = "status\0";
     int ret;
     int i =0;
     ESP_LOGI(task_tag, "My Task controller: BLE client UART task started\n");

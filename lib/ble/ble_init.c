@@ -21,6 +21,7 @@
 #include "services/gap/ble_svc_gap.h"
 #include "nimble/nimble_port.h"
 #include "nimble/nimble_port_freertos.h"
+#include "ble_global.h"
 
 
 
@@ -91,11 +92,11 @@ void ble_init(const char *log_prefix, TaskFunction_t pvTaskFunction, bool is_con
 
     if (is_controller) {
         /* Configure the host callbacks */
-        ble_hs_cfg.reset_cb = ble_spp_client_on_reset;
+        ble_hs_cfg.reset_cb = ble_on_reset;
         ble_hs_cfg.sync_cb = ble_spp_client_on_sync;
     } else {
         /* Initialize the NimBLE host configuration. */
-    ble_hs_cfg.reset_cb = ble_spp_server_on_reset;
+    ble_hs_cfg.reset_cb = ble_on_reset;
     ble_hs_cfg.sync_cb = ble_spp_server_on_sync;
     }
 
@@ -122,5 +123,5 @@ void ble_init(const char *log_prefix, TaskFunction_t pvTaskFunction, bool is_con
     strupr(strcpy(client_tag,log_prefix));
     strcat(client_tag, "_CENTRAL_CLIENT\0");
     /* Start the thread for the host stack, pass the client task which nimble_port_run */
-    nimble_port_freertos_init(ble_spp_client_host_task);
+    nimble_port_freertos_init(ble_host_task);
 }

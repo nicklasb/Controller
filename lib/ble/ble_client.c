@@ -3,62 +3,19 @@
  * This is general client level handling
  ***********************/
 
-#include "esp_log.h"
-#include "modlog/modlog.h"
-#include "nimble/ble.h"
+#include "ble_client.h"
+
+#include "host/util/util.h"
 
 #include "host/ble_gap.h"
 
-#include "ble_client.h"
 #include "ble_service.h"
-#include "host/util/util.h"
-#include "nimble/nimble_port.h"
-#include "nimble/nimble_port_freertos.h"
+
 
 #include "ble_global.h"
 #include "ble_spp.h"
 
 static int ble_spp_client_gap_event(struct ble_gap_event *event, void *arg);
-
-
-static void
-ble_spp_client_set_handles(const struct peer *peer)
-{
-    const struct peer_chr *chr;
-    chr = peer_chr_find_uuid(peer,
-                             BLE_UUID16_DECLARE(GATT_SPP_SVC_UUID),
-                             BLE_UUID16_DECLARE(GATT_SPP_CHR_UUID));
-    /*((connection_handle = peer->conn_handle;
-    attribute_handle = chr->chr.val_handle;*/
-}
-
-/**
- * Called when service discovery of the specified peer has completed.
- */
-static void
-ble_spp_client_on_disc_complete(const struct peer *peer, int status, void *arg)
-{
-
-    if (status != 0)
-    {
-        /* Service discovery failed.  Terminate the connection. */
-        MODLOG_DFLT(ERROR, "Error: Service discovery failed; status=%d "
-                           "conn_handle=%d\n",
-                    status, peer->conn_handle);
-        ble_gap_terminate(peer->conn_handle, BLE_ERR_REM_USER_CONN_TERM);
-        return;
-    }
-
-    /* Service discovery has completed successfully.  Now we have a complete
-     * list of services, characteristics, and descriptors that the peer
-     * supports.
-     */
-    MODLOG_DFLT(INFO, "Service discovery complete; status=%d "
-                      "conn_handle=%d\n",
-                status, peer->conn_handle);
-
-    ble_spp_client_set_handles(peer);
-}
 
 /**
  * Initiates the GAP general discovery procedure.
@@ -215,38 +172,16 @@ ble_spp_client_gap_event(struct ble_gap_event *event, void *arg)
 
     switch (event->type)
     {
-    case BLE_GAP_EVENT_DISC:
-        rc = ble_hs_adv_parse_fields(&fields, event->disc.data,
-                                     event->disc.length_data);
-        if (rc != 0)
-        {
-            return 0;
-        }
-
-        /* An advertisment report was received during GAP discovery. */
-        print_adv_fields(&fields);
-
-        /* Try to connect to the advertiser if it looks interesting. */
-        ble_spp_client_connect_if_interesting(&event->disc);
-        return 0;
-
-        ESP_LOGI(client_tag, "Got somefing %u", event->type);
 
     case BLE_GAP_EVENT_CONNECT:
         /* A new connection was established or a connection attempt failed. */
+        MODLOG_DFLT(INFO, "connection %s; status=%d ",
+                    event->connect.status == 0 ? "established" : "failed",
+                    event->connect.status);        
         if (event->connect.status == 0)
         {
             /* Connection successfully established. */
-            MODLOG_DFLT(INFO, "Connection established ");
-            /*
-            // Let the server decide on MTU length, no need to do that here
-            rc = ble_negotiate_mtu(event->connect.conn_handle);
-            if (rc != 0)
-            {
-                MODLOG_DFLT(ERROR, "Failed to negotiate MTU; rc=%d\n", rc);
-                return 0;
-            }
-            */
+
             rc = ble_gap_conn_find(event->connect.conn_handle, &desc);
             assert(rc == 0);
             print_conn_desc(&desc);
@@ -262,14 +197,12 @@ ble_spp_client_gap_event(struct ble_gap_event *event, void *arg)
 
             /* Perform service discovery. */
             rc = peer_disc_all(event->connect.conn_handle,
-                               ble_spp_client_on_disc_complete, NULL);
+                               ble_on_disc_complete, NULL);
             if (rc != 0)
             {
                 MODLOG_DFLT(ERROR, "Failed to discover services; rc=%d\n", rc);
                 return 0;
             }
-
-
         }
         else
         {
@@ -294,6 +227,21 @@ ble_spp_client_gap_event(struct ble_gap_event *event, void *arg)
         ble_spp_client_scan();
         return 0;
 
+    case BLE_GAP_EVENT_DISC:
+        rc = ble_hs_adv_parse_fields(&fields, event->disc.data,
+                                     event->disc.length_data);
+        if (rc != 0)
+        {
+            return 0;
+        }
+
+        /* An advertisment report was received during GAP discovery. */
+        print_adv_fields(&fields);
+
+        /* Try to connect to the advertiser if it looks interesting. */
+        ble_spp_client_connect_if_interesting(&event->disc);
+        return 0;
+
     case BLE_GAP_EVENT_DISC_COMPLETE:
         MODLOG_DFLT(INFO, "discovery complete; reason=%d\n",
                     event->disc_complete.reason);
@@ -308,8 +256,7 @@ ble_spp_client_gap_event(struct ble_gap_event *event, void *arg)
                     event->notify_rx.attr_handle,
                     OS_MBUF_PKTLEN(event->notify_rx.om));
 
-        MODLOG_DFLT(INFO, "Data:\n%s", (char *) (event->notify_rx.om->om_data));
-
+        MODLOG_DFLT(INFO, "Data:\n%s", (char *)(event->notify_rx.om->om_data));
 
         /* Attribute data is contained in event->notify_rx.om. Use
          * `os_mbuf_copydata` to copy the data received in notification mbuf */
@@ -328,10 +275,6 @@ ble_spp_client_gap_event(struct ble_gap_event *event, void *arg)
     }
 }
 
-void ble_spp_client_on_reset(int reason)
-{
-    MODLOG_DFLT(ERROR, "Resetting state; reason=%d\n", reason);
-}
 
 void ble_spp_client_on_sync(void)
 {
@@ -343,18 +286,4 @@ void ble_spp_client_on_sync(void)
 
     /* Begin scanning for a peripheral to connect to. */
     ble_spp_client_scan();
-}
-/**
- * @brief The general client host task
- * @details This is the actual task the host runs in.
- * TODO: Does this have to be sticked to core 0? Set in the config?
- */
-void ble_spp_client_host_task(void *param)
-{
-    ESP_LOGI(client_tag, "BLE Host Task Started");
-    // TODO: Set the log tag here name (pass it in params, I think)
-    /* This function will return only when nimble_port_stop() is executed */
-    nimble_port_run();
-
-    nimble_port_freertos_deinit();
 }

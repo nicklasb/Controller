@@ -7,6 +7,9 @@
 extern "C" {
 #endif
 
+void (*on_ble_data_cb)(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt *ctxt);
+
+
 /* 16 Bit SPP Service UUID */
 #define GATT_SPP_SVC_UUID                                  0xABF0
 

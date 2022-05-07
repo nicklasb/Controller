@@ -43,7 +43,17 @@ static int ble_svc_gatt_handler(uint16_t conn_handle, uint16_t attr_handle, stru
         // TODO: So this is where data comes IN, how to combine the to directions?
         // ESP_LOGI(tag,"Data received in write event,conn_handle = %x,attr_handle = %x",conn_handle,attr_handle);
         ESP_LOGI(tag, "Payload length: %i, call count %i", ctxt->om->om_len, callcount++);
-        ESP_LOGI(tag,"Some text maybe: %i: %s ", ctxt->om->om_len, ctxt->om->om_data);
+
+        // Interestingly, on_ble_data_cb seems to initialize to NULL by itself. Or does it?
+        if (on_ble_data_cb != NULL)
+        {
+            ESP_LOGI(tag, "Calling on_ble_data_callback");
+        
+            on_ble_data_cb(conn_handle, attr_handle, ctxt);
+        } else {
+            ESP_LOGI(tag, "ERROR: on_ble_data_callback is not assigned!");
+        }
+
 
         break;
 

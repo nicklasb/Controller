@@ -7,6 +7,8 @@
 #include "ble_spp.h"
 #include "ble_service.h"
 
+#include "esp_crc.h"
+
 static const char *tag = "BLE_CENTRAL_SERVICE";
 
 QueueHandle_t spp_common_uart_queue = NULL;
@@ -42,7 +44,8 @@ static int ble_svc_gatt_handler(uint16_t conn_handle, uint16_t attr_handle, stru
     case BLE_GATT_ACCESS_OP_WRITE_CHR:
         // TODO: So this is where data comes IN, how to combine the to directions?
         // ESP_LOGI(tag,"Data received in write event,conn_handle = %x,attr_handle = %x",conn_handle,attr_handle);
-        ESP_LOGI(tag, "Payload length: %i, call count %i", ctxt->om->om_len, callcount++);
+        ESP_LOGI(tag, "Payload length: %i, call count %i, CRC32: %u", ctxt->om->om_len, callcount++,
+         esp_crc32_be(0, ctxt->om->om_data, ctxt->om->om_len));
 
         // Interestingly, on_ble_data_cb seems to initialize to NULL by itself. Or does it?
         if (on_ble_data_cb != NULL)

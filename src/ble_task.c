@@ -5,6 +5,7 @@
 #include "peer.c"
 #include "host/ble_uuid.h"
 #include "ble_service.h"
+#include "esp_crc.h" 
 
 /**
  * @brief Handles incoming data
@@ -67,7 +68,7 @@ void ble_client_my_task(void *pvParameters)
                 ret = ble_gattc_write_flat(curr_peer->conn_handle, ble_spp_svc_gatt_read_val_handle, &myarray, sizeof(myarray), NULL, NULL);
                 if (ret == 0)
                 {
-                    ESP_LOGI(task_tag, "My Task controller: Success writing characteristic! Number: %i", i);
+                    ESP_LOGI(task_tag, "My Task controller: Success writing characteristic! Number: %i, CRC32: %u", i, esp_crc32_be(0, &myarray, sizeof(myarray)));
                 }
                 else
                 {

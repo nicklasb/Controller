@@ -19,7 +19,9 @@
  **********************/
 
 #include "ui_task.h"
+#include "ble_init.h"
 #include "ble_task.h"
+
 /**********************
  *  STATIC PROTOTYPES
  **********************/

@@ -11,14 +11,12 @@ extern "C"
  *      INCLUDES
  *********************/
 
-#include "ble_init.h"
-#include "ble_client.h"
 
     /**********************
      *      TYPEDEFS
      **********************/
     /* Creates a semaphore to handle concurrent call to BLE stuff */
-    SemaphoreHandle_t xBLESemaphore;
+    
     char task_tag[35];
     /**********************
      * GLOBAL PROTOTYPES

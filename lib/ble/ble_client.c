@@ -3,17 +3,19 @@
  * This is general client level handling
  ***********************/
 
-#include "ble_client.h"
 
 #include "host/util/util.h"
 
 #include "host/ble_gap.h"
 
-#include "ble_service.h"
+
 
 
 #include "ble_global.h"
 #include "ble_spp.h"
+#include "ble_service.h"
+#include "ble_client.h"
+
 
 static int ble_spp_client_gap_event(struct ble_gap_event *event, void *arg);
 

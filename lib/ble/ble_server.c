@@ -3,7 +3,7 @@
  * This is general server level handling
  ***********************/
 
-#include "ble_server.h"
+
 
 #include "host/util/util.h"
 #include "host/ble_hs.h"
@@ -11,8 +11,10 @@
 #include "esp_nimble_hci.h"
 #include "services/gap/ble_svc_gap.h"
 
-#include "ble_global.h"
 #include "ble_spp.h"
+
+#include "ble_global.h"
+#include "ble_server.h"
 
 static uint8_t own_addr_type;
 
@@ -139,7 +141,7 @@ ble_spp_server_gap_event(struct ble_gap_event *event, void *arg)
             MODLOG_DFLT(INFO, "Added peer.");
             /* Perform service discovery. */
             rc = peer_disc_all(event->connect.conn_handle,
-                               ble_on_disc_complete, NULL);
+                               (peer_disc_fn *)ble_on_disc_complete, NULL);
             if (rc != 0)
             {
                 MODLOG_DFLT(ERROR, "Failed to discover services; rc=%d\n", rc);

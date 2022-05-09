@@ -3,12 +3,16 @@
  * Loosely based on the ESP-IDF-demo
  */
 
+#include "os/queue.h"
+
+
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void (*on_ble_data_cb)(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt *ctxt);
-
+/* This semaphore is use for blocking, so different threads doesn't accidentaly communicate at the same time */
+SemaphoreHandle_t xBLE_Comm_Semaphore;
 
 /* 16 Bit SPP Service UUID */
 #define GATT_SPP_SVC_UUID                                  0xABF0

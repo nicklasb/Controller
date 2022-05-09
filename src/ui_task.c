@@ -7,6 +7,9 @@
 /*********************
  *      INCLUDES
  *********************/
+#include "freertos/FreeRTOS.h"
+#include "esp_log.h"
+
 #include "ui_task.h"
 #include "ui_builder.h"
 

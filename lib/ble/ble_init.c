@@ -4,10 +4,6 @@
  * 
  */
 
-#include "ble_init.h"
-#include "ble_client.h"
-#include "ble_service.h"
-#include "ble_server.h"
 
 #include "esp_log.h"
 
@@ -19,10 +15,21 @@
 
 #include "esp_nimble_hci.h"
 #include "services/gap/ble_svc_gap.h"
+
+
+
+
+
+
+#include "ble_client.h"
+#include "ble_service.h"
+#include "ble_server.h"
+#include "sdp.h"
+#include "ble_global.h"
 #include "nimble/nimble_port.h"
 #include "nimble/nimble_port_freertos.h"
-#include "ble_global.h"
 
+#include "ble_init.h"
 
 
 /**
@@ -78,6 +85,11 @@ void ble_init(const char *log_prefix, TaskFunction_t pvTaskFunction, bool is_con
     /* Register custom service */
     ret = gatt_svr_register();
     assert(ret == 0);
+
+    /* Create mutexes for blocking during BLE operations */
+    xBLE_Comm_Semaphore = xSemaphoreCreateMutex();
+    // TODO: break out all SDP-generic
+    xQueue_Semaphore = xSemaphoreCreateMutex();
 
     char taskname[35] = "\0";
     strcpy(taskname, log_prefix);

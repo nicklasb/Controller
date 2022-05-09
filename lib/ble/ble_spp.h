@@ -76,7 +76,7 @@ SLIST_HEAD(peer_svc_list, peer_svc);
 struct peer;
 typedef void peer_disc_fn(const struct peer *peer, int status, void *arg);
 
-struct peer {
+typedef struct peer {
     SLIST_ENTRY(peer) next;
 
     uint16_t conn_handle;
@@ -94,7 +94,7 @@ struct peer {
     /** Callback that gets executed when service discovery completes. */
     peer_disc_fn *disc_cb;
     void *disc_cb_arg;
-};
+} peer;
 
 int peer_disc_all(uint16_t conn_handle, peer_disc_fn *disc_cb,
                   void *disc_cb_arg);

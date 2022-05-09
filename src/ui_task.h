@@ -8,10 +8,10 @@ extern "C"
      * INCLUDES
      * *******************/
 
-#include "freertos/FreeRTOS.h"
-#include "esp_log.h"
 #include "lvgl_helpers.h"
+#include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
+
     
     /*********************
      * PRERQUISITES

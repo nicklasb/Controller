@@ -1,9 +1,18 @@
 #include "host/ble_hs.h"
 #include "ble_spp.h"
-#include "ble_global.h"
 
 #include "nimble/nimble_port.h"
 #include "nimble/nimble_port_freertos.h"
+
+
+#include "esp_crc.h"
+
+#include "ble_service.h"
+#include "sdp.h"
+
+#include "ble_global.h"
+
+
 
 /**
  * @brief The general client host task
@@ -29,6 +38,7 @@ void ble_on_reset(int reason)
 /**
  * Called when service discovery of the specified peer has completed.
  */
+
 void ble_on_disc_complete(const struct peer *peer, int status, void *arg)
 {
 
@@ -74,4 +84,31 @@ int ble_negotiate_mtu(uint16_t conn_handle)
 
 
 }
+
+int ble_send_message(uint16_t conn_handle, uint8_t version, uint16_t conversation_id, 
+    enum work_type work_type, const void *data, int data_length, const char *log_tag)
+{
+
+    if (pdTRUE == xSemaphoreTake(xBLE_Comm_Semaphore, portMAX_DELAY))
+    { 
+        int ret;
+        ret = ble_gattc_write_flat(conn_handle, ble_spp_svc_gatt_read_val_handle, data, data_length, NULL, NULL);
+        if (ret == 0)
+        {
+            ESP_LOGI(log_tag, "send_message: Success sending data! CRC32: %u", (int) esp_crc32_be(0, data, data_length));
+        }
+        else
+        {
+            ESP_LOGI(log_tag, "send_message: : Error in writing characteristic! Code: %i", ret);
+            return ret;
+        }
+        xSemaphoreGive(xBLE_Comm_Semaphore);
+    }
+    else
+    {
+        ESP_LOGI(log_tag, "My Task controller: Couldn't get semaphore!");
+    }
+    return 0;
+
+} 
 

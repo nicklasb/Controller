@@ -70,7 +70,7 @@ void ble_client_my_task(void *pvParameters)
     (that might not be possible if not a param here; should a controller init exist?)
    */
 
-    xBLE_Comm_Semaphore = xSemaphoreCreateMutex();
+
     on_request_cb = on_request;
     on_data_cb = on_data;
     on_priority_cb = on_priority;

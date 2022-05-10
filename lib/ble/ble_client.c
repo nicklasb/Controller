@@ -8,11 +8,11 @@
 
 #include "host/ble_gap.h"
 
-
+#include "ble_spp.h"
 
 
 #include "ble_global.h"
-#include "ble_spp.h"
+
 #include "ble_service.h"
 #include "ble_client.h"
 

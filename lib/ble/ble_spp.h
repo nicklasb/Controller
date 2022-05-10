@@ -51,6 +51,8 @@ void print_conn_desc(const struct ble_gap_conn_desc *desc);
 void print_adv_fields(const struct ble_hs_adv_fields *fields);
 void print_addr(const void *addr);
 /** Peer. */
+
+
 struct peer_dsc {
     SLIST_ENTRY(peer_dsc) next;
     struct ble_gatt_dsc dsc;
@@ -76,6 +78,8 @@ SLIST_HEAD(peer_svc_list, peer_svc);
 struct peer;
 typedef void peer_disc_fn(const struct peer *peer, int status, void *arg);
 
+
+
 typedef struct peer {
     SLIST_ENTRY(peer) next;
 
@@ -95,6 +99,8 @@ typedef struct peer {
     peer_disc_fn *disc_cb;
     void *disc_cb_arg;
 } peer;
+
+SLIST_HEAD(, peer) peers;
 
 int peer_disc_all(uint16_t conn_handle, peer_disc_fn *disc_cb,
                   void *disc_cb_arg);

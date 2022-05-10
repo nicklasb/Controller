@@ -13,7 +13,6 @@
 #include "ble_global.h"
 
 
-
 /**
  * @brief The general client host task
  * @details This is the actual task the host runs in.
@@ -80,12 +79,43 @@ int ble_negotiate_mtu(uint16_t conn_handle)
         
         vTaskDelay(10);
         return 0;   
-    
-
 
 }
+/**
+ * @brief Send a message to one or more peers
+ * 
+ * @param conn_handle A negative value will cause all peers to be messaged
+ * @param conversation_id Used to keep track of conversations
+ * @param work_type The kind of message
+ * @param data A pointer to the data to be sent
+ * @param data_length The length of the data in bytes
+ * @param log_tag The log prefix
+ * @return int A negative return value will mean a failure of the operation 
+ * TODO: Handle partial failure, for example if one peripheral doesn't answer.
+ */
+int ble_send_message(int conn_handle, uint16_t conversation_id, 
+    enum work_type work_type, const void *data, int data_length, const char *log_tag) {
 
-int ble_send_message(uint16_t conn_handle, uint8_t version, uint16_t conversation_id, 
+    if (conn_handle < 0) {
+        struct peer *curr_peer;
+        int ret;
+        SLIST_FOREACH(curr_peer, &peers, next) {
+            ret = ble_send_message_connection(curr_peer->conn_handle, conversation_id, work_type, data, data_length, log_tag);
+            if (ret != 0) {
+                ESP_LOGI(log_tag, "send_message: : Error in writing characteristic! Peer: %i Code: %i", conn_handle, ret);
+            }
+        }
+        return 0;
+    } else {
+        return ble_send_message_connection(conn_handle, conversation_id, work_type, data, data_length, log_tag);
+    }
+}
+
+/**
+ * @brief Like ble_send_message, but only sends to one specified peer. 
+ * Note the unsigned type of the connection handle, a positive value is needed.
+ */
+int ble_send_message_connection(uint16_t conn_handle, uint16_t conversation_id, 
     enum work_type work_type, const void *data, int data_length, const char *log_tag)
 {
 
@@ -99,7 +129,7 @@ int ble_send_message(uint16_t conn_handle, uint8_t version, uint16_t conversatio
         }
         else
         {
-            ESP_LOGI(log_tag, "send_message: : Error in writing characteristic! Code: %i", ret);
+            ESP_LOGI(log_tag, "send_message: : Error in writing data! Peer: %i Code: %i", conn_handle, ret);
             return ret;
         }
         xSemaphoreGive(xBLE_Comm_Semaphore);
@@ -111,4 +141,8 @@ int ble_send_message(uint16_t conn_handle, uint8_t version, uint16_t conversatio
     return 0;
 
 } 
+
+
+
+      
 

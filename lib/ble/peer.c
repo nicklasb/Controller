@@ -20,7 +20,7 @@ static struct os_mempool peer_dsc_pool;
 
 static void *peer_mem;
 static struct os_mempool peer_pool;
-static SLIST_HEAD(, peer) peers;
+
 
 static struct peer_svc *
 peer_svc_find_range(struct peer *peer, uint16_t attr_handle);

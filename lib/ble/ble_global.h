@@ -4,10 +4,6 @@
  *      INCLUDES
  *********************/
 
-
-
-
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -22,7 +18,10 @@ void ble_on_reset(int reason);
 int ble_negotiate_mtu(uint16_t conn_handle);
 void ble_host_task(void *param);
 
-int ble_send_message(uint16_t conn_handle, uint8_t version, uint16_t conversation_id, 
+int ble_send_message(int conn_handle, uint16_t conversation_id, 
+    enum work_type work_type, const void *data, int data_length, const char *log_tag);
+
+int ble_send_message_connection(uint16_t conn_handle, uint16_t conversation_id, 
     enum work_type work_type, const void *data, int data_length, const char *log_tag);
 
 

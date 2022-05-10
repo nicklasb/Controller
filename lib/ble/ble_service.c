@@ -36,6 +36,8 @@ QueueHandle_t spp_common_uart_queue = NULL;
 
 int callcount = 0;
 
+
+
 static int handle_incoming(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt *ctxt, void *arg)
 {
     ESP_LOGI(tag, "Payload length: %i, call count %i, CRC32: %u", ctxt->om->om_len, callcount++,
@@ -43,63 +45,56 @@ static int handle_incoming(uint16_t conn_handle, uint16_t attr_handle, struct bl
 
     struct work_queue_item *new_item;
 
-    /* Create and populate a queue item, make sure we are thread safe */
-    if (pdTRUE == xSemaphoreTake(xQueue_Semaphore, portMAX_DELAY))
-    { 
-        
-        if (ctxt->om->om_len > 3)
-        {
-            // TODO:
 
-            new_item = malloc(sizeof(struct work_queue_item));
-            new_item->version = ctxt->om->om_data[0];
-            new_item->conversation_id = ctxt->om->om_data[1];
-            new_item->work_type = ctxt->om->om_data[2];
-
-            new_item->data_length = ctxt->om->om_len-3;
-            new_item->data = malloc(new_item->data_length);
-            memcpy(new_item->data,&ctxt->om->om_data[3], new_item->data_length); 
-
-            new_item->conn_handle = conn_handle;
-
-        }
-        else
-        {
-            ESP_LOGI(tag, "ERROR: The request must be more than 3 bytes for SDP compliance.");
-            return BLE_ATT_ERR_REQ_NOT_SUPPORTED;
-        }
     
-        xSemaphoreGive(xBLE_Comm_Semaphore);
+    if (ctxt->om->om_len > 3)
+    {
+        // TODO:
+
+        new_item = malloc(sizeof(struct work_queue_item));
+        new_item->version = ctxt->om->om_data[0];
+        new_item->conversation_id = ctxt->om->om_data[1];
+        new_item->work_type = ctxt->om->om_data[2];
+
+        new_item->data_length = ctxt->om->om_len-3;
+        new_item->data = malloc(new_item->data_length);
+        memcpy(new_item->data,&ctxt->om->om_data[3], new_item->data_length); 
+
+        new_item->conn_handle = conn_handle;
+
     }
     else
     {
-        ESP_LOGI(tag, "My Task controller: Couldn't get semaphore!");
-        return 1;
-
-
+        ESP_LOGI(tag, "ERROR: The request must be more than 3 bytes for SDP compliance.");
+        return BLE_ATT_ERR_REQ_NOT_SUPPORTED;
     }
+    
+
 
     // Handle the different request types
     // TODO:Interestingly, on_data_cb seems to initialize to NULL by itself. Or does it?
+  
     switch (new_item->work_type)
     {
 
     case REQUEST:
-        STAILQ_INSERT_HEAD(&request_q, new_item, items);
+        /* Add a queue item, make sure we are thread safe */
+        safe_add_work_queue(&new_item, tag);
         if (on_request_cb != NULL)
         {
-            ESP_LOGI(tag, "Calling on_ble_data_callback");
+            ESP_LOGI(tag, "BLE service: Calling on_data_callback");
 
             on_request_cb(*new_item);
         }
         else
         {
-            ESP_LOGI(tag, "ERROR: on_ble_data_callback is not assigned!");
+            ESP_LOGI(tag, "BLE service ERROR: on_data_callback is not assigned!");
         }
         break;
     case DATA:
         // Put them on the queue
-        STAILQ_INSERT_HEAD(&request_q, new_item, items);
+        safe_add_work_queue(&new_item, tag);
+        STAILQ_INSERT_HEAD(&work_q, new_item, items);
         if (on_data_cb != NULL)
         {
             ESP_LOGI(tag, "Calling on_ble_data_callback");
@@ -116,18 +111,20 @@ static int handle_incoming(uint16_t conn_handle, uint16_t attr_handle, struct bl
         /* If it is a problem report,
         immidiately respond with CRC32 to tell the
         reporter that the information has reached the controller. */
-        ble_send_message(new_item->conn_handle, SPD_PROTOCOL_VERSION,
+        ble_send_message(new_item->conn_handle,
                          new_item->conversation_id, DATA, &(new_item->crc32), 2, tag);
+
+        /* Do NOT add the work item to the queue, it will be immidiately adressed in the callback */
 
         if (on_priority_cb != NULL)
         {
-            ESP_LOGI(tag, "Calling on_ble_problem_callback");
+            ESP_LOGI(tag, "BLE Calling on_priority_callback");
 
             on_priority_cb(*new_item);
         }
         else
         {
-            ESP_LOGI(tag, "ERROR: on_ble_problem_callback is not assigned!");
+            ESP_LOGI(tag, "ERROR: BLE on_priority callback is not assigned!");
         }
         break;
 
@@ -219,3 +216,5 @@ int gatt_svr_register(void)
 
     return 0;
 }
+
+

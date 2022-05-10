@@ -11,7 +11,7 @@
  *
  * @param queue_item
  */
-void on_ble_priority(struct work_queue_item queue_item)
+void on_priority(struct work_queue_item queue_item)
 {
 
     ESP_LOGI(task_tag, "In ble data callback on the controller!");
@@ -26,7 +26,7 @@ void on_ble_priority(struct work_queue_item queue_item)
  *
  * @param queue_item
  */
-void on_ble_request(struct work_queue_item queue_item)
+void on_request(struct work_queue_item queue_item)
 {
 
     ESP_LOGI(task_tag, "In ble data callback on the controller!");
@@ -41,7 +41,7 @@ void on_ble_request(struct work_queue_item queue_item)
  *
  * @param queue_item
  */
-void on_ble_data(struct work_queue_item queue_item)
+void on_data(struct work_queue_item queue_item)
 {
 
     if (queue_item.work_type == PRIORITY)
@@ -70,7 +70,10 @@ void ble_client_my_task(void *pvParameters)
     (that might not be possible if not a param here; should a controller init exist?)
    */
 
-    on_data_cb = on_ble_data;
+    xBLE_Comm_Semaphore = xSemaphoreCreateMutex();
+    on_request_cb = on_request;
+    on_data_cb = on_data;
+    on_priority_cb = on_priority;
 
     char myarray[7] = "status\0";
     int ret;

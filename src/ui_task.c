@@ -131,7 +131,7 @@ static void ui_task(void *pvParameter)
             }
             else
             {
-                ESP_LOGI("UI update", "Failed to get a semaphore");
+                ESP_LOGE("UI update", "Failed to get a semaphore!");
             }
         }
         loop_count++;

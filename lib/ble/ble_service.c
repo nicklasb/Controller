@@ -65,45 +65,55 @@ static int handle_incoming(uint16_t conn_handle, uint16_t attr_handle, struct bl
     }
     else
     {
-        ESP_LOGI(tag, "ERROR: The request must be more than 3 bytes for SDP compliance.");
+        ESP_LOGE(tag, "Error: The request must be more than 3 bytes for SDP compliance.");
         return BLE_ATT_ERR_REQ_NOT_SUPPORTED;
     }
     
 
 
     // Handle the different request types
-    // TODO:Interestingly, on_data_cb seems to initialize to NULL by itself. Or does it?
+    // TODO:Interestingly, on_filter_data_cb seems to initialize to NULL by itself. Or does it?
   
     switch (new_item->work_type)
     {
 
-    case REQUEST:
-        /* Add a queue item, make sure we are thread safe */
-        safe_add_work_queue(&new_item, tag);
-        if (on_request_cb != NULL)
-        {
-            ESP_LOGI(tag, "BLE service: Calling on_data_callback");
+  case REQUEST:
 
-            on_request_cb(*new_item);
+        if (on_filter_request_cb != NULL)
+        {
+            ESP_LOGI(tag, "BLE service: Calling on_filter_request_cb");
+
+            if (on_filter_request_cb(new_item) == 0) {
+                // Add the request to the work queue
+                safe_add_work_queue(new_item);
+            } else {
+                ESP_LOGE(tag, "BLE service: on_filter_request_cb returned a nonzero value, request not added to queue!");
+                return SDP_ERR_MESSAGE_FILTERED;
+            }
+            
         }
         else
         {
-            ESP_LOGI(tag, "BLE service ERROR: on_data_callback is not assigned!");
+            safe_add_work_queue(new_item);
         }
-        break;
+        break;  
     case DATA:
-        // Put them on the queue
-        safe_add_work_queue(&new_item, tag);
-        STAILQ_INSERT_HEAD(&work_q, new_item, items);
-        if (on_data_cb != NULL)
-        {
-            ESP_LOGI(tag, "Calling on_ble_data_callback");
 
-            on_data_cb(*new_item);
+        if (on_filter_data_cb != NULL) {
+            ESP_LOGI(tag, "BLE service: Calling on_filter_data_cb");
+
+            if (on_filter_data_cb(new_item) == 0) {
+                // Add the request to the work queue
+                safe_add_work_queue(new_item);
+            } else {
+                ESP_LOGE(tag, "BLE service: on_filter_data_cb returned a nonzero value, request not added to queue!");
+                return SDP_ERR_MESSAGE_FILTERED;
+            }
+            
         }
         else
         {
-            ESP_LOGI(tag, "ERROR: on_ble_data_callback is not assigned!");
+            safe_add_work_queue(new_item);
         }
         break;
 
@@ -120,11 +130,11 @@ static int handle_incoming(uint16_t conn_handle, uint16_t attr_handle, struct bl
         {
             ESP_LOGI(tag, "BLE Calling on_priority_callback");
 
-            on_priority_cb(*new_item);
+            on_priority_cb(new_item);
         }
         else
         {
-            ESP_LOGI(tag, "ERROR: BLE on_priority callback is not assigned!");
+            ESP_LOGE(tag, "ERROR: BLE on_priority callback is not assigned!");
         }
         break;
 

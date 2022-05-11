@@ -38,7 +38,7 @@
  * @param log_prefix The prefix for logging and naming
  * @param pvTaskFunction A function containing the task to run
  */
-void ble_init(const char *log_prefix, TaskFunction_t pvTaskFunction, bool is_controller)
+void ble_init(const char *log_prefix, bool is_controller)
 {
 
     /**
@@ -55,7 +55,7 @@ void ble_init(const char *log_prefix, TaskFunction_t pvTaskFunction, bool is_con
      */
 
 
-    char task_tag[35] = "\0";
+    char task_tag[50] = "\0";
     strcpy(task_tag,log_prefix);
     strupr(task_tag);
     strcat(task_tag, "_CENTRAL_TASK\0");
@@ -88,28 +88,20 @@ void ble_init(const char *log_prefix, TaskFunction_t pvTaskFunction, bool is_con
 
     /* Create mutexes for blocking during BLE operations */
     xBLE_Comm_Semaphore = xSemaphoreCreateMutex();
-    // TODO: break out all SDP-generic
-    xQueue_Semaphore = xSemaphoreCreateMutex();
 
-    char taskname[35] = "\0";
-    strcpy(taskname, log_prefix);
-    strcat(taskname, " BLE main task");
+
     
-    /* Register the client task.
-    We are running it on Core 0, or PRO as it is called traditionally (cores are basically the same now) 
-    Feels more reasonable to focus on comms on 0 and applications on 1, traditionally called APP */   
-    ESP_LOGI(task_tag, "Register the client task. Name: %s", taskname);
-    xTaskCreatePinnedToCore(pvTaskFunction, taskname, 8192, NULL, 8, NULL, 0);
-    /* TODO: Add setting for stack size (it might need to become bigger) */
 
+    /* TODO: Add setting for stack size (it might need to become bigger) */
+    
+    /* Initialize the NimBLE host configuration. */
+
+     /* Configure the host callbacks */
+    ble_hs_cfg.reset_cb = ble_on_reset;
     if (is_controller) {
-        /* Configure the host callbacks */
-        ble_hs_cfg.reset_cb = ble_on_reset;
         ble_hs_cfg.sync_cb = ble_spp_client_on_sync;
     } else {
-        /* Initialize the NimBLE host configuration. */
-    ble_hs_cfg.reset_cb = ble_on_reset;
-    ble_hs_cfg.sync_cb = ble_spp_server_on_sync;
+        ble_hs_cfg.sync_cb = ble_spp_server_on_sync;
     }
 
     ble_hs_cfg.store_status_cb = ble_store_util_status_rr;
@@ -117,13 +109,13 @@ void ble_init(const char *log_prefix, TaskFunction_t pvTaskFunction, bool is_con
     //Not secure connections
     ble_hs_cfg.sm_sc = 0;
     /* Initialize data structures to track connected peers. 
-    There is a local pool in peer.c */
+    There is a local pool in spp.h */
     ESP_LOGI(task_tag,"Init peer with %i ", MYNEWT_VAL(BLE_MAX_CONNECTIONS));
     ret = peer_init(MYNEWT_VAL(BLE_MAX_CONNECTIONS), 64, 64, 64);
     assert(ret == 0);
 
     /* Generate and set the GAP device name. */
-    char gapname[35] = "\0";
+    char gapname[50] = "\0";
     strcpy(gapname, log_prefix);
     ret = ble_svc_gap_device_name_set(strncat(strlwr(gapname), "-ble-client", 100));
     assert(ret == 0);

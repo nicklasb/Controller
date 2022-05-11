@@ -19,8 +19,8 @@
  **********************/
 
 #include "ui_task.h"
-#include "ble_init.h"
-#include "ble_task.h"
+#include "sdp.h"
+#include "sdp_task.h"
 
 /**********************
  *  STATIC PROTOTYPES
@@ -30,6 +30,11 @@
  *   APPLICATION MAIN
  **********************/
 void app_main() {
-    ble_init("Cont\0", ble_client_my_task, true);
-    ui_init("Controller\0");
+
+    sdp_init(&do_on_work, &do_on_priority, "Controller\0", true);
+
+    on_filter_request_cb = &do_on_filter_request;
+    on_filter_data_cb = &do_on_filter_data;
+
+    ui_init("UI\0");
 }

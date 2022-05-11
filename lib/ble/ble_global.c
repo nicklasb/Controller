@@ -4,14 +4,12 @@
 #include "nimble/nimble_port.h"
 #include "nimble/nimble_port_freertos.h"
 
-
 #include "esp_crc.h"
 
 #include "ble_service.h"
 #include "sdp.h"
 
 #include "ble_global.h"
-
 
 /**
  * @brief The general client host task
@@ -32,7 +30,6 @@ void ble_on_reset(int reason)
 {
     MODLOG_DFLT(ERROR, "Resetting state; reason=%d\n", reason);
 }
-
 
 /**
  * Called when service discovery of the specified peer has completed.
@@ -58,8 +55,6 @@ void ble_on_disc_complete(const struct peer *peer, int status, void *arg)
     MODLOG_DFLT(INFO, "Service discovery complete; status=%d "
                       "conn_handle=%d\n",
                 status, peer->conn_handle);
-
-   
 }
 
 int ble_negotiate_mtu(uint16_t conn_handle)
@@ -67,82 +62,88 @@ int ble_negotiate_mtu(uint16_t conn_handle)
 
     MODLOG_DFLT(INFO, "Negotiate MTU.\n");
 
-        int rc = ble_gattc_exchange_mtu(conn_handle, NULL, NULL);
-        if (rc != 0)
-        {
-            
-            MODLOG_DFLT(ERROR, "Error from exchange_mtu; rc=%d\n", rc);
+    int rc = ble_gattc_exchange_mtu(conn_handle, NULL, NULL);
+    if (rc != 0)
+    {
 
-            return rc;
-        }
-        MODLOG_DFLT(INFO, "MTU exchange request sent.\n");
-        
-        vTaskDelay(10);
-        return 0;   
+        MODLOG_DFLT(ERROR, "Error from exchange_mtu; rc=%d\n", rc);
 
+        return rc;
+    }
+    MODLOG_DFLT(INFO, "MTU exchange request sent.\n");
+
+    vTaskDelay(10);
+    return 0;
 }
 /**
  * @brief Send a message to one or more peers
- * 
+ *
  * @param conn_handle A negative value will cause all peers to be messaged
  * @param conversation_id Used to keep track of conversations
  * @param work_type The kind of message
  * @param data A pointer to the data to be sent
  * @param data_length The length of the data in bytes
  * @param log_tag The log prefix
- * @return int A negative return value will mean a failure of the operation 
+ * @return int A negative return value will mean a failure of the operation
  * TODO: Handle partial failure, for example if one peripheral doesn't answer.
  */
-int ble_send_message(int conn_handle, uint16_t conversation_id, 
-    enum work_type work_type, const void *data, int data_length, const char *log_tag) {
+int ble_broadcast_message(uint16_t conversation_id,
+                          enum work_type work_type, const void *data, int data_length, const char *log_tag)
+{
 
-    if (conn_handle < 0) {
-        struct peer *curr_peer;
-        int ret;
-        SLIST_FOREACH(curr_peer, &peers, next) {
-            ret = ble_send_message_connection(curr_peer->conn_handle, conversation_id, work_type, data, data_length, log_tag);
-            if (ret != 0) {
-                ESP_LOGI(log_tag, "send_message: : Error in writing characteristic! Peer: %i Code: %i", conn_handle, ret);
-            }
+    struct peer *curr_peer;
+    int ret = 0, total = 0, errors = 0;
+    SLIST_FOREACH(curr_peer, &peers, next)
+    {
+        ret = ble_send_message(curr_peer->conn_handle, conversation_id, work_type, data, data_length, log_tag);
+        if (ret != 0)
+        {
+            ESP_LOGE(log_tag, "Error: ble_broadcast_message: Failure sending message! Peer: %u Code: %i", curr_peer->conn_handle, ret);
+            errors++;
         }
-        return 0;
-    } else {
-        return ble_send_message_connection(conn_handle, conversation_id, work_type, data, data_length, log_tag);
+        total++;
+    }
+    if (errors == total)
+    {
+        return SDP_ERR_SEND_FAIL;
+    }
+    else if (errors > 0)
+    {
+        return SDP_ERR_SEND_SOME_FAIL;
+    }
+    else
+    {
+        return SDP_ERR_SUCCESS;
     }
 }
 
 /**
- * @brief Like ble_send_message, but only sends to one specified peer. 
+ * @brief Like ble_send_message, but only sends to one specified peer.
  * Note the unsigned type of the connection handle, a positive value is needed.
  */
-int ble_send_message_connection(uint16_t conn_handle, uint16_t conversation_id, 
-    enum work_type work_type, const void *data, int data_length, const char *log_tag)
+int ble_send_message(uint16_t conn_handle, uint16_t conversation_id,
+                     enum work_type work_type, const void *data, int data_length, const char *log_tag)
 {
 
     if (pdTRUE == xSemaphoreTake(xBLE_Comm_Semaphore, portMAX_DELAY))
-    { 
+    {
         int ret;
         ret = ble_gattc_write_flat(conn_handle, ble_spp_svc_gatt_read_val_handle, data, data_length, NULL, NULL);
         if (ret == 0)
         {
-            ESP_LOGI(log_tag, "send_message: Success sending data! CRC32: %u", (int) esp_crc32_be(0, data, data_length));
+            ESP_LOGI(log_tag, "ble_send_message: Success sending data! CRC32: %u", (int)esp_crc32_be(0, data, data_length));
         }
         else
         {
-            ESP_LOGI(log_tag, "send_message: : Error in writing data! Peer: %i Code: %i", conn_handle, ret);
-            return ret;
+            ESP_LOGE(log_tag, "Error: ble_send_message  - Failure when writing data! Peer: %i Code: %i", conn_handle, ret);
+            return -ret;
         }
         xSemaphoreGive(xBLE_Comm_Semaphore);
     }
     else
     {
-        ESP_LOGI(log_tag, "My Task controller: Couldn't get semaphore!");
+        ESP_LOGE(log_tag, "Error: ble_send_message  - Couldn't get semaphore!");
+        return SDP_ERR_CONV_QUEUE;
     }
     return 0;
-
-} 
-
-
-
-      
-
+}

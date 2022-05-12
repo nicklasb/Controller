@@ -17,12 +17,13 @@ Currently implemented:
 * A basic UI implementation with touch
 * BLE client+server, based on an unholy mix of the esp-idf client/server demos
 * Create a project for peripherals that work in unison with the controller 
-
+* Create a custom BLE service that just does what is needed
+* A framework for a queue-based work item handling
 WIP:
 
-* Create a custom BLE service that just does what is needed
-* Make it so that the central only discovers peripherals that are a part of the network
 * Make data from peripherals appear on the controller screen 
+* Make it so that the central only discovers peripherals that are a part of the network
+
 
 Upcoming:
 * Implement proper protocol for communicating structured sensor data

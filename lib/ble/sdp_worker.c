@@ -5,41 +5,25 @@
 
 static void sdp_worker(void)
 {
-
-    struct work_queue_item *curr_work;
+ 
     int worker_task_count = 0;
+    struct work_queue_item *curr_work; 
     ESP_LOGI(log_prefix, "Worker task running.");
     for (;;)
     {
-        if (pdTRUE == xSemaphoreTake(xQueue_Semaphore, portMAX_DELAY))
+                        
+        curr_work = safe_get_head_work_item();
+        if (curr_work != NULL)
         {
-            /* Pull the first item from the work queue */
-            curr_work = STAILQ_FIRST(&work_q);
-            /* Immidiate deletion from the head of the queue */
-            if (curr_work != NULL)
+            char taskname[50] = "\0";             
+            sprintf(taskname, "%s_worker_%d_%d", log_prefix, curr_work->conversation_id, worker_task_count);
+            if (on_work_cb != NULL)
             {
-                STAILQ_REMOVE_HEAD(&work_q, items);
-                xSemaphoreGive(xQueue_Semaphore);
-                char taskname[50] = "\0";             
-
-                sprintf(taskname, "%s_worker_%d_%d", log_prefix, curr_work->conversation_id, worker_task_count);
-                if (on_work_cb != NULL)
-                {
-                    /* To avoid congestion on Core 0, we act on non-immidiate requests on Core 1 (APP) */
-                    xTaskCreatePinnedToCore((TaskFunction_t)on_work_cb, taskname, 8192, curr_work, 8, NULL, 1);
-                }
-            }
-            else
-            {
-                xSemaphoreGive(xQueue_Semaphore);
+                /* To avoid congestion on Core 0, we act on non-immidiate requests on Core 1 (APP) */
+                xTaskCreatePinnedToCore((TaskFunction_t)on_work_cb, taskname, 8192, curr_work, 8, NULL, 1);
             }
         }
-        else
-        {
-            ESP_LOGE(log_prefix, "Error: Couldn't get semaphore to access work queue!");
-        }
-
-        vTaskDelay(2000);
+        vTaskDelay(5);
     }
     vTaskDelete(NULL);
 }

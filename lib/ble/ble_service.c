@@ -44,32 +44,31 @@ static int handle_incoming(uint16_t conn_handle, uint16_t attr_handle, struct bl
              esp_crc32_be(0, ctxt->om->om_data, ctxt->om->om_len));
 
     struct work_queue_item *new_item;
-
-
     
-    if (ctxt->om->om_len > 3)
+    if (ctxt->om->om_len > SDP_PREAMBLE_LENGTH)
     {
         // TODO:
-
         new_item = malloc(sizeof(struct work_queue_item));
-        new_item->version = ctxt->om->om_data[0];
-        new_item->conversation_id = ctxt->om->om_data[1];
-        new_item->work_type = ctxt->om->om_data[2];
-
-        new_item->data_length = ctxt->om->om_len-3;
+        new_item->version = (uint8_t)ctxt->om->om_data[0];
+        new_item->conversation_id = (uint16_t)ctxt->om->om_data[1];
+        new_item->work_type = (uint8_t)ctxt->om->om_data[3];
+        new_item->data_length = ctxt->om->om_len-SDP_PREAMBLE_LENGTH;
         new_item->data = malloc(new_item->data_length);
-        memcpy(new_item->data,&ctxt->om->om_data[3], new_item->data_length); 
+        memcpy(new_item->data,&(ctxt->om->om_data[SDP_PREAMBLE_LENGTH]), new_item->data_length); 
 
+        new_item->media_type = BLE;
         new_item->conn_handle = conn_handle;
+
+        ESP_LOGI(tag, "Message info : Version: %u, Conversation id: %u, Work type: %u, Media type: %u,Data length: %u.", 
+        new_item->version, new_item->conversation_id, new_item->work_type, new_item->media_type, new_item->data_length);
 
     }
     else
     {
-        ESP_LOGE(tag, "Error: The request must be more than 3 bytes for SDP compliance.");
+        ESP_LOGE(tag, "Error: The request must be more than %i bytes for SDP compliance.", SDP_PREAMBLE_LENGTH);
         return BLE_ATT_ERR_REQ_NOT_SUPPORTED;
     }
     
-
 
     // Handle the different request types
     // TODO:Interestingly, on_filter_data_cb seems to initialize to NULL by itself. Or does it?
@@ -77,8 +76,7 @@ static int handle_incoming(uint16_t conn_handle, uint16_t attr_handle, struct bl
     switch (new_item->work_type)
     {
 
-  case REQUEST:
-
+    case REQUEST:
         if (on_filter_request_cb != NULL)
         {
             ESP_LOGI(tag, "BLE service: Calling on_filter_request_cb");
@@ -94,11 +92,11 @@ static int handle_incoming(uint16_t conn_handle, uint16_t attr_handle, struct bl
         }
         else
         {
+            ESP_LOGI(tag, "BLE service: on_filter_request_cb not set, adding to queue.");
             safe_add_work_queue(new_item);
         }
         break;  
     case DATA:
-
         if (on_filter_data_cb != NULL) {
             ESP_LOGI(tag, "BLE service: Calling on_filter_data_cb");
 

@@ -3,25 +3,18 @@ extern "C"
 {
 #endif
 
-/*********************
- *      DEFINES
- *********************/
+    /*********************
+     *      DEFINES
+     *********************/
 
-
-
-/*********************
- *      INCLUDES
- *********************/
-#include "freertos/FreeRTOS.h"
-
-
-
-
+    /*********************
+     *      INCLUDES
+     *********************/
 
     /**********************
      * GLOBAL PROTOTYPES
      **********************/
-    void ble_init(const char *prefix, bool is_controller);
+    void ble_init(const char *log_prefix, bool is_controller);
 
     /**********************
      *      MACROS

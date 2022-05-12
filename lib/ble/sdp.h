@@ -3,23 +3,26 @@ extern "C"
 {
 #endif
 
-    #include "freertos/FreeRTOS.h"
-    #include "freertos/semphr.h"
-    #include "os/queue.h"
-    #include "nimble/ble.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/semphr.h"
+#include "os/queue.h"
+#include "nimble/ble.h"
 
-    /**
-     * This is the definitions of the Sensor Data Protocol (SDP) implementation
-     * To be decided is how much of the implementation should be here.
-     */
+/**
+ * This is the definitions of the Sensor Data Protocol (SDP) implementation
+ * To be decided is how much of the implementation should be here.
+ */
 
-    // TODO: Break out all BLE-specifics, perhaps ifdef them.
+// TODO: Break out all BLE-specifics, perhaps ifdef them.
 
-    /* The current protocol version */
-    #define SPD_PROTOCOL_VERSION 0
+/* The current protocol version */
+#define SPD_PROTOCOL_VERSION 0
 
-    /* Lowest supported protocol version */
-    #define SPD_PROTOCOL_VERSION_MIN 0
+/* Lowest supported protocol version */
+#define SPD_PROTOCOL_VERSION_MIN 0
+
+/* The length, in bytes of the SDP preamble. */
+#define SDP_PREAMBLE_LENGTH 4
 
     /* Common error codes */
     typedef enum sdp_error_codes
@@ -36,12 +39,11 @@ extern "C"
         SDP_ERR_CONV_QUEUE_FULL = 0x04,
         /* Couldn't get a semaphore to successfully lock a resource for thread safe usage. */
         SDP_ERR_SEMAPHORE = 0x05,
-        /* SDP failed in its initiation. */ 
+        /* SDP failed in its initiation. */
         SDP_ERR_INIT_FAIL = 0x06,
         /* Incoming message filtered */
         SDP_ERR_MESSAGE_FILTERED = 0x07
-        
-        
+
     } sdp_error_codes;
 
     /**
@@ -66,9 +68,9 @@ extern "C"
 
     typedef enum work_type
     {
-        REQUEST,
-        DATA,
-        PRIORITY
+        REQUEST = 0x00,
+        DATA = 0x01,
+        PRIORITY = 0x02
     } work_type;
 
     /**
@@ -79,12 +81,13 @@ extern "C"
 
     typedef enum media_type
     {
-        BLE,
-        LoRa,
-        TCPIP,
-        TTL,
-        ALL
+        BLE = 0x00,
+        LoRa = 0x01,
+        TCPIP = 0x02,
+        TTL = 0x03,
+        ALL = 0x04
     } media_type;
+
 
     /**
      * @brief This is the request queue
@@ -117,9 +120,12 @@ extern "C"
     };
 
     /* Work queue initialisation */
-    STAILQ_HEAD(work_queue, work_queue_item)
-    work_q;
+    STAILQ_HEAD(work_queue, work_queue_item) work_q;
+ 
 
+    
+
+   
     /**
      * @brief The peer's list of conversations.
      */
@@ -139,24 +145,23 @@ extern "C"
     SLIST_HEAD(conversation_list, conversation_list_item)
     conversation_l;
 
-    /* Must be used when changing the work queue  */
-    SemaphoreHandle_t xQueue_Semaphore;
+
 
     /**
      * These callbacks are implemented to handle the different
      * work types.
      */
     /* Callbacks that handles incoming work items */
-    typedef void (work_callback)(struct work_queue_item *queue_item);
+    typedef void(work_callback)(struct work_queue_item *queue_item);
 
     /* Mandatory callback that handles incoming work items */
     work_callback *on_work_cb;
 
-     /* Mandatory callback that handles incoming priority request immidiately */
-    work_callback *on_priority_cb;   
+    /* Mandatory callback that handles incoming priority request immidiately */
+    work_callback *on_priority_cb;
 
     /* Callbacks that act as filters on incoming work items */
-    typedef int (filter_callback)(struct work_queue_item *queue_item);
+    typedef int(filter_callback)(struct work_queue_item *queue_item);
 
     /* Optional callback that intercepts before incoming request messages are added to the work queue */
     filter_callback *on_filter_request_cb;
@@ -177,9 +182,10 @@ extern "C"
      */
     int sdp_init(work_callback work_cb, work_callback priority_cb, const char *_log_prefix, bool is_controller);
     int safe_add_work_queue(struct work_queue_item *new_item);
-    int start_conversation( media_type media_type, int conn_handle,
+    struct work_queue_item* safe_get_head_work_item(void);
+    int start_conversation(media_type media_type, int conn_handle,
                            work_type work_type, const void *data, int data_length);
-    int respond(struct work_queue_item queue_item, enum work_type work_type, const void *data, int data_length);
+    int sdp_reply(struct work_queue_item queue_item, enum work_type work_type, const void *data, int data_length);
 
 #ifdef __cplusplus
 } /* extern "C" */

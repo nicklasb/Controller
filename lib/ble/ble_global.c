@@ -90,7 +90,6 @@ int ble_negotiate_mtu(uint16_t conn_handle)
 int ble_broadcast_message(uint16_t conversation_id,
                           enum work_type work_type, const void *data, int data_length, const char *log_tag)
 {
-
     struct peer *curr_peer;
     int ret = 0, total = 0, errors = 0;
     SLIST_FOREACH(curr_peer, &peers, next)
@@ -100,7 +99,11 @@ int ble_broadcast_message(uint16_t conversation_id,
         {
             ESP_LOGE(log_tag, "Error: ble_broadcast_message: Failure sending message! Peer: %u Code: %i", curr_peer->conn_handle, ret);
             errors++;
+        } else {
+            ESP_LOGI(log_tag, "Sent a message to Peer: %u Code: %i", curr_peer->conn_handle, ret);
+            
         }
+
         total++;
     }
     if (errors == total)
@@ -125,6 +128,7 @@ int ble_send_message(uint16_t conn_handle, uint16_t conversation_id,
                      enum work_type work_type, const void *data, int data_length, const char *log_tag)
 {
 
+    
     if (pdTRUE == xSemaphoreTake(xBLE_Comm_Semaphore, portMAX_DELAY))
     {
         int ret;

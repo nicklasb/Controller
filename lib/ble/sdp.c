@@ -2,13 +2,14 @@
 
 #include "ble_global.h"
 #include "esp_log.h"
+#include "ble_init.h"
 #include "sdp_worker.h"
 
 /* The current conversation id */
 uint16_t conversation_id = 0;
 
-
-
+/* Must be used when changing the work queue  */
+SemaphoreHandle_t xQueue_Semaphore;
 
 int sdp_init(work_callback work_cb, work_callback priority_cb, const char *_log_prefix, bool is_controller)
 {
@@ -22,9 +23,19 @@ int sdp_init(work_callback work_cb, work_callback priority_cb, const char *_log_
     on_work_cb = work_cb;
     on_priority_cb = priority_cb;
 
+    /* Initialize queues and lists, can't be done in header files as that would reinit the list on include */
+    STAILQ_INIT(&work_q);
+    SLIST_INIT(&conversation_l);
+
+    /* Create a semaphore for queue-handling */
+    /* TODO: Consider putting this behind local functions instead */
     xQueue_Semaphore = xSemaphoreCreateMutex();
     init_worker(log_prefix);
     ESP_LOGI(log_prefix, "SDP initiated!");
+
+    /* Init media types */
+    ble_init(log_prefix, is_controller);
+
     return 0;
 }
 
@@ -35,6 +46,7 @@ int safe_add_work_queue(struct work_queue_item *new_item)
         /* As the worker takes the queue from the head, and we want a LIFO, add the item to the tail */
         STAILQ_INSERT_TAIL(&work_q, new_item, items);
         xSemaphoreGive(xQueue_Semaphore);
+        ESP_LOGI(log_prefix, "An item was added to the work queue!");
     }
     else
     {
@@ -42,6 +54,28 @@ int safe_add_work_queue(struct work_queue_item *new_item)
         return 1;
     }
     return 0;
+}
+
+struct work_queue_item *safe_get_head_work_item(void)
+{
+
+    struct work_queue_item *curr_work = NULL;
+    if (pdTRUE == xSemaphoreTake(xQueue_Semaphore, portMAX_DELAY))
+    {
+        /* Pull the first item from the work queue */
+        curr_work = STAILQ_FIRST(&work_q);
+        /* Immidiate deletion from the head of the queue */
+        if (curr_work != NULL)
+        {
+            STAILQ_REMOVE_HEAD(&work_q, items);
+        }
+        xSemaphoreGive(xQueue_Semaphore);
+    }
+    else
+    {
+        ESP_LOGE(log_prefix, "Error: Couldn't get semaphore to access work queue!");
+    }
+    return curr_work;
 }
 
 int safe_add_conversation(uint16_t conn_handle, media_type media_type)
@@ -63,19 +97,32 @@ int safe_add_conversation(uint16_t conn_handle, media_type media_type)
     else
     {
         ESP_LOGE(log_prefix, "Error: Couldn't get semaphore to add to conversation queue!");
-        return 0;
+        return -SDP_ERR_SEMAPHORE;
     }
-
 }
 
-int respond(struct work_queue_item queue_item, enum work_type work_type, const void *data, int data_length)
+void *sdp_add_preamble(enum work_type work_type, uint16_t conversation_id, const void *data, int data_length)
+{
+    char *new_data = malloc(data_length + SDP_PREAMBLE_LENGTH);
+    new_data[0] = SPD_PROTOCOL_VERSION;
+    new_data[1] = (uint8_t)(&conversation_id)[0];
+    new_data[2] = (uint8_t)(&conversation_id)[1];
+    new_data[3] = (uint8_t)work_type;
+    memcpy(&(new_data[SDP_PREAMBLE_LENGTH]), data, (size_t)data_length);
+    return new_data;
+}
+
+int sdp_reply(struct work_queue_item queue_item, enum work_type work_type, const void *data, int data_length)
 {
 
+    ESP_LOGI(log_prefix, "In sdp reply- media type: %u." , (uint8_t)queue_item.media_type);
     switch (queue_item.media_type)
     {
     case BLE:
-        return ble_send_message(queue_item.conn_handle, queue_item.conversation_id,
-                         work_type, data, data_length, log_prefix);
+        ESP_LOGI(log_prefix, "In sdp BLE reply.");
+        return ble_send_message(queue_item.conn_handle, queue_item.conversation_id, work_type,
+                                sdp_add_preamble(work_type, (uint16_t)(queue_item.conversation_id), data, data_length),
+                                data_length + SDP_PREAMBLE_LENGTH, log_prefix);
         break;
     default:
         break;
@@ -96,23 +143,37 @@ int respond(struct work_queue_item queue_item, enum work_type work_type, const v
  */
 int start_conversation(enum media_type media_type, int conn_handle,
                        enum work_type work_type, const void *data, int data_length)
-{   // Create and add a new conversation item and add to queue
+{ // Create and add a new conversation item and add to queue
     int new_conversation_id = safe_add_conversation(conn_handle, media_type);
-    if (new_conversation_id != 0) // 
+    if (new_conversation_id >= 0) //
     {
         switch (media_type)
         {
         case BLE:
-            return -ble_send_message(conn_handle, new_conversation_id, work_type, data, data_length, log_prefix);
+            if (conn_handle < 0)
+            {
+                return -ble_broadcast_message(new_conversation_id, work_type,
+                                              sdp_add_preamble(work_type, (uint16_t)new_conversation_id, data, data_length),
+                                              data_length + SDP_PREAMBLE_LENGTH, log_prefix);
+            }
+            else
+            {
+                return -ble_send_message(conn_handle, new_conversation_id, work_type,
+                                         sdp_add_preamble(work_type, (uint16_t)new_conversation_id, data, data_length),
+                                         data_length + SDP_PREAMBLE_LENGTH, log_prefix);
+            }
             break;
 
         default:
             break;
         }
-    } else {
-        // -1 means that the conversation wasn't created.
+    }
+    else
+    {
+        // < 0 means that the conversation wasn't created.
+        ESP_LOGE(log_prefix, "Error: start_conversation - Failed to create a conversation.");
         return -SDP_ERR_CONV_QUEUE;
     }
 
-    return 0;
+    return SDP_ERR_SUCCESS;
 }

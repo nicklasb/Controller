@@ -21,6 +21,7 @@
 #include "ui_task.h"
 #include "sdp.h"
 #include "sdp_task.h"
+#include "esp_log.h"
 
 /**********************
  *  STATIC PROTOTYPES
@@ -36,5 +37,20 @@ void app_main() {
     on_filter_request_cb = &do_on_filter_request;
     on_filter_data_cb = &do_on_filter_data;
 
+
+
     ui_init("UI\0");
+    int i = 0;
+    ESP_LOGI(log_prefix, "Waiting to broadcast");
+    vTaskDelay(1000);   
+    while (1) {
+
+        char data[17] = "status\0testdata";
+        ESP_LOGI(log_prefix, "Test broadcast %i beginning.", i);
+        start_conversation(BLE, -1, REQUEST,  &data, sizeof(data));
+        ESP_LOGI(log_prefix, "Test broadcast %i done.", i);
+        vTaskDelay(50);   
+        i++;
+    }
+
 }

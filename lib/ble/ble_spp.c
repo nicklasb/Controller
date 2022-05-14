@@ -1,7 +1,9 @@
-/*
- * SPDX-FileCopyrightText: 2021 Espressif Systems (Shanghai) CO LTD
- *
- * SPDX-License-Identifier: Unlicense OR CC0-1.0
+/**
+ * @brief Collection of helpers for a BLE spp service 
+ * 
+ * 
+ * Inspired by the Espressif examples
+ * @todo Restructure this into a more understandable solution, perhaps a separate header for peer and gatt stuff.
  */
 
 #include <assert.h>

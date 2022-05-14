@@ -5,20 +5,19 @@
 
 #include "os/queue.h"
 
-
-
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
-/* This semaphore is use for blocking, so different threads doesn't accidentaly communicate at the same time */
-SemaphoreHandle_t xBLE_Comm_Semaphore;
+    /* This semaphore is use for blocking, so different threads doesn't accidentaly communicate at the same time */
+    SemaphoreHandle_t xBLE_Comm_Semaphore;
 
 /* 16 Bit SPP Service UUID */
-#define GATT_SPP_SVC_UUID                                  0xABF0
+#define GATT_SPP_SVC_UUID 0xABF0
 
 /* 16 Bit SPP Service Characteristic UUID */
-#define GATT_SPP_CHR_UUID                                  0xABF1
+#define GATT_SPP_CHR_UUID 0xABF1
 
 uint16_t ble_svc_gatt_read_val_handle, ble_spp_svc_gatt_read_val_handle;
 

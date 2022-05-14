@@ -120,7 +120,7 @@ static int handle_incoming(uint16_t conn_handle, uint16_t attr_handle, struct bl
         immidiately respond with CRC32 to tell the
         reporter that the information has reached the controller. */
         ble_send_message(new_item->conn_handle,
-                         new_item->conversation_id, DATA, &(new_item->crc32), 2, tag);
+                         new_item->conversation_id, DATA, &(new_item->crc32), 2);
 
         /* Do NOT add the work item to the queue, it will be immidiately adressed in the callback */
 

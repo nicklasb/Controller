@@ -1,3 +1,12 @@
+/**
+ * @file sdp.c
+ * @author Nicklas Borjesson
+ * @brief This is the sensor data protocol server header file and queue definitions
+ * 
+ * @copyright Copyright (c) 2022
+ * 
+ */
+
 #ifdef __cplusplus
 extern "C"
 {

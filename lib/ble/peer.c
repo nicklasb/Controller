@@ -1,7 +1,10 @@
-/*
- * SPDX-FileCopyrightText: 2021 Espressif Systems (Shanghai) CO LTD
- *
- * SPDX-License-Identifier: Unlicense OR CC0-1.0
+/**
+ * @file peer.c
+ * @brief BLE peer lists
+ * 
+ * 
+ * Inspired by the Espressif examples
+ * @todo Restructure this into a more understandable solution, perhaps a separate header for peer and gatt stuff.
  */
 
 #include <assert.h>

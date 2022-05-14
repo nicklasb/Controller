@@ -15,7 +15,6 @@ extern "C"
      *      TYPEDEFS
      **********************/
 
-    char client_tag[50];
     /**********************
      * GLOBAL PROTOTYPES
      **********************/

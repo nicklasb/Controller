@@ -1,3 +1,12 @@
+/**
+ * @file sdp.c
+ * @author Nicklas Borjesson
+ * @brief This is the sensor data protocol server
+ * 
+ * @copyright Copyright (c) 2022
+ * 
+ */
+
 #include "sdp.h"
 
 #include "ble_global.h"
@@ -17,6 +26,9 @@ SemaphoreHandle_t xQueue_Semaphore;
 int sdp_init(work_callback work_cb, work_callback priority_cb, const char *_log_prefix, bool is_controller)
 {
     log_prefix = _log_prefix;
+    // Begin with initialising the monitor to capture initial memory state.
+    init_monitor();
+
     if (work_cb == NULL || priority_cb == NULL)
     {
         ESP_LOGE(log_prefix, "Error: Both work_cb and priority_cb are mandatory parameters, cannot be NULL!");
@@ -25,6 +37,8 @@ int sdp_init(work_callback work_cb, work_callback priority_cb, const char *_log_
 
     on_work_cb = work_cb;
     on_priority_cb = priority_cb;
+
+
 
     /* Initialize queues and lists, can't be done in header files as that would reinit the list on include */
     STAILQ_INIT(&work_q);
@@ -39,7 +53,7 @@ int sdp_init(work_callback work_cb, work_callback priority_cb, const char *_log_
     /* Init media types */
     ble_init(log_prefix, is_controller);
 
-    init_monitor();
+
 
     return 0;
 }
@@ -128,7 +142,7 @@ int sdp_reply(struct work_queue_item queue_item, enum work_type work_type, const
     case BLE:
         ESP_LOGI(log_prefix, "In sdp BLE reply.");
         retval = ble_send_message(queue_item.conn_handle, queue_item.conversation_id, work_type,
-                                new_data, data_length + SDP_PREAMBLE_LENGTH, log_prefix);
+                                new_data, data_length + SDP_PREAMBLE_LENGTH);
         break;
     default:
         ESP_LOGE(log_prefix, "An unimplemented media type was used: %i", queue_item.media_type);
@@ -167,15 +181,14 @@ int start_conversation(enum media_type media_type, int conn_handle,
         case BLE:
             if (conn_handle < 0)
             {
-                int b4 = heap_caps_get_free_size(MALLOC_CAP_8BIT);
                 retval = -ble_broadcast_message(new_conversation_id, work_type,
-                                              new_data, data_length + SDP_PREAMBLE_LENGTH, log_prefix);
+                                              new_data, data_length + SDP_PREAMBLE_LENGTH);
                 
             }
             else
             {
                 retval = -ble_send_message(conn_handle, new_conversation_id, work_type,
-                                         new_data, data_length + SDP_PREAMBLE_LENGTH, log_prefix);
+                                         new_data, data_length + SDP_PREAMBLE_LENGTH);
             }
             break;
 

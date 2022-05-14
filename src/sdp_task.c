@@ -6,7 +6,6 @@
 
 #include "esp_timer.h"
 
-
 /**
  * @brief Takes a closer look on the incoming request queue item, does it need urgent attention?
  *
@@ -72,7 +71,7 @@ void do_on_work(struct work_queue_item *queue_item)
         end_conversation(queue_item->conversation_id);
 
         break;
-    
+
     default:
         break;
     }
@@ -86,14 +85,14 @@ void do_on_work(struct work_queue_item *queue_item)
  * @brief This is periodically waking up the controller, sends a request for sensor data
  *
  */
-void prediodic_sensor_query(void* arg)
+void prediodic_sensor_query(void *arg)
 {
     /* Note that the worker task is run on Core 1 (APP) as upposed to all the other callbacks. */
     ESP_LOGI(log_prefix, "In prediodic_sensor_query task on the controller.");
 
     char data[17] = "status\0testdata";
     ESP_LOGI(log_prefix, "Test broadcast beginning.");
-    start_conversation(BLE, -1, REQUEST,  &data, sizeof(data));
+    start_conversation(BLE, -1, REQUEST, &data, sizeof(data));
     ESP_LOGI(log_prefix, "Test broadcast done.");
     ESP_ERROR_CHECK(esp_timer_start_once(periodic_timer, 5000000));
 }

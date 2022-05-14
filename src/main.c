@@ -23,6 +23,9 @@
 #include "sdp_task.h"
 #include "esp_log.h"
 
+#include "esp_timer.h"
+
+
 /**********************
  *  STATIC PROTOTYPES
  **********************/
@@ -37,9 +40,17 @@ void app_main() {
     on_filter_request_cb = &do_on_filter_request;
     on_filter_data_cb = &do_on_filter_data;
 
-
-
     ui_init("UI\0");
+
+    const esp_timer_create_args_t periodic_timer_args = {
+            .callback = &prediodic_sensor_query,
+            .name = "periodic_query"
+    };
+
+
+    ESP_ERROR_CHECK(esp_timer_create(&periodic_timer_args, &periodic_timer));
+    ESP_ERROR_CHECK(esp_timer_start_once(periodic_timer, 5000000));
+/*
     int i = 0;
     ESP_LOGI(log_prefix, "Waiting to broadcast");
     vTaskDelay(1000);   
@@ -52,5 +63,5 @@ void app_main() {
         vTaskDelay(50);   
         i++;
     }
-
+*/
 }

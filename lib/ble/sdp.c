@@ -3,6 +3,7 @@
 #include "ble_global.h"
 #include "esp_log.h"
 #include "ble_init.h"
+#include "sdp_monitor.h" /* TODO: Should this be separate so it can be optional? */
 #include "sdp_worker.h"
 
 /* The current conversation id */
@@ -10,6 +11,8 @@ uint16_t conversation_id = 0;
 
 /* Must be used when changing the work queue  */
 SemaphoreHandle_t xQueue_Semaphore;
+
+
 
 int sdp_init(work_callback work_cb, work_callback priority_cb, const char *_log_prefix, bool is_controller)
 {
@@ -35,6 +38,8 @@ int sdp_init(work_callback work_cb, work_callback priority_cb, const char *_log_
 
     /* Init media types */
     ble_init(log_prefix, is_controller);
+
+    init_monitor();
 
     return 0;
 }
@@ -114,20 +119,24 @@ void *sdp_add_preamble(enum work_type work_type, uint16_t conversation_id, const
 
 int sdp_reply(struct work_queue_item queue_item, enum work_type work_type, const void *data, int data_length)
 {
-
+    int retval = SDP_OK;
     ESP_LOGI(log_prefix, "In sdp reply- media type: %u." , (uint8_t)queue_item.media_type);
+    // Add preamble in a new data
+    void *new_data = sdp_add_preamble(work_type, (uint16_t)(queue_item.conversation_id), data, data_length);
     switch (queue_item.media_type)
     {
     case BLE:
         ESP_LOGI(log_prefix, "In sdp BLE reply.");
-        return ble_send_message(queue_item.conn_handle, queue_item.conversation_id, work_type,
-                                sdp_add_preamble(work_type, (uint16_t)(queue_item.conversation_id), data, data_length),
-                                data_length + SDP_PREAMBLE_LENGTH, log_prefix);
+        retval = ble_send_message(queue_item.conn_handle, queue_item.conversation_id, work_type,
+                                new_data, data_length + SDP_PREAMBLE_LENGTH, log_prefix);
         break;
     default:
+        ESP_LOGE(log_prefix, "An unimplemented media type was used: %i", queue_item.media_type);
+        retval = SDP_ERR_INVALID_PARAM;
         break;
     }
-    return 0;
+    free(new_data);
+    return retval;
 }
 /**
  * @brief Start a new conversation
@@ -143,37 +152,74 @@ int sdp_reply(struct work_queue_item queue_item, enum work_type work_type, const
  */
 int start_conversation(enum media_type media_type, int conn_handle,
                        enum work_type work_type, const void *data, int data_length)
-{ // Create and add a new conversation item and add to queue
+{ 
+    int retval = SDP_OK;
+    // Create and add a new conversation item and add to queue
     int new_conversation_id = safe_add_conversation(conn_handle, media_type);
     if (new_conversation_id >= 0) //
     {
+        // Add preamble in a new data
+        
+        void *new_data = sdp_add_preamble(work_type, (uint16_t)(new_conversation_id), data, data_length);
+       
         switch (media_type)
         {
         case BLE:
             if (conn_handle < 0)
             {
-                return -ble_broadcast_message(new_conversation_id, work_type,
-                                              sdp_add_preamble(work_type, (uint16_t)new_conversation_id, data, data_length),
-                                              data_length + SDP_PREAMBLE_LENGTH, log_prefix);
+                int b4 = heap_caps_get_free_size(MALLOC_CAP_8BIT);
+                retval = -ble_broadcast_message(new_conversation_id, work_type,
+                                              new_data, data_length + SDP_PREAMBLE_LENGTH, log_prefix);
+                
             }
             else
             {
-                return -ble_send_message(conn_handle, new_conversation_id, work_type,
-                                         sdp_add_preamble(work_type, (uint16_t)new_conversation_id, data, data_length),
-                                         data_length + SDP_PREAMBLE_LENGTH, log_prefix);
+                retval = -ble_send_message(conn_handle, new_conversation_id, work_type,
+                                         new_data, data_length + SDP_PREAMBLE_LENGTH, log_prefix);
             }
             break;
 
         default:
+            ESP_LOGE(log_prefix, "An unimplemented media type was used: %i", media_type);
+            retval = SDP_ERR_INVALID_PARAM;
             break;
         }
+        free(new_data);
     }
     else
     {
         // < 0 means that the conversation wasn't created.
         ESP_LOGE(log_prefix, "Error: start_conversation - Failed to create a conversation.");
-        return -SDP_ERR_CONV_QUEUE;
+        retval = -SDP_ERR_CONV_QUEUE;
     }
 
-    return SDP_ERR_SUCCESS;
+    return retval;
 }
+
+
+
+int end_conversation(uint16_t conversation_id) {
+    struct conversation_list_item *curr_conversation; 
+    SLIST_FOREACH(curr_conversation, &conversation_l, items) {
+        if (curr_conversation->conversation_id == conversation_id) {
+            SLIST_REMOVE(&conversation_l, curr_conversation, conversation_list_item, items);
+            free(curr_conversation);
+            return SDP_OK;
+        }
+    }
+    return SDP_ERR_CONV_QUEUE;
+}
+
+/* Helpers */
+
+int get_conversation_id(void) {
+    return conversation_id;
+}
+
+void cleanup_queue_task(struct work_queue_item *queue_item) {
+    free(queue_item->data);
+    free(queue_item);
+    vTaskDelete(NULL);
+}
+
+

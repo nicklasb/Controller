@@ -28,7 +28,7 @@ extern "C"
     typedef enum sdp_error_codes
     {
         /* An "error" code of 0x0 means success */
-        SDP_ERR_SUCCESS = 0x00,
+        SDP_OK = 0x00,
         /* A message failed to send for some reason */
         SDP_ERR_SEND_FAIL = 0x01,
         /* A one or more messages failed to send during a broadcast */
@@ -37,12 +37,16 @@ extern "C"
         SDP_ERR_CONV_QUEUE = 0x03,
         /* The conversation queue is full, too many concurrent conversations. TODO: Add setting? */
         SDP_ERR_CONV_QUEUE_FULL = 0x04,
+        /* An identifier was not found */
+        SDP_ERR_INVALID_ID = 0x05,        
         /* Couldn't get a semaphore to successfully lock a resource for thread safe usage. */
-        SDP_ERR_SEMAPHORE = 0x05,
+        SDP_ERR_SEMAPHORE = 0x06,
         /* SDP failed in its initiation. */
-        SDP_ERR_INIT_FAIL = 0x06,
+        SDP_ERR_INIT_FAIL = 0x07,
         /* Incoming message filtered */
-        SDP_ERR_MESSAGE_FILTERED = 0x07
+        SDP_ERR_MESSAGE_FILTERED = 0x08,
+        /* Invalid input parameter */
+        SDP_ERR_INVALID_PARAM = 0x09
 
     } sdp_error_codes;
 
@@ -185,7 +189,10 @@ extern "C"
     struct work_queue_item* safe_get_head_work_item(void);
     int start_conversation(media_type media_type, int conn_handle,
                            work_type work_type, const void *data, int data_length);
+    int end_conversation(uint16_t conversation_id);
     int sdp_reply(struct work_queue_item queue_item, enum work_type work_type, const void *data, int data_length);
+    int get_conversation_id(void); 
+    void cleanup_queue_task(struct work_queue_item *queue_item);
 
 #ifdef __cplusplus
 } /* extern "C" */

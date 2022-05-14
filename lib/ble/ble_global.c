@@ -116,7 +116,7 @@ int ble_broadcast_message(uint16_t conversation_id,
     }
     else
     {
-        return SDP_ERR_SUCCESS;
+        return SDP_OK;
     }
 }
 

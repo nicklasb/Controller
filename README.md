@@ -13,20 +13,22 @@ This is a central unit for managing and collecting sensor data from [peripherals
 The first evolution is hard-coded to a specific setup, the next will attempt to be more dynamic. 
 
 # Progress
-Currently implemented:
+## Currently implemented:
 * A basic UI implementation with touch
 * BLE client+server, based on an unholy mix of the esp-idf client/server demos
 * Create a project for peripherals that work in unison with the controller 
 * Create a custom BLE service that just does what is needed
 * A framework for a queue-based work item handling
-WIP:
+* Runtime monitor for statistics (historical memory tracking mostly, should be possible to add warnings for leaks and other sus stuff)
+
+## WIP:
 
 * Make data from peripherals appear on the controller screen 
 * Make it so that the central only discovers peripherals that are a part of the network
 * Add some alarms to the monitor, like low power and memory issues.
 
 
-Upcoming:
+## Upcoming:
 * Implement proper protocol for communicating structured sensor data
 * Implement support for a lot of different sensors in the peripherals (see that repo)
 * Add GSM reporting and control

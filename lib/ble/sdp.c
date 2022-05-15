@@ -65,7 +65,6 @@ int safe_add_work_queue(struct work_queue_item *new_item)
         /* As the worker takes the queue from the head, and we want a LIFO, add the item to the tail */
         STAILQ_INSERT_TAIL(&work_q, new_item, items);
         xSemaphoreGive(xQueue_Semaphore);
-        ESP_LOGI(log_prefix, "An item was added to the work queue!");
     }
     else
     {
@@ -230,9 +229,11 @@ int get_conversation_id(void) {
 }
 
 void cleanup_queue_task(struct work_queue_item *queue_item) {
-    free(queue_item->data);
+    free(queue_item->parts);
+    free(queue_item->raw_data);
     free(queue_item);
     vTaskDelete(NULL);
 }
+
 
 

@@ -14,9 +14,6 @@
 #include "ble_service.h"
 
 
-
-static const char *tag = "BLE_CENTRAL_SERVICE";
-
 QueueHandle_t spp_common_uart_queue = NULL;
 
 /* 16 Bit Alert Notification Service UUID */
@@ -38,34 +35,70 @@ int callcount = 0;
 
 
 
+
+void parse_message(struct work_queue_item *queue_item) {
+
+
+
+    /* Check that the data ends with a NULL value to avoid problems (there should always be one there) */
+    
+    if (queue_item->raw_data[queue_item->raw_data_length -1] != 0) {
+        ESP_LOGW(log_prefix, "WARNING: The data doesn't end with a NULL value, setting it forcefully!");
+        queue_item->raw_data[queue_item->raw_data_length -1] = 0;
+    }
+    // Count the parts TODO: Suppose this loop doesn't take long but it would be interesting not having to do it.
+    int nullcount = 0;    
+    for (int i = 0; i< queue_item->raw_data_length; i++) {
+        if (queue_item->raw_data[i] == 0) {
+            nullcount++;
+        } 
+    } 
+    queue_item->parts = heap_caps_malloc(nullcount * sizeof(int32_t), MALLOC_CAP_32BIT);
+    // The first byte is always the beginning of a part
+    queue_item->parts[0] = queue_item->raw_data;      
+    int partcount = 0;  
+    for (int j = 0; j< queue_item->raw_data_length; j++) {
+        if ((queue_item->raw_data[j] == 0) & (j < queue_item->raw_data_length -1)) {
+            queue_item->parts[partcount] = &(queue_item->raw_data[j +1]);
+            partcount++;
+        } 
+    }    
+    queue_item->partcount = partcount;
+
+
+}
+
 static int handle_incoming(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt *ctxt, void *arg)
 {
-    ESP_LOGI(tag, "Payload length: %i, call count %i, CRC32: %u", ctxt->om->om_len, callcount++,
+    ESP_LOGI(log_prefix, "Payload length: %i, call count %i, CRC32: %u", ctxt->om->om_len, callcount++,
              esp_crc32_be(0, ctxt->om->om_data, ctxt->om->om_len));
 
     struct work_queue_item *new_item;
     
     if (ctxt->om->om_len > SDP_PREAMBLE_LENGTH)
     {
-        // TODO:
+        // TODO: Change malloc to something more optimized?
         new_item = malloc(sizeof(struct work_queue_item));
         new_item->version = (uint8_t)ctxt->om->om_data[0];
         new_item->conversation_id = (uint16_t)ctxt->om->om_data[1];
         new_item->work_type = (uint8_t)ctxt->om->om_data[3];
-        new_item->data_length = ctxt->om->om_len-SDP_PREAMBLE_LENGTH;
-        new_item->data = malloc(new_item->data_length);
-        memcpy(new_item->data,&(ctxt->om->om_data[SDP_PREAMBLE_LENGTH]), new_item->data_length); 
+        new_item->raw_data_length = ctxt->om->om_len-SDP_PREAMBLE_LENGTH;
+        new_item->raw_data = malloc(new_item->raw_data_length);
+        memcpy(new_item->raw_data,&(ctxt->om->om_data[SDP_PREAMBLE_LENGTH]), new_item->raw_data_length); 
 
         new_item->media_type = BLE;
         new_item->conn_handle = conn_handle;
+        parse_message(new_item);
 
-        ESP_LOGI(tag, "Message info : Version: %u, Conversation id: %u, Work type: %u, Media type: %u,Data length: %u.", 
-        new_item->version, new_item->conversation_id, new_item->work_type, new_item->media_type, new_item->data_length);
+        ESP_LOGI(log_prefix, "Message info : Version: %u, Conversation id: %u, Work type: %u, Media type: %u,Data length: %u.", 
+        new_item->version, new_item->conversation_id, new_item->work_type, new_item->media_type, new_item->raw_data_length);
+
+
 
     }
     else
     {
-        ESP_LOGE(tag, "Error: The request must be more than %i bytes for SDP compliance.", SDP_PREAMBLE_LENGTH);
+        ESP_LOGE(log_prefix, "Error: The request must be more than %i bytes for SDP compliance.", SDP_PREAMBLE_LENGTH);
         return BLE_ATT_ERR_REQ_NOT_SUPPORTED;
     }
     
@@ -79,32 +112,29 @@ static int handle_incoming(uint16_t conn_handle, uint16_t attr_handle, struct bl
     case REQUEST:
         if (on_filter_request_cb != NULL)
         {
-            ESP_LOGI(tag, "BLE service: Calling on_filter_request_cb");
 
             if (on_filter_request_cb(new_item) == 0) {
                 // Add the request to the work queue
                 safe_add_work_queue(new_item);
             } else {
-                ESP_LOGE(tag, "BLE service: on_filter_request_cb returned a nonzero value, request not added to queue!");
+                ESP_LOGE(log_prefix, "BLE service: on_filter_request_cb returned a nonzero value, request not added to queue!");
                 return SDP_ERR_MESSAGE_FILTERED;
             }
             
         }
         else
         {
-            ESP_LOGI(tag, "BLE service: on_filter_request_cb not set, adding to queue.");
             safe_add_work_queue(new_item);
         }
         break;  
     case DATA:
         if (on_filter_data_cb != NULL) {
-            ESP_LOGI(tag, "BLE service: Calling on_filter_data_cb");
 
             if (on_filter_data_cb(new_item) == 0) {
                 // Add the request to the work queue
                 safe_add_work_queue(new_item);
             } else {
-                ESP_LOGE(tag, "BLE service: on_filter_data_cb returned a nonzero value, request not added to queue!");
+                ESP_LOGE(log_prefix, "BLE service: on_filter_data_cb returned a nonzero value, request not added to queue!");
                 return SDP_ERR_MESSAGE_FILTERED;
             }
             
@@ -126,13 +156,14 @@ static int handle_incoming(uint16_t conn_handle, uint16_t attr_handle, struct bl
 
         if (on_priority_cb != NULL)
         {
-            ESP_LOGI(tag, "BLE Calling on_priority_callback");
+            ESP_LOGW(log_prefix, "BLE Calling on_priority_callback!");
 
             on_priority_cb(new_item);
         }
         else
         {
-            ESP_LOGE(tag, "ERROR: BLE on_priority callback is not assigned!");
+            ESP_LOGE(log_prefix, "ERROR: BLE on_priority callback is not assigned, assigning to normal handling!");
+            safe_add_work_queue(new_item);
         }
         break;
 
@@ -151,7 +182,7 @@ static int ble_svc_gatt_handler(uint16_t conn_handle, uint16_t attr_handle, stru
     switch (ctxt->op)
     {
     case BLE_GATT_ACCESS_OP_READ_CHR:
-        ESP_LOGI(tag, "Callback for read");
+        ESP_LOGI(log_prefix, "Callback for read");
         break;
 
     case BLE_GATT_ACCESS_OP_WRITE_CHR:
@@ -160,7 +191,7 @@ static int ble_svc_gatt_handler(uint16_t conn_handle, uint16_t attr_handle, stru
         break;
 
     default:
-        ESP_LOGI(tag, "\nDefault Callback");
+        ESP_LOGI(log_prefix, "\nDefault Callback");
         break;
     }
     return 0;

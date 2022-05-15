@@ -118,10 +118,13 @@ extern "C"
         /* The conversation it belongs to */
         uint8_t conversation_id;
         /* The data */
-        void *data;
+        char *raw_data;
         /* The length of the data in bytes */
-        uint16_t data_length;
-
+        uint16_t raw_data_length;
+        /* The message parts as an array of null-terminated strings */
+        char **parts;
+        /* The number of message parts */
+        int partcount;
         /* The underlying media type, avoid using this data to stay tech agnostic */
         enum media_type media_type;
         /* A handle to the underlying connection */

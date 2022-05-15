@@ -50,7 +50,7 @@ void do_on_priority(struct work_queue_item *work_item)
 {
 
     ESP_LOGI(log_prefix, "In ble data callback on the controller!");
-    if (strcmp((char *)(work_item->data), (char *)"status") == 0)
+    if (strcmp((char *)(work_item->raw_data), (char *)"status") == 0)
     {
         ESP_LOGI(log_prefix, "Got asked for status!");
     }
@@ -76,7 +76,7 @@ void do_on_work(struct work_queue_item *queue_item)
         break;
     }
     /* Note that the worker task is run on Core 1 (APP) as upposed to all the other callbacks. */
-    ESP_LOGI(log_prefix, "In do_on_work task on the controller, got a message:\n%s", (char *)queue_item->data);
+    ESP_LOGI(log_prefix, "In do_on_work task on the controller, got a message:\n%s", (char *)queue_item->raw_data);
     /* Always call the cleanup crew when done */
     cleanup_queue_task(queue_item);
 }
@@ -90,7 +90,7 @@ void prediodic_sensor_query(void *arg)
     /* Note that the worker task is run on Core 1 (APP) as upposed to all the other callbacks. */
     ESP_LOGI(log_prefix, "In prediodic_sensor_query task on the controller.");
 
-    char data[17] = "status\0testdata";
+    char data[28] = "status\0testdata\0\0test\0data2\0";
     ESP_LOGI(log_prefix, "Test broadcast beginning.");
     start_conversation(BLE, -1, REQUEST, &data, sizeof(data));
     ESP_LOGI(log_prefix, "Test broadcast done.");

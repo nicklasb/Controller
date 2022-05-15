@@ -2,9 +2,9 @@
  * @file sdp.c
  * @author Nicklas Borjesson
  * @brief This is the sensor data protocol server
- * 
+ *
  * @copyright Copyright (c) 2022
- * 
+ *
  */
 
 #include "sdp.h"
@@ -21,8 +21,6 @@ uint16_t conversation_id = 0;
 /* Must be used when changing the work queue  */
 SemaphoreHandle_t xQueue_Semaphore;
 
-
-
 int sdp_init(work_callback work_cb, work_callback priority_cb, const char *_log_prefix, bool is_controller)
 {
     log_prefix = _log_prefix;
@@ -38,8 +36,6 @@ int sdp_init(work_callback work_cb, work_callback priority_cb, const char *_log_
     on_work_cb = work_cb;
     on_priority_cb = priority_cb;
 
-
-
     /* Initialize queues and lists, can't be done in header files as that would reinit the list on include */
     STAILQ_INIT(&work_q);
     SLIST_INIT(&conversation_l);
@@ -52,8 +48,6 @@ int sdp_init(work_callback work_cb, work_callback priority_cb, const char *_log_
 
     /* Init media types */
     ble_init(log_prefix, is_controller);
-
-
 
     return 0;
 }
@@ -133,7 +127,7 @@ void *sdp_add_preamble(enum work_type work_type, uint16_t conversation_id, const
 int sdp_reply(struct work_queue_item queue_item, enum work_type work_type, const void *data, int data_length)
 {
     int retval = SDP_OK;
-    ESP_LOGI(log_prefix, "In sdp reply- media type: %u." , (uint8_t)queue_item.media_type);
+    ESP_LOGI(log_prefix, "In sdp reply- media type: %u.", (uint8_t)queue_item.media_type);
     // Add preamble in a new data
     void *new_data = sdp_add_preamble(work_type, (uint16_t)(queue_item.conversation_id), data, data_length);
     switch (queue_item.media_type)
@@ -141,7 +135,7 @@ int sdp_reply(struct work_queue_item queue_item, enum work_type work_type, const
     case BLE:
         ESP_LOGI(log_prefix, "In sdp BLE reply.");
         retval = ble_send_message(queue_item.conn_handle, queue_item.conversation_id, work_type,
-                                new_data, data_length + SDP_PREAMBLE_LENGTH);
+                                  new_data, data_length + SDP_PREAMBLE_LENGTH);
         break;
     default:
         ESP_LOGE(log_prefix, "An unimplemented media type was used: %i", queue_item.media_type);
@@ -165,29 +159,28 @@ int sdp_reply(struct work_queue_item queue_item, enum work_type work_type, const
  */
 int start_conversation(enum media_type media_type, int conn_handle,
                        enum work_type work_type, const void *data, int data_length)
-{ 
+{
     int retval = SDP_OK;
     // Create and add a new conversation item and add to queue
     int new_conversation_id = safe_add_conversation(conn_handle, media_type);
     if (new_conversation_id >= 0) //
     {
         // Add preamble in a new data
-        
+
         void *new_data = sdp_add_preamble(work_type, (uint16_t)(new_conversation_id), data, data_length);
-       
+
         switch (media_type)
         {
         case BLE:
             if (conn_handle < 0)
             {
                 retval = -ble_broadcast_message(new_conversation_id, work_type,
-                                              new_data, data_length + SDP_PREAMBLE_LENGTH);
-                
+                                                new_data, data_length + SDP_PREAMBLE_LENGTH);
             }
             else
             {
                 retval = -ble_send_message(conn_handle, new_conversation_id, work_type,
-                                         new_data, data_length + SDP_PREAMBLE_LENGTH);
+                                           new_data, data_length + SDP_PREAMBLE_LENGTH);
             }
             break;
 
@@ -208,12 +201,13 @@ int start_conversation(enum media_type media_type, int conn_handle,
     return retval;
 }
 
-
-
-int end_conversation(uint16_t conversation_id) {
-    struct conversation_list_item *curr_conversation; 
-    SLIST_FOREACH(curr_conversation, &conversation_l, items) {
-        if (curr_conversation->conversation_id == conversation_id) {
+int end_conversation(uint16_t conversation_id)
+{
+    struct conversation_list_item *curr_conversation;
+    SLIST_FOREACH(curr_conversation, &conversation_l, items)
+    {
+        if (curr_conversation->conversation_id == conversation_id)
+        {
             SLIST_REMOVE(&conversation_l, curr_conversation, conversation_list_item, items);
             free(curr_conversation);
             return SDP_OK;
@@ -224,16 +218,15 @@ int end_conversation(uint16_t conversation_id) {
 
 /* Helpers */
 
-int get_conversation_id(void) {
+int get_conversation_id(void)
+{
     return conversation_id;
 }
 
-void cleanup_queue_task(struct work_queue_item *queue_item) {
+void cleanup_queue_task(struct work_queue_item *queue_item)
+{
     free(queue_item->parts);
     free(queue_item->raw_data);
     free(queue_item);
     vTaskDelete(NULL);
 }
-
-
-

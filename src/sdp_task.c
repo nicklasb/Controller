@@ -62,7 +62,10 @@ void do_on_priority(struct work_queue_item *work_item)
  */
 void do_on_work(struct work_queue_item *queue_item)
 {
-
+    ESP_LOGI(log_prefix, "In do_on_work task on the controller, got a message:\n");
+    for (int i = 0; i < queue_item->partcount; i++) {
+        ESP_LOGI(log_prefix, "Message part %i: \"%s\"", i, queue_item->parts[i]);
+    }
     switch (queue_item->work_type)
     {
     case DATA:

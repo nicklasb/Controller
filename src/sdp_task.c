@@ -4,6 +4,8 @@
 #include "sdp.h"
 #include "sdp_task.h"
 
+#include "sdp_helpers.h"
+
 #include "esp_timer.h"
 
 /**

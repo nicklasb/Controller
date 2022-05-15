@@ -216,17 +216,7 @@ int end_conversation(uint16_t conversation_id)
     return SDP_ERR_CONV_QUEUE;
 }
 
-/* Helpers */
-
 int get_conversation_id(void)
 {
     return conversation_id;
-}
-
-void cleanup_queue_task(struct work_queue_item *queue_item)
-{
-    free(queue_item->parts);
-    free(queue_item->raw_data);
-    free(queue_item);
-    vTaskDelete(NULL);
 }

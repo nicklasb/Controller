@@ -204,7 +204,7 @@ extern "C"
     int end_conversation(uint16_t conversation_id);
     int sdp_reply(struct work_queue_item queue_item, enum work_type work_type, const void *data, int data_length);
     int get_conversation_id(void); 
-    void cleanup_queue_task(struct work_queue_item *queue_item);
+
 
 #ifdef __cplusplus
 } /* extern "C" */

@@ -117,7 +117,7 @@ void memory_monitoring() {
         // TODO: Implement warning callback!
         level = ESP_LOG_WARN;
     }
-    ESP_LOG_LEVEL(level, log_prefix, "Monitor reporting on cvailable resources. Memory:\nCurrently: %i, avg mem: %.0f bytes. \nDeltas - Avg vs 1st: %.0f, Last vs now: %i. \nExtremes - Least: %i, Most(before init): %i. ",
+    ESP_LOG_LEVEL(level, log_prefix, "Monitor reporting on available resources. Memory:\nCurrently: %i, avg mem: %.0f bytes. \nDeltas - Avg vs 1st: %.0f, Last vs now: %i. \nExtremes - Least: %i, Most(before init): %i. ",
              curr_mem_avail, avg_mem_avail, avg_mem_avail - first_average_memory_available, delta_mem_avail, least_memory_available, most_memory_available);
     
 }

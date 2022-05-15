@@ -25,7 +25,7 @@ int sdp_init(work_callback work_cb, work_callback priority_cb, const char *_log_
 {
     log_prefix = _log_prefix;
     // Begin with initialising the monitor to capture initial memory state.
-    init_monitor();
+    init_monitor(log_prefix);
 
     if (work_cb == NULL || priority_cb == NULL)
     {

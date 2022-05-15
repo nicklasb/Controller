@@ -1,13 +1,28 @@
-#include "sdp.h"
+
 #include "sdp_monitor.h"
 #include "esp_log.h"
+
+#include "freertos/FreeRTOS.h"
 
 /* How often should we look */
 #define MONITOR_DELAY 5000000
 
 #define HISTORY_LENGTH 5
 
-/* At what monitor count should the reference memory average be stored */
+/* Limits for built-in levels levels and warnings. */
+
+/* Memory limits */
+
+/* This much memory should not be used in any situation, a problem will be reported! */
+#define DANGER_USAGE 120000
+/* This is more memory than is used in normal operations, a warning will be sent*/
+#define WARNING_USAGE 80000
+
+/* TODO: Implement callbacks for external monitoring points and for problem and warning reporting */
+/* TODO: Useful monitors: Queue length, stale conversations? UI? Too long-running work loads? */
+/* TODO: Should callbaks return warning level? And be able to clear it? Store monitor list? */
+
+/* At what monitor count should the reference memory average be stored?*/
 #define FIRST_AVG_POINT 7
 #if (FIRST_AVG_POINT < HISTORY_LENGTH + 1)
 #error "The first average cannot be before the history is populated, i.e. less than its length + 1. \
@@ -27,25 +42,24 @@ int least_memory_available = 0;
 /* This is the first calulated average (first done after FIRST_AVG_POINT samples) */
 int first_average_memory_available = 0;
 
+/* The log prefix for all logging */
+char *log_prefix;
+
 struct history_item
 {
     int memory_available;
-    int conversation_id;
-    // int work_queue_length;
+    // An array of other values (this is dynamically allocated)
+    int *other_values;
 };
 struct history_item history[HISTORY_LENGTH];
 
-/**
- * @brief The monitor tasks periodically takes sampes of the current state
- * It uses that history data to perform some simple statistical calculations,
- * helping out with finding memory leaks.
- * TODO: Add an alarm callback to make it possible to raise the alarm if memory or power runs low.
+/** 
+ * The built-in functionality of the SDP monitoring is that of memory
+ * This is considered essential.
  * 
- * @param arg 
- */
+ */ 
+void memory_monitoring() {
 
-void monitor_task(void *arg)
-{
     int curr_mem_avail = heap_caps_get_free_size(MALLOC_CAP_8BIT);
     int delta_mem_avail = 0;
 
@@ -74,9 +88,7 @@ void monitor_task(void *arg)
 
             /* The first is filled with new data */
             history[0].memory_available = curr_mem_avail;
-            history[0].conversation_id = get_conversation_id();
 
-            /* TODO: Track queue lengths of conversations and work items? */
         }
     }
     float avg_mem_avail = 0;
@@ -92,22 +104,56 @@ void monitor_task(void *arg)
     {
         first_average_memory_available = avg_mem_avail;
     }
-
-    ESP_LOGE(log_prefix, "Monitor reporting on cvailable resources. Memory:\nCurrently: %i, avg mem: %.0f bytes. \nDeltas - Avg vs 1st: %.0f, Last vs now: %i. \nExtremes - Least: %i, Most(before init): %i. ",
+    int level = ESP_LOG_INFO;
+    if ((most_memory_available - curr_mem_avail) > DANGER_USAGE) {
+        ESP_LOGE(log_prefix, "Dangerously high memory usage at %i bytes! Will report!(DANGER_USAGE=%i)", 
+        most_memory_available - curr_mem_avail, WARNING_USAGE);
+        // TODO: Implement problem callback!
+        level = ESP_LOG_ERROR;
+    } else if ((most_memory_available - curr_mem_avail) > WARNING_USAGE) {
+        ESP_LOGW(log_prefix, "Inusually high memory usage at %i bytes(WARNING_USAGE=%i).", 
+        most_memory_available - curr_mem_avail, WARNING_USAGE);
+        // TODO: Implement warning callback!
+        level = ESP_LOG_WARN;
+    }
+    ESP_LOG_LEVEL(level, log_prefix, "Monitor reporting on cvailable resources. Memory:\nCurrently: %i, avg mem: %.0f bytes. \nDeltas - Avg vs 1st: %.0f, Last vs now: %i. \nExtremes - Least: %i, Most(before init): %i. ",
              curr_mem_avail, avg_mem_avail, avg_mem_avail - first_average_memory_available, delta_mem_avail, least_memory_available, most_memory_available);
+    
+}
+
+
+
+/**
+ * @brief The monitor tasks periodically takes sampes of the current state
+ * It uses that history data to perform some simple statistical calculations,
+ * helping out with finding memory leaks.
+ * 
+ * 
+ * @param arg 
+ */
+
+void monitor_task(void *arg)
+{
+    // Call different monitors
+    memory_monitoring();
+
+    // TODO: Add an SLIST of external monitors
+    // TODO: Add problem and warning callbacks to make it possible to raise the alarm if .
     sample_count++;
     ESP_ERROR_CHECK(esp_timer_start_once(monitor_timer, MONITOR_DELAY));
 }
 
 
-void init_monitor(void)
-{
+void init_monitor(char *log_prefix)
+{   log_prefix = log_prefix;
     /* Init the monitor */
     const esp_timer_create_args_t monitor_timer_args = {
         .callback = &monitor_task,
         .name = "monitor"};
 
     ESP_ERROR_CHECK(esp_timer_create(&monitor_timer_args, &monitor_timer));
+
+    // TODO: Loop list of external monitors 
 
     ESP_LOGI(log_prefix, "Launching monitor, activate every %.2f seconds, history length: %i samples.", (float)MONITOR_DELAY/1000000, HISTORY_LENGTH);
     monitor_task(NULL);

@@ -7,7 +7,7 @@ extern "C"
  */
 
 
-void init_monitor(void);
+void init_monitor(char *log_prefix);
 
 #ifdef __cplusplus
 } /* extern "C" */

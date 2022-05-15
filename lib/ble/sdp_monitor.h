@@ -9,15 +9,15 @@ extern "C"
  * TODO: Question: Should the monitor also be the one that gets samples for the controller?
  * Or is that out of scope? Should that more be a scheduler?
  */
-
+/*
 struct monitor {
     problem
 }
-
+*/
 
 void init_monitor(char *log_prefix);
 
-int add_monitor()
+//int add_monitor()
 
 #ifdef __cplusplus
 } /* extern "C" */

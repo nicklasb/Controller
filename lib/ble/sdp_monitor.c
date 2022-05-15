@@ -21,7 +21,7 @@
 /* TODO: Implement callbacks for external monitoring points and for problem and warning reporting */
 /* TODO: Useful monitors: Queue length, stale conversations? UI? Too long-running work loads? */
 /* TODO: Should callbaks return warning level? And be able to clear it? Store monitor list? */
-/* TODO: Should this be a separate project? Like IoT monitor or something?
+/* TODO: Should this be a separate project? Like IoT monitor or something? */
 
 /* At what monitor count should the reference memory average be stored?*/
 #define FIRST_AVG_POINT 7

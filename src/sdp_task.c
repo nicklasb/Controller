@@ -7,6 +7,7 @@
 #include "sdp_helpers.h"
 
 #include "esp_timer.h"
+#include "ui_builder.h"
 
 /**
  * @brief Takes a closer look on the incoming request queue item, does it need urgent attention?
@@ -57,6 +58,23 @@ void do_on_priority(struct work_queue_item *work_item)
         ESP_LOGI(log_prefix, "Got asked for status!");
     }
 }
+
+void do_on_data(struct work_queue_item *queue_item)
+{
+    struct conversation_list_item *conversation;
+    conversation = find_conversation(queue_item->conversation_id);
+
+    if (strcmp(conversation->reason, "status") == 0)
+    {
+        ESP_LOGI(log_prefix, "Status is returned");
+        lv_label_set_text_fmt(vberth, queue_item->parts[1]);
+        
+    }
+
+    /* Always end the conversations if this is expeced to be the last response */
+    end_conversation(queue_item->conversation_id);
+}
+
 /**
  * @brief The work task get a work item from the queue and reacts to it.
  *
@@ -65,16 +83,15 @@ void do_on_priority(struct work_queue_item *work_item)
 void do_on_work(struct work_queue_item *queue_item)
 {
     ESP_LOGI(log_prefix, "In do_on_work task on the controller, got a message:\n");
-    for (int i = 0; i < queue_item->partcount; i++) {
+    for (int i = 0; i < queue_item->partcount; i++)
+    {
         ESP_LOGI(log_prefix, "Message part %i: \"%s\"", i, queue_item->parts[i]);
     }
+
     switch (queue_item->work_type)
     {
     case DATA:
-
-        /* Always end the conversations if this is expeced to be the last response */
-        end_conversation(queue_item->conversation_id);
-
+        do_on_data(queue_item);
         break;
 
     default:
@@ -97,7 +114,7 @@ void prediodic_sensor_query(void *arg)
 
     char data[28] = "status\0testdata\0\0test\0data2\0";
     ESP_LOGI(log_prefix, "Test broadcast beginning.");
-    start_conversation(BLE, -1, REQUEST, &data, sizeof(data));
+    start_conversation(BLE, -1, REQUEST, "status", &data, sizeof(data));
     ESP_LOGI(log_prefix, "Test broadcast done.");
     ESP_ERROR_CHECK(esp_timer_start_once(periodic_timer, 5000000));
 }

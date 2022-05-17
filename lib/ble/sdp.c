@@ -90,13 +90,16 @@ struct work_queue_item *safe_get_head_work_item(void)
     return curr_work;
 }
 
-int safe_add_conversation(uint16_t conn_handle, media_type media_type)
+int safe_add_conversation(uint16_t conn_handle, media_type media_type, const char *reason)
 {
     /* Create a conversation list item to keep track */
 
     struct conversation_list_item *new_item = malloc(sizeof(struct conversation_list_item));
     new_item->conn_handle = conn_handle;
     new_item->media_type = media_type;
+    new_item->reason =malloc(strlen(reason));
+    strcpy(new_item->reason,reason);
+    
     /* Some things needs to be thread-safe */
     if (pdTRUE == xSemaphoreTake(xQueue_Semaphore, portMAX_DELAY))
     {
@@ -123,7 +126,16 @@ void *sdp_add_preamble(enum work_type work_type, uint16_t conversation_id, const
     memcpy(&(new_data[SDP_PREAMBLE_LENGTH]), data, (size_t)data_length);
     return new_data;
 }
-
+/**
+ * @brief Replies to the sender in the queue item
+ *  
+ * 
+ * @param queue_item 
+ * @param work_type 
+ * @param data 
+ * @param data_length 
+ * @return int 
+ */
 int sdp_reply(struct work_queue_item queue_item, enum work_type work_type, const void *data, int data_length)
 {
     int retval = SDP_OK;
@@ -157,12 +169,12 @@ int sdp_reply(struct work_queue_item queue_item, enum work_type work_type, const
  * @return int Returns the conversation id if successful.
  * NOTE: Returns negative error values on failure.
  */
-int start_conversation(enum media_type media_type, int conn_handle,
-                       enum work_type work_type, const void *data, int data_length)
+int start_conversation(enum media_type media_type, int conn_handle, enum work_type work_type, 
+                       const char *reason, const void *data, int data_length)
 {
     int retval = SDP_OK;
     // Create and add a new conversation item and add to queue
-    int new_conversation_id = safe_add_conversation(conn_handle, media_type);
+    int new_conversation_id = safe_add_conversation(conn_handle, media_type, reason);
     if (new_conversation_id >= 0) //
     {
         // Add preamble in a new data
@@ -209,12 +221,30 @@ int end_conversation(uint16_t conversation_id)
         if (curr_conversation->conversation_id == conversation_id)
         {
             SLIST_REMOVE(&conversation_l, curr_conversation, conversation_list_item, items);
+            free(curr_conversation->reason);
             free(curr_conversation);
             return SDP_OK;
         }
     }
     return SDP_ERR_CONV_QUEUE;
 }
+
+struct conversation_list_item *find_conversation(uint16_t conversation_id)
+{
+    struct conversation_list_item *curr_conversation;
+    SLIST_FOREACH(curr_conversation, &conversation_l, items)
+    {
+        if (curr_conversation->conversation_id == conversation_id)
+        {
+            return curr_conversation;
+
+        }
+    }
+    return NULL;
+}
+
+
+
 
 int get_conversation_id(void)
 {

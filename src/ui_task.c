@@ -123,7 +123,7 @@ static void ui_task(void *pvParameter)
         {
             if (pdTRUE == xSemaphoreTake(xGuiSemaphore, portMAX_DELAY))
             {
-                lv_label_set_text_fmt(vberth, "I just set this");
+                //lv_label_set_text_fmt(vberth, "I just set this");
                 // lv_label_set_text_fmt(vberth, "Hum: %.1f Tmp: %.1f\n", hum, temp);
                 // ESP_LOGI("UI update",  "Hum: %.1f Tmp: %.1f\n", hum, temp);
                 xSemaphoreGive(xGuiSemaphore);

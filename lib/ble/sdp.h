@@ -149,6 +149,7 @@ extern "C"
     struct conversation_list_item
     {
         uint8_t conversation_id; // The conversation it belongs to
+        char *reason;
 
         SLIST_ENTRY(conversation_list_item)
         items;
@@ -199,9 +200,10 @@ extern "C"
     int sdp_init(work_callback work_cb, work_callback priority_cb, const char *_log_prefix, bool is_controller);
     int safe_add_work_queue(struct work_queue_item *new_item);
     struct work_queue_item* safe_get_head_work_item(void);
-    int start_conversation(media_type media_type, int conn_handle,
-                           work_type work_type, const void *data, int data_length);
+    int start_conversation(media_type media_type, int conn_handle, work_type work_type, 
+                const char *reason, const void *data, int data_length);
     int end_conversation(uint16_t conversation_id);
+    struct conversation_list_item *find_conversation(uint16_t conversation_id);
     int sdp_reply(struct work_queue_item queue_item, enum work_type work_type, const void *data, int data_length);
     int get_conversation_id(void); 
 

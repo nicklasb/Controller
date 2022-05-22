@@ -74,6 +74,19 @@ void do_on_data(struct work_queue_item *queue_item)
         lv_label_set_text_fmt(vberth, queue_item->parts[1]);
         
     }
+    if (strcmp(conversation->reason, "sensors") == 0)
+    {
+        ESP_LOGI(log_prefix, "Sensor data is returned");
+        if (strcmp(queue_item->parts[0], "-2")  == 0) {
+            lv_label_set_text_fmt(vberth, "Sensor not detected yet");
+        } else if (strcmp(queue_item->parts[0], "-1")  == 0) {
+            lv_label_set_text_fmt(vberth, "Checksum failed");
+        } else {
+            lv_label_set_text_fmt(vberth, strcat(queue_item->parts[0], " mm"));
+        }
+        
+        
+    }    
 
     /* Always end the conversations if this is expeced to be the last response */
     end_conversation(queue_item->conversation_id);

@@ -103,6 +103,11 @@ int ble_broadcast_message(uint16_t conversation_id,
 
         total++;
     }
+
+    if (total == 0) {
+        ESP_LOGW(log_prefix, "Broadcast had no peers to send to!");
+    }
+
     if (errors == total)
     {
         return SDP_ERR_SEND_FAIL;

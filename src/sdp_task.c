@@ -1,4 +1,4 @@
-#include "esp_log.h"
+
 #include <string.h>
 
 #include "sdp.h"
@@ -8,6 +8,10 @@
 
 #include "esp_timer.h"
 #include "ui_builder.h"
+
+#include "esp_log.h"
+
+esp_timer_handle_t periodic_timer;
 
 /**
  * @brief Takes a closer look on the incoming request queue item, does it need urgent attention?
@@ -107,14 +111,30 @@ void do_on_work(struct work_queue_item *queue_item)
  * @brief This is periodically waking up the controller, sends a request for sensor data
  *
  */
-void prediodic_sensor_query(void *arg)
+void periodic_sensor_query(void *arg)
 {
     /* Note that the worker task is run on Core 1 (APP) as upposed to all the other callbacks. */
     ESP_LOGI(log_prefix, "In prediodic_sensor_query task on the controller.");
 
-    char data[28] = "status\0testdata\0\0test\0data2\0";
+    char data[9] = "sensors\0";
     ESP_LOGI(log_prefix, "Test broadcast beginning.");
-    start_conversation(BLE, -1, REQUEST, "status", &data, sizeof(data));
+    start_conversation(BLE, -1, REQUEST, "sensors", &data, sizeof(data));
     ESP_LOGI(log_prefix, "Test broadcast done.");
+    ESP_ERROR_CHECK(esp_timer_start_once(periodic_timer, 5000000));
+}
+
+void init_sdp_task() {
+
+    on_filter_request_cb = &do_on_filter_request;
+    on_filter_data_cb = &do_on_filter_data;  
+    sdp_init(do_on_work, do_on_priority, "Controller\0", true);
+
+    const esp_timer_create_args_t periodic_timer_args = {
+            .callback =  &periodic_sensor_query,
+            .name = "periodic_query"
+    };
+
+
+    ESP_ERROR_CHECK(esp_timer_create(&periodic_timer_args, &periodic_timer));
     ESP_ERROR_CHECK(esp_timer_start_once(periodic_timer, 5000000));
 }

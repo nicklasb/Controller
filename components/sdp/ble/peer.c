@@ -9,7 +9,7 @@
 
 #include <assert.h>
 #include <string.h>
-#include "host/ble_hs.h"
+#include <host/ble_hs.h>
 #include "ble_spp.h"
 
 static void *peer_svc_mem;

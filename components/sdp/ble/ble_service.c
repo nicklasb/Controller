@@ -3,11 +3,10 @@
  * Loosely based on the ESP-IDF-demo
  */
 
-#include "host/ble_hs.h"
+#include <host/ble_hs.h>
 #include "ble_spp.h"
 
-#include "esp_crc.h"
-
+#include <esp32/rom/crc.h>
 #include "sdp.h"
 #include "ble_global.h"
 #include "ble_service.h"
@@ -72,7 +71,7 @@ void parse_message(struct work_queue_item *queue_item)
 static int handle_incoming(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt *ctxt, void *arg)
 {
     ESP_LOGI(log_prefix, "Payload length: %i, call count %i, CRC32: %u", ctxt->om->om_len, callcount++,
-             esp_crc32_be(0, ctxt->om->om_data, ctxt->om->om_len));
+             crc32_be(0, ctxt->om->om_data, ctxt->om->om_len));
 
     struct work_queue_item *new_item;
 

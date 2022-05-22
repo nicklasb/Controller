@@ -1,8 +1,8 @@
 
 #include "sdp_monitor.h"
-#include "esp_log.h"
+#include <esp_log.h>
 
-#include "freertos/FreeRTOS.h"
+#include <freertos/FreeRTOS.h>
 
 /* How often should we look */
 #define MONITOR_DELAY 5000000

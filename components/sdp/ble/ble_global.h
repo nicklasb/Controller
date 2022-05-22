@@ -4,9 +4,7 @@
  *      INCLUDES
  *********************/
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+
 
 /*********************
  *      DEFINES
@@ -25,6 +23,3 @@ int ble_send_message(uint16_t conn_handle, uint16_t conversation_id,
     enum work_type work_type, const void *data, int data_length);
 
 
-#ifdef __cplusplus
-}
-#endif

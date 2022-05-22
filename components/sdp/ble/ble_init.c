@@ -4,26 +4,28 @@
  *
  */
 
-#include "esp_log.h"
+#include "ble_init.h"
 
-#include "host/ble_hs.h"
+
+#include <host/ble_hs.h>
 #include "ble_spp.h" // This needs to be after ble_hs.h
 
-#include "nvs.h"
-#include "nvs_flash.h"
+#include <nvs.h>
+#include <nvs_flash.h>
 
-#include "esp_nimble_hci.h"
-#include "services/gap/ble_svc_gap.h"
+#include <esp_nimble_hci.h>
+#include <services/gap/ble_svc_gap.h>
 
 #include "ble_client.h"
 #include "ble_service.h"
 #include "ble_server.h"
 
 #include "ble_global.h"
-#include "nimble/nimble_port.h"
-#include "nimble/nimble_port_freertos.h"
+#include <nimble/nimble_port.h>
+#include <nimble/nimble_port_freertos.h>
 
-#include "ble_init.h"
+#include <esp_log.h>
+
 
 /**
  * @brief Initialize the  BLE server

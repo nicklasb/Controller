@@ -3,12 +3,9 @@
  * Loosely based on the ESP-IDF-demo
  */
 
-#include "os/queue.h"
+#include <os/queue.h>
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
+
 
     /* This semaphore is use for blocking, so different threads doesn't accidentaly communicate at the same time */
     SemaphoreHandle_t xBLE_Comm_Semaphore;
@@ -27,6 +24,3 @@ void print_addr(const void *addr);
 int gatt_svr_register(void);
 void ble_store_config_init(void);
 
-#ifdef __cplusplus
-}
-#endif

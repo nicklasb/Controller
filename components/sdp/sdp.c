@@ -7,13 +7,15 @@
  *
  */
 
+
 #include "sdp.h"
 
-#include "ble_global.h"
-#include "esp_log.h"
-#include "ble_init.h"
+#include "ble/ble_global.h"
+#include "ble/ble_init.h"
 #include "sdp_monitor.h" /* TODO: Should this be separate so it can be optional? */
 #include "sdp_worker.h"
+
+#include <esp_log.h>
 
 /* The current conversation id */
 uint16_t conversation_id = 0;

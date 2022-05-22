@@ -5,11 +5,11 @@
 
 
 
-#include "host/util/util.h"
-#include "host/ble_hs.h"
+#include <host/util/util.h>
+#include <host/ble_hs.h>
 
-#include "esp_nimble_hci.h"
-#include "services/gap/ble_svc_gap.h"
+#include <esp_nimble_hci.h>
+#include <services/gap/ble_svc_gap.h>
 
 #include "ble_spp.h"
 

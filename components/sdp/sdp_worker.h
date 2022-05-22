@@ -12,9 +12,6 @@
  *      INCLUDES
  *********************/
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 /*********************
  *      DEFINES
@@ -22,6 +19,4 @@ extern "C" {
 int init_worker(const char *log_prefix);
 
 
-#ifdef __cplusplus
-}
-#endif
+

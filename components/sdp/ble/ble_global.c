@@ -1,10 +1,9 @@
-#include "host/ble_hs.h"
+#include <host/ble_hs.h>
 #include "ble_spp.h"
 
-#include "nimble/nimble_port.h"
-#include "nimble/nimble_port_freertos.h"
-
-#include "esp_crc.h"
+#include <nimble/nimble_port.h>
+#include <nimble/nimble_port_freertos.h>
+#include <esp32/rom/crc.h>
 
 #include "ble_service.h"
 #include "sdp.h"
@@ -133,7 +132,7 @@ int ble_send_message(uint16_t conn_handle, uint16_t conversation_id,
         ret = ble_gattc_write_flat(conn_handle, ble_spp_svc_gatt_read_val_handle, data, data_length, NULL, NULL);
         if (ret == 0)
         {
-            ESP_LOGI(log_prefix, "ble_send_message: Success sending data! CRC32: %u", (int)esp_crc32_be(0, data, data_length));
+            ESP_LOGI(log_prefix, "ble_send_message: Success sending data! CRC32: %u", (int)crc32_be(0, data, data_length));
         }
         else
         {

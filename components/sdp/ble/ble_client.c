@@ -4,9 +4,9 @@
  ***********************/
 
 
-#include "host/util/util.h"
+#include <host/util/util.h>
 
-#include "host/ble_gap.h"
+#include <host/ble_gap.h>
 
 #include "ble_spp.h"
 

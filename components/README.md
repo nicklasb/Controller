@@ -4,6 +4,8 @@ Here, sub repos for lvgl and lvgl_esp32_driver should be cloned like this:
 lvgl/  
 lvgl_esp32_drivers/
 
+Also, the sdp component resides here for the time being, it will later be broken out.
+
 
 Remember to follow the instructions at the repo of the ESP32 port of lgvl:  
 https://github.com/lvgl/lv_port_esp32 

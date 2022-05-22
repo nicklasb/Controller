@@ -12,12 +12,10 @@
 
 // Client
 #include <stdbool.h>
-#include "nimble/ble.h"
-#include "modlog/modlog.h"
+#include <nimble/ble.h>
+#include <modlog/modlog.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+
 
 // Client
 struct ble_hs_adv_fields;
@@ -122,7 +120,4 @@ int peer_init(int max_peers, int max_svcs, int max_chrs, int max_dscs);
 struct peer * peer_find(uint16_t conn_handle);
 
 
-#ifdef __cplusplus
-}
-#endif
 

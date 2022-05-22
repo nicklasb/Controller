@@ -10,14 +10,8 @@
  * 
  */
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
     
 void cleanup_queue_task(struct work_queue_item *queue_item);
 int add_to_message(uint8_t **message, const char *format, ...);
 
-#ifdef __cplusplus
-} /* extern "C" */
-#endif
+

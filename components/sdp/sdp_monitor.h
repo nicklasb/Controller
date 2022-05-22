@@ -1,7 +1,4 @@
-#ifdef __cplusplus
-extern "C"
-{
-#endif
+
 /**
  * This is a monitor that periodically samples different aspects at runtime.
  * It is used for reporting and detecting and reporting problems, but also for .
@@ -19,6 +16,3 @@ void init_monitor(char *log_prefix);
 
 //int add_monitor()
 
-#ifdef __cplusplus
-} /* extern "C" */
-#endif

@@ -8,8 +8,9 @@
  */
 
 #include "sdp.h"
-#include "esp_log.h"
 #include "sdp_worker.h"
+
+#include <esp_log.h>
 
 static void sdp_worker(void)
 {

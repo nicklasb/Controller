@@ -20,10 +20,10 @@ The first evolution is hard-coded to a specific setup, the next will attempt to 
 * Create a custom BLE service that just does what is needed
 * A framework for a queue-based work item handling
 * Runtime monitor for statistics (historical memory tracking mostly, should be possible to add warnings for leaks and other sus stuff)
+* Make data from peripherals appear on the controller screen 
 
 ## WIP:
 
-* Make data from peripherals appear on the controller screen 
 * Make it so that the central only discovers peripherals that are a part of the network
 * Add some alarms to the monitor, like low power and memory issues.
 

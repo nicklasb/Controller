@@ -23,16 +23,19 @@
  */
 int add_to_message(uint8_t **message, const char *format, ...)
 {
+
     va_list arg;
     va_start(arg, format);
 
-    int str_len = strlen(format);
-    char *loc_format = heap_caps_malloc(str_len, MALLOC_CAP_8BIT);
+    int format_len = strlen(format);
+    
+    char *loc_format = heap_caps_malloc(format_len + 1, MALLOC_CAP_8BIT);
     strcpy(loc_format, format);
+    ESP_LOGI(log_prefix, "Format string %s len %i", loc_format, format_len);
 
     int break_count = 1;
     /* Make a pass to count pipes and replace them with nulls */
-    for (int i = 0; i < str_len; i++)
+    for (int i = 0; i < format_len; i++)
     {
         if ((int)(loc_format[i]) == 124)
         {
@@ -40,11 +43,14 @@ int add_to_message(uint8_t **message, const char *format, ...)
             break_count++;
         }
     }
+
+    ESP_LOGI(log_prefix, "2 %i", (break_count) * sizeof(char *));
     /* Now we now that our format array needs to be break_count long, allocate it */
     char **format_array = heap_caps_malloc(break_count * sizeof(char *), MALLOC_CAP_8BIT);
+
     format_array[0] = loc_format;
     int format_count = 1;
-    for (int j = 0; j < str_len; j++)
+    for (int j = 0; j < format_len; j++)
     {
         if ((int)(loc_format[j]) == 0)
         {
@@ -71,7 +77,6 @@ int add_to_message(uint8_t **message, const char *format, ...)
         free(value_str);
         curr_pos = new_length;
     }
-
     free(loc_format);
     free(format_array);
     return new_length;

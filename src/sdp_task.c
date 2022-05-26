@@ -76,13 +76,12 @@ void do_on_data(struct work_queue_item *queue_item)
     }
     if (strcmp(conversation->reason, "sensors") == 0)
     {
-        ESP_LOGI(log_prefix, "Sensor data is returned");
         if (strcmp(queue_item->parts[0], "-2")  == 0) {
-            lv_label_set_text_fmt(vberth, "Sensor not detected yet");
+            lv_label_set_text(vberth, "Sensor not detected yet");
         } else if (strcmp(queue_item->parts[0], "-1")  == 0) {
-            lv_label_set_text_fmt(vberth, "Checksum failed");
+            lv_label_set_text(vberth, "Checksum failed");
         } else {
-            lv_label_set_text_fmt(vberth, strcat(queue_item->parts[0], " mm"));
+            lv_label_set_text_fmt(vberth, "%s mm", queue_item->parts[0]);
         }
         
         
@@ -149,5 +148,5 @@ void init_sdp_task() {
 
 
     ESP_ERROR_CHECK(esp_timer_create(&periodic_timer_args, &periodic_timer));
-    ESP_ERROR_CHECK(esp_timer_start_once(periodic_timer, 5000000));
+    ESP_ERROR_CHECK(esp_timer_start_once(periodic_timer, 2000000));
 }

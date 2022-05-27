@@ -22,6 +22,9 @@
 
 #include <stdint.h>
 
+
+#define LV_TXT_UTF8 1
+
 /*====================
    COLOR SETTINGS
  *====================*/

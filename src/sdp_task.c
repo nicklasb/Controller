@@ -81,7 +81,7 @@ void do_on_data(struct work_queue_item *queue_item)
         } else if (strcmp(queue_item->parts[0], "-1")  == 0) {
             lv_label_set_text(vberth, "Checksum failed");
         } else {
-            lv_label_set_text_fmt(vberth, "%s mm", queue_item->parts[0]);
+            lv_label_set_text_fmt(vberth, "Temperature %s °C", queue_item->parts[0]);
         }
         
         

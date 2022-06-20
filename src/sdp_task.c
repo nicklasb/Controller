@@ -67,6 +67,8 @@ void do_on_data(struct work_queue_item *queue_item)
 {
     struct conversation_list_item *conversation;
     conversation = find_conversation(queue_item->conversation_id);
+    ESP_LOGI(log_prefix, "In do_on_data on the controller, for reason: %s", conversation->reason);
+    
 
     if (strcmp(conversation->reason, "status") == 0)
     {
@@ -82,7 +84,7 @@ void do_on_data(struct work_queue_item *queue_item)
             lv_label_set_text(vberth, "Checksum failed");
         } else {
             lv_label_set_text_fmt(vberth, "Temperature %s °C", queue_item->parts[0]);
-        }
+        }   
         
         
     }    
@@ -132,7 +134,7 @@ void periodic_sensor_query(void *arg)
     ESP_LOGI(log_prefix, "Test broadcast beginning.");
     start_conversation(BLE, -1, REQUEST, "sensors", &data, sizeof(data));
     ESP_LOGI(log_prefix, "Test broadcast done.");
-    ESP_ERROR_CHECK(esp_timer_start_once(periodic_timer, 5000000));
+    ESP_ERROR_CHECK(esp_timer_start_once(periodic_timer, 10000000));
 }
 
 void init_sdp_task() {
@@ -148,5 +150,5 @@ void init_sdp_task() {
 
 
     ESP_ERROR_CHECK(esp_timer_create(&periodic_timer_args, &periodic_timer));
-    ESP_ERROR_CHECK(esp_timer_start_once(periodic_timer, 2000000));
+    ESP_ERROR_CHECK(esp_timer_start_once(periodic_timer, 1000000));
 }

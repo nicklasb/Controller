@@ -5,7 +5,7 @@
 #include <freertos/FreeRTOS.h>
 
 /* How often should we look */
-#define MONITOR_DELAY 5000000
+#define MONITOR_DELAY 10000000
 
 #define HISTORY_LENGTH 5
 

@@ -33,6 +33,7 @@ The first evolution is hard-coded to a specific setup, the next will attempt to 
 * Implement support for a lot of different sensors in the peripherals (see that repo)
 * Add GSM reporting and control
 * Test coverage (no, this is not like writing tests for some web app, sadly)
+* Pythonize: When the dust have settled, move invokation details and customization into Python code.
 
 
 

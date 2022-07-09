@@ -34,12 +34,10 @@ The first evolution is hard-coded to a specific setup, the next will attempt to 
 * Communication: Implement proper protocol for communicating structured sensor data
 * Security: Make it so that the central only discovers peripherals that are a part of the network (currently it is security by dysfunction)
 * Compatibility: Implement support for a lot of different sensors in the peripherals (see that repo)
-
 * Security: Add some SMS-security feature
 * Quality: Test coverage (no, this is not like writing tests for some web app, sadly)
 * Architecture: Pythonize - When the dust have settled, move invokation details and customization into Python code.
 * Architecture: Modularize - Move all into some proper dependency handling. 
-
 
 
 ## Platform

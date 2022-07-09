@@ -21,19 +21,23 @@ The first evolution is hard-coded to a specific setup, the next will attempt to 
 * A framework for a queue-based work item handling
 * Runtime monitor for statistics (historical memory tracking mostly, should be possible to add warnings for leaks and other sus stuff)
 * Make data from peripherals appear on the controller screen 
+* Add some checks to the monitor, like memory issues
 
 ## WIP:
 
-* Make it so that the central only discovers peripherals that are a part of the network
-* Add some alarms to the monitor, like low power and memory issues.
+* Reporting: Create simple alarm and reporting handling so the controller can react, raise alarms and other stuff
 
 
 ## Upcoming:
-* Implement proper protocol for communicating structured sensor data
-* Implement support for a lot of different sensors in the peripherals (see that repo)
-* Add GSM reporting and control
-* Test coverage (no, this is not like writing tests for some web app, sadly)
-* Pythonize: When the dust have settled, move invokation details and customization into Python code.
+
+* Communication: Implement proper protocol for communicating structured sensor data
+* Security: Make it so that the central only discovers peripherals that are a part of the network (currently it is security by dysfunction)
+* Compatibility: Implement support for a lot of different sensors in the peripherals (see that repo)
+* Communication: Extend reporting to GSM, implement some control over SMS
+* Security: Add some SMS-security feature
+* Quality: Test coverage (no, this is not like writing tests for some web app, sadly)
+* Architecture: Pythonize - When the dust have settled, move invokation details and customization into Python code.
+* Architecture: Modularize - Move all into some proper dependency handling. 
 
 
 
@@ -41,7 +45,7 @@ The first evolution is hard-coded to a specific setup, the next will attempt to 
 
 ### Software
 This is an esp-idf project, but as I also like PlatformIO, I use /src rather than /main folder structure. 
-Otherwise it looks the same. Also not sure why esp-idf wants to deviate from the norm.
+Otherwise it looks the same. Also not sure why esp-idf wants to deviate from the norm (combined projects?).
 
 ### Hardware
 

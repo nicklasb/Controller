@@ -100,10 +100,11 @@ typedef enum work_type
 typedef enum media_type
 {
     BLE = 0x00,
-    LoRa = 0x01,
-    TCPIP = 0x02,
-    TTL = 0x03,
-    ALL = 0x04
+    ESPNOW = 0x01,
+    LoRa = 0x02,
+    TCPIP = 0x03,
+    TTL = 0x04,
+    ALL = 0x05
 } media_type;
 
 /**

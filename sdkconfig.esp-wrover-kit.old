@@ -1840,7 +1840,7 @@ CONFIG_LV_I2C_TOUCH_PORT=0
 #
 # SDP Configuration
 #
-CONFIG_USE_SDP_BLE=y
+CONFIG_SDP_LOAD_BLE=y
 # CONFIG_USE_SDP_ESP_NOW is not set
 # end of SDP Configuration
 # end of Component config

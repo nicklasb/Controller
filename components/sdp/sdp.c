@@ -10,8 +10,10 @@
 
 #include "sdp.h"
 
-
+#ifdef CONFIG_SDP_LOAD_BLE
 #include "ble/ble_init.h"
+#endif
+
 #include "sdp_monitor.h" /* TODO: Should this be separate so it can be optional? */
 #include "sdp_worker.h"
 #include "sdp_messaging.h"
@@ -50,8 +52,9 @@ int sdp_init(work_callback work_cb, work_callback priority_cb, const char *_log_
     ESP_LOGI(log_prefix, "SDP initiated!");
 
     /* Init media types */
+    #ifdef CONFIG_SDP_LOAD_BLE
     ble_init(log_prefix, is_controller);
-
+    #endif
     return 0;
 }
 
@@ -186,23 +189,23 @@ int start_conversation(enum media_type media_type, int conn_handle, enum work_ty
 
         switch (media_type)
         {
-        case BLE:
-            if (conn_handle < 0)
-            {
-                retval = -broadcast_message(new_conversation_id, work_type,
-                                                new_data, data_length + SDP_PREAMBLE_LENGTH);
-            }
-            else
-            {
-                retval = -send_message(conn_handle, new_conversation_id, work_type,
-                                           new_data, data_length + SDP_PREAMBLE_LENGTH);
-            }
-            break;
+            case BLE:
+                if (conn_handle < 0)
+                {
+                    retval = -broadcast_message(new_conversation_id, work_type,
+                                                    new_data, data_length + SDP_PREAMBLE_LENGTH);
+                }
+                else
+                {
+                    retval = -send_message(conn_handle, new_conversation_id, work_type,
+                                            new_data, data_length + SDP_PREAMBLE_LENGTH);
+                }
+                break;
 
-        default:
-            ESP_LOGE(log_prefix, "An unimplemented media type was used: %i", media_type);
-            retval = SDP_ERR_INVALID_PARAM;
-            break;
+            default:
+                ESP_LOGE(log_prefix, "An unimplemented media type was used: %i", media_type);
+                retval = SDP_ERR_INVALID_PARAM;
+                break;
         }
         free(new_data);
     }

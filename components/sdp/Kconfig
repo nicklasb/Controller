@@ -2,18 +2,14 @@
 
 menu "SDP Configuration"
 
-    choice
-        prompt "Communication technique"
-        default USE_SDP_BLE
 
-        config USE_SDP_BLE
-        bool "Use Bluetooth communication"
-        help
-            Set this option to tell SDP to use Bluetooth
-        config USE_SDP_ESP_NOW
-                bool "Use ESP Now communication"
-                help
-                    Set this option to tell SDP to use ESP NOW
-    endchoice
+    config SDP_LOAD_BLE
+    bool "Load Bluetooth libraries"
+    help
+        Set this option to tell SDP to load Bluetooth libraries
+    config SDP_LOAD_ESP_NOW
+    bool "Load ESP-Now libraries"
+    help
+        Set this option to tell SDP to load ESP-Now libraries
 
 endmenu

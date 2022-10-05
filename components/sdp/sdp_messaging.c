@@ -5,7 +5,9 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/semphr.h>
 
+#ifdef CONFIG_SDP_LOAD_BLE
 #include "ble/ble_global.h"
+#endif
 
 int callcount = 0;
 
@@ -214,8 +216,9 @@ int broadcast_message(uint16_t conversation_id,
 int send_message(uint16_t conn_handle, uint16_t conversation_id,
                      enum work_type work_type, const void *data, int data_length)
 {
-    // #ifdef SDP_USE_BLE
+    #ifdef CONFIG_SDP_LOAD_BLE
     // Send message using BLE
     return ble_send_message(conn_handle, conversation_id, work_type, data, data_length);
+    #endif
 
 }

@@ -96,7 +96,7 @@ struct work_queue_item *safe_get_head_work_item(void)
     return curr_work;
 }
 
-int safe_add_conversation(uint16_t conn_handle, media_type media_type, const char *reason)
+int safe_add_conversation(uint16_t conn_handle, e_media_type media_type, const char *reason)
 {
     /* Create a conversation list item to keep track */
 
@@ -122,7 +122,7 @@ int safe_add_conversation(uint16_t conn_handle, media_type media_type, const cha
     }
 }
 
-void *sdp_add_preamble(enum work_type work_type, uint16_t conversation_id, const void *data, int data_length)
+void *sdp_add_preamble(enum e_work_type work_type, uint16_t conversation_id, const void *data, int data_length)
 {
     char *new_data = malloc(data_length + SDP_PREAMBLE_LENGTH);
     new_data[0] = SPD_PROTOCOL_VERSION;
@@ -142,7 +142,7 @@ void *sdp_add_preamble(enum work_type work_type, uint16_t conversation_id, const
  * @param data_length 
  * @return int 
  */
-int sdp_reply(struct work_queue_item queue_item, enum work_type work_type, const void *data, int data_length)
+int sdp_reply(struct work_queue_item queue_item, enum e_work_type work_type, const void *data, int data_length)
 {
     int retval = SDP_OK;
     ESP_LOGI(log_prefix, "In sdp reply- media type: %u.", (uint8_t)queue_item.media_type);
@@ -175,7 +175,7 @@ int sdp_reply(struct work_queue_item queue_item, enum work_type work_type, const
  * @return int Returns the conversation id if successful.
  * NOTE: Returns negative error values on failure.
  */
-int start_conversation(enum media_type media_type, int conn_handle, enum work_type work_type, 
+int start_conversation(enum e_media_type media_type, int conn_handle, enum e_work_type work_type, 
                        const char *reason, const void *data, int data_length)
 {
     int retval = SDP_OK;

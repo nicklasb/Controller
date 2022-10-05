@@ -37,7 +37,7 @@ extern "C"
 #define SDP_PREAMBLE_LENGTH 4
 
 /* Common error codes */
-typedef enum sdp_error_codes
+typedef enum e_sdp_error_codes
 {
     /* An "error" code of 0x0 means success */
     SDP_OK = 0x00,
@@ -62,7 +62,7 @@ typedef enum sdp_error_codes
     /* Message to short to comply */
     SDP_ERR_MESSAGE_TOO_SHORT = 0x0a
 
-} sdp_error_codes;
+} e_sdp_error_codes;
 
 /**
  * The work types are:
@@ -84,12 +84,12 @@ typedef enum sdp_error_codes
  *
  */
 
-typedef enum work_type
+typedef enum e_work_type
 {
     REQUEST = 0x00,
     DATA = 0x01,
     PRIORITY = 0x02
-} work_type;
+} e_work_type;
 
 /**
  * @brief Supported media types
@@ -97,7 +97,7 @@ typedef enum work_type
  *
  */
 
-typedef enum media_type
+typedef enum e_media_type
 {
     BLE = 0x00,
     ESPNOW = 0x01,
@@ -105,7 +105,7 @@ typedef enum media_type
     TCPIP = 0x03,
     TTL = 0x04,
     ALL = 0x05
-} media_type;
+} e_media_type;
 
 /**
  * @brief This is the request queue
@@ -114,7 +114,7 @@ typedef enum media_type
 struct work_queue_item
 {
     /* The type of work */
-    enum work_type work_type;
+    enum e_work_type work_type;
 
     /* Hash of indata */
     uint16_t crc32;
@@ -131,7 +131,7 @@ struct work_queue_item
     /* The number of message parts */
     int partcount;
     /* The underlying media type, avoid using this data to stay tech agnostic */
-    enum media_type media_type;
+    enum e_media_type media_type;
     /* A handle to the underlying connection */
     uint16_t conn_handle;
 
@@ -156,7 +156,7 @@ struct conversation_list_item
     SLIST_ENTRY(conversation_list_item)
     items;
 
-    enum media_type media_type; // The underlying media type
+    enum e_media_type media_type; // The underlying media type
     uint16_t conn_handle;       // A handle to the underlying connection
 };
 
@@ -200,11 +200,11 @@ char *log_prefix;
 int sdp_init(work_callback work_cb, work_callback priority_cb, const char *_log_prefix, bool is_controller);
 int safe_add_work_queue(struct work_queue_item *new_item);
 struct work_queue_item *safe_get_head_work_item(void);
-int start_conversation(media_type media_type, int conn_handle, work_type work_type,
+int start_conversation(e_media_type media_type, int conn_handle, e_work_type work_type,
                        const char *reason, const void *data, int data_length);
 int end_conversation(uint16_t conversation_id);
 struct conversation_list_item *find_conversation(uint16_t conversation_id);
-int sdp_reply(struct work_queue_item queue_item, enum work_type work_type, const void *data, int data_length);
+int sdp_reply(struct work_queue_item queue_item, enum e_work_type work_type, const void *data, int data_length);
 int get_conversation_id(void);
 
 #endif

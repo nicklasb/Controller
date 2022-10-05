@@ -49,7 +49,7 @@ void parse_message(struct work_queue_item *queue_item)
     }
 }
 
-int handle_incoming(uint16_t conn_handle, uint16_t attr_handle, char* data, int data_len, void *arg)
+int handle_incoming(uint16_t conn_handle, uint16_t attr_handle, char* data, int data_len, e_media_type media_type, void *arg)
 {
     ESP_LOGI(log_prefix, "Payload length: %i, call count %i, CRC32: %u", data_len, callcount++,
              crc32_be(0, &data, data_len));
@@ -67,7 +67,8 @@ int handle_incoming(uint16_t conn_handle, uint16_t attr_handle, char* data, int 
         new_item->raw_data = malloc(new_item->raw_data_length);
         memcpy(new_item->raw_data, &(data[SDP_PREAMBLE_LENGTH]), new_item->raw_data_length);
 
-        new_item->media_type = BLE;
+        
+        new_item->media_type = media_type;
         new_item->conn_handle = conn_handle;
         parse_message(new_item);
 
@@ -172,7 +173,7 @@ int handle_incoming(uint16_t conn_handle, uint16_t attr_handle, char* data, int 
  * TODO: Handle partial failure, for example if one peripheral doesn't answer.
  */
 int broadcast_message(uint16_t conversation_id,
-                          enum work_type work_type, const void *data, int data_length)
+                          enum e_work_type work_type, const void *data, int data_length)
 {
     struct peer *curr_peer;
     int ret = 0, total = 0, errors = 0;
@@ -214,7 +215,7 @@ int broadcast_message(uint16_t conversation_id,
  * Note the unsigned type of the connection handle, a positive value is needed.
  */
 int send_message(uint16_t conn_handle, uint16_t conversation_id,
-                     enum work_type work_type, const void *data, int data_length)
+                     enum e_work_type work_type, const void *data, int data_length)
 {
     #ifdef CONFIG_SDP_LOAD_BLE
     // Send message using BLE

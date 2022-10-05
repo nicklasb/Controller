@@ -40,7 +40,7 @@ static int ble_svc_gatt_handler(uint16_t conn_handle, uint16_t attr_handle, stru
         break;
 
     case BLE_GATT_ACCESS_OP_WRITE_CHR:
-        return handle_incoming(conn_handle, attr_handle, &ctxt->om->om_data, ctxt->om->om_len, arg);
+        return handle_incoming(conn_handle, attr_handle, &ctxt->om->om_data, ctxt->om->om_len, BLE, arg);
 
         break;
 

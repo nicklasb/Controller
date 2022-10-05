@@ -78,7 +78,7 @@ int ble_negotiate_mtu(uint16_t conn_handle)
  * @brief Sends a message through BLE.
  */
 int ble_send_message(uint16_t conn_handle, uint16_t conversation_id,
-                     enum work_type work_type, const void *data, int data_length)
+                     enum e_work_type work_type, const void *data, int data_length)
 {
 
     if (pdTRUE == xSemaphoreTake(xBLE_Comm_Semaphore, portMAX_DELAY))

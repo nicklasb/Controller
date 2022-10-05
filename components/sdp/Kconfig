@@ -1,0 +1,19 @@
+# Kconfig file for SDP v0.1.0
+
+menu "SDP Configuration"
+
+    choice
+        prompt "Communication technique"
+        default USE_SDP_BLE
+
+        config USE_SDP_BLE
+        bool "Use Bluetooth communication"
+        help
+            Set this option to tell SDP to use Bluetooth
+        config USE_SDP_ESP_NOW
+                bool "Use ESP Now communication"
+                help
+                    Set this option to tell SDP to use ESP NOW
+    endchoice
+
+endmenu

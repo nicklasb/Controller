@@ -7,15 +7,19 @@
  *
  */
 
-#include <freertos/FreeRTOS.h>
-#include <freertos/semphr.h>
-#include <os/queue.h>
-#include <nimble/ble.h>
-
 #ifdef __cplusplus
 extern "C"
 {
 #endif
+
+#ifndef _SDP_H_
+#define _SDP_H_
+
+
+#include <os/queue.h>
+#include <nimble/ble.h>
+
+
 /**
  * This is the definitions of the Sensor Data Protocol (SDP) implementation
  * To be decided is how much of the implementation should be here.
@@ -54,7 +58,9 @@ typedef enum sdp_error_codes
     /* Incoming message filtered */
     SDP_ERR_MESSAGE_FILTERED = 0x08,
     /* Invalid input parameter */
-    SDP_ERR_INVALID_PARAM = 0x09
+    SDP_ERR_INVALID_PARAM = 0x09,
+    /* Message to short to comply */
+    SDP_ERR_MESSAGE_TOO_SHORT = 0x0a
 
 } sdp_error_codes;
 
@@ -199,6 +205,10 @@ int end_conversation(uint16_t conversation_id);
 struct conversation_list_item *find_conversation(uint16_t conversation_id);
 int sdp_reply(struct work_queue_item queue_item, enum work_type work_type, const void *data, int data_length);
 int get_conversation_id(void);
+
+#endif
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
+

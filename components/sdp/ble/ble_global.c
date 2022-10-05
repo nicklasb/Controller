@@ -73,64 +73,14 @@ int ble_negotiate_mtu(uint16_t conn_handle)
     vTaskDelay(10);
     return 0;
 }
-/**
- * @brief Send a message to one or more peers
- *
- * @param conn_handle A negative value will cause all peers to be messaged
- * @param conversation_id Used to keep track of conversations
- * @param work_type The kind of message
- * @param data A pointer to the data to be sent
- * @param data_length The length of the data in bytes
- * @return int A negative return value will mean a failure of the operation
- * TODO: Handle partial failure, for example if one peripheral doesn't answer.
- */
-int ble_broadcast_message(uint16_t conversation_id,
-                          enum work_type work_type, const void *data, int data_length)
-{
-    struct peer *curr_peer;
-    int ret = 0, total = 0, errors = 0;
-    SLIST_FOREACH(curr_peer, &peers, next)
-    {
-        ret = ble_send_message(curr_peer->conn_handle, conversation_id, work_type, data, data_length);
-        if (ret != 0)
-        {
-            ESP_LOGE(log_prefix, "Error: ble_broadcast_message: Failure sending message! Peer: %u Code: %i", curr_peer->conn_handle, ret);
-            errors++;
-        } else {
-            ESP_LOGI(log_prefix, "Sent a message to Peer: %u Code: %i", curr_peer->conn_handle, ret);
-            
-        }
-
-        total++;
-    }
-
-    if (total == 0) {
-        ESP_LOGW(log_prefix, "Broadcast had no peers to send to!");
-    }
-
-    if (errors == total)
-    {
-        return SDP_ERR_SEND_FAIL;
-    }
-    else if (errors > 0)
-    {
-        return SDP_ERR_SEND_SOME_FAIL;
-    }
-    else
-    {
-        return SDP_OK;
-    }
-}
 
 /**
- * @brief Like ble_send_message, but only sends to one specified peer.
- * Note the unsigned type of the connection handle, a positive value is needed.
+ * @brief Sends a message through BLE.
  */
 int ble_send_message(uint16_t conn_handle, uint16_t conversation_id,
                      enum work_type work_type, const void *data, int data_length)
 {
 
-    
     if (pdTRUE == xSemaphoreTake(xBLE_Comm_Semaphore, portMAX_DELAY))
     {
         int ret;

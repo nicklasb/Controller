@@ -8,13 +8,15 @@
  */
 
 
+#ifndef _BLE_SPP_H_
+#define _BLE_SPP_H_
 
-
-// Client
 #include <stdbool.h>
 #include <nimble/ble.h>
 #include <modlog/modlog.h>
-
+#include <host/ble_uuid.h>
+#include <host/ble_gatt.h>
+#include <host/ble_gap.h>
 
 
 // Client
@@ -118,6 +120,8 @@ int peer_add(uint16_t conn_handle, struct ble_gap_conn_desc desc);
 int peer_init(int max_peers, int max_svcs, int max_chrs, int max_dscs);
 
 struct peer * peer_find(uint16_t conn_handle);
+
+#endif
 
 
 

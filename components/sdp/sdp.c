@@ -10,10 +10,11 @@
 
 #include "sdp.h"
 
-#include "ble/ble_global.h"
+
 #include "ble/ble_init.h"
 #include "sdp_monitor.h" /* TODO: Should this be separate so it can be optional? */
 #include "sdp_worker.h"
+#include "sdp_messaging.h"
 
 #include <esp_log.h>
 
@@ -147,8 +148,8 @@ int sdp_reply(struct work_queue_item queue_item, enum work_type work_type, const
     switch (queue_item.media_type)
     {
     case BLE:
-        ESP_LOGI(log_prefix, "In sdp BLE reply.");
-        retval = ble_send_message(queue_item.conn_handle, queue_item.conversation_id, work_type,
+        ESP_LOGI(log_prefix, "In sdp reply.");
+        retval = send_message(queue_item.conn_handle, queue_item.conversation_id, work_type,
                                   new_data, data_length + SDP_PREAMBLE_LENGTH);
         break;
     default:
@@ -188,12 +189,12 @@ int start_conversation(enum media_type media_type, int conn_handle, enum work_ty
         case BLE:
             if (conn_handle < 0)
             {
-                retval = -ble_broadcast_message(new_conversation_id, work_type,
+                retval = -broadcast_message(new_conversation_id, work_type,
                                                 new_data, data_length + SDP_PREAMBLE_LENGTH);
             }
             else
             {
-                retval = -ble_send_message(conn_handle, new_conversation_id, work_type,
+                retval = -send_message(conn_handle, new_conversation_id, work_type,
                                            new_data, data_length + SDP_PREAMBLE_LENGTH);
             }
             break;

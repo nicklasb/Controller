@@ -1,6 +1,6 @@
 /**
  * @file ble_spp.h
- * @brief Collection of helpers, types and declarations for a BLE spp service 
+ * @brief Collection of helpers, types and declarations for a BLE Serial Port Profile (spp service 
  * 
  * 
  * Inspired by the Espressif examples
@@ -78,13 +78,13 @@ struct peer_svc {
 };
 SLIST_HEAD(peer_svc_list, peer_svc);
 
-struct peer;
-typedef void peer_disc_fn(const struct peer *peer, int status, void *arg);
+struct ble_peer;
+typedef void peer_disc_fn(const struct ble_peer *peer, int status, void *arg);
 
 
 
-typedef struct peer {
-    SLIST_ENTRY(peer) next;
+typedef struct ble_peer {
+    SLIST_ENTRY(ble_peer) next;
 
     uint16_t conn_handle;
 
@@ -101,25 +101,25 @@ typedef struct peer {
     /** Callback that gets executed when service discovery completes. */
     peer_disc_fn *disc_cb;
     void *disc_cb_arg;
-} peer;
+} ble_peer;
 
-SLIST_HEAD(, peer) peers;
+SLIST_HEAD(, ble_peer) ble_peers;
 
-int peer_disc_all(uint16_t conn_handle, peer_disc_fn *disc_cb,
+int ble_peer_disc_all(uint16_t conn_handle, peer_disc_fn *disc_cb,
                   void *disc_cb_arg);
 const struct peer_dsc *
-peer_dsc_find_uuid(const struct peer *peer, const ble_uuid_t *svc_uuid,
+ble_peer_dsc_find_uuid(const struct ble_peer *peer, const ble_uuid_t *svc_uuid,
                    const ble_uuid_t *chr_uuid, const ble_uuid_t *dsc_uuid);
 const struct peer_chr *
-peer_chr_find_uuid(const struct peer *peer, const ble_uuid_t *svc_uuid,
+ble_peer_chr_find_uuid(const struct ble_peer *peer, const ble_uuid_t *svc_uuid,
                    const ble_uuid_t *chr_uuid);
 const struct peer_svc *
-peer_svc_find_uuid(const struct peer *peer, const ble_uuid_t *uuid);
-int peer_delete(uint16_t conn_handle);
-int peer_add(uint16_t conn_handle, struct ble_gap_conn_desc desc);
-int peer_init(int max_peers, int max_svcs, int max_chrs, int max_dscs);
+ble_peer_svc_find_uuid(const struct ble_peer *peer, const ble_uuid_t *uuid);
+int ble_peer_delete(uint16_t conn_handle);
+int ble_peer_add(uint16_t conn_handle, struct ble_gap_conn_desc desc);
+int ble_peer_init(int max_peers, int max_svcs, int max_chrs, int max_dscs);
 
-struct peer * peer_find(uint16_t conn_handle);
+struct ble_peer * ble_peer_find(uint16_t conn_handle);
 
 #endif
 

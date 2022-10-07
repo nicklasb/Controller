@@ -19,6 +19,8 @@ extern "C"
 #include <os/queue.h>
 #include <nimble/ble.h>
 
+#include "sdp_peer.h"
+
 
 /**
  * This is the definitions of the Sensor Data Protocol (SDP) implementation
@@ -36,32 +38,41 @@ extern "C"
 /* The length, in bytes of the SDP preamble. */
 #define SDP_PREAMBLE_LENGTH 4
 
+// TODO: What is the reason using hex here? Just makes for worse readability?
+
 /* Common error codes */
 typedef enum e_sdp_error_codes
 {
     /* An "error" code of 0x0 means success */
-    SDP_OK = 0x00,
+    SDP_OK = 0,
     /* A message failed to send for some reason */
-    SDP_ERR_SEND_FAIL = 0x01,
+    SDP_ERR_SEND_FAIL = 1,
     /* A one or more messages failed to send during a broadcast */
-    SDP_ERR_SEND_SOME_FAIL = 0x02,
+    SDP_ERR_SEND_SOME_FAIL = 2,
     /* There was an error adding a conversation to the conversation queue */
-    SDP_ERR_CONV_QUEUE = 0x03,
+    SDP_ERR_CONV_QUEUE = 3,
     /* The conversation queue is full, too many concurrent conversations. TODO: Add setting? */
-    SDP_ERR_CONV_QUEUE_FULL = 0x04,
+    SDP_ERR_CONV_QUEUE_FULL = 4,
     /* An identifier was not found */
-    SDP_ERR_INVALID_ID = 0x05,
+    SDP_ERR_INVALID_ID = 5,
     /* Couldn't get a semaphore to successfully lock a resource for thread safe usage. */
-    SDP_ERR_SEMAPHORE = 0x06,
+    SDP_ERR_SEMAPHORE = 6,
     /* SDP failed in its initiation. */
-    SDP_ERR_INIT_FAIL = 0x07,
+    SDP_ERR_INIT_FAIL = 7,
     /* Incoming message filtered */
-    SDP_ERR_MESSAGE_FILTERED = 0x08,
+    SDP_ERR_MESSAGE_FILTERED = 8,
     /* Invalid input parameter */
-    SDP_ERR_INVALID_PARAM = 0x09,
+    SDP_ERR_INVALID_PARAM = 9,
     /* Message to short to comply */
-    SDP_ERR_MESSAGE_TOO_SHORT = 0x0a
-
+    SDP_ERR_MESSAGE_TOO_SHORT = 10,
+    /* Peer not found (handle or name not found) */
+    SDP_ERR_PEER_NOT_FOUND = 11,
+    /* Peer already exists */
+    SDP_ERR_PEER_EXISTS = 12,
+     /* Out of memory */
+    SDP_ERR_OUT_OF_MEMORY = 13,
+    /* OS error.  See enum os_error in os/os_error.h for meaning of values when debugging */
+    SDP_ERR_OS_ERROR = 14
 } e_sdp_error_codes;
 
 /**

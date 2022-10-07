@@ -5,7 +5,6 @@
 
 
 #include <host/util/util.h>
-
 #include <host/ble_gap.h>
 
 #include "ble_spp.h"
@@ -190,7 +189,7 @@ ble_spp_client_gap_event(struct ble_gap_event *event, void *arg)
             MODLOG_DFLT(INFO, "\n");
 
             /* Remember peer. */
-            rc = peer_add(event->connect.conn_handle, desc);
+            rc = ble_peer_add(event->connect.conn_handle, desc);
             if (rc != 0)
             {
                 MODLOG_DFLT(ERROR, "Failed to add peer; rc=%d\n", rc);
@@ -198,7 +197,7 @@ ble_spp_client_gap_event(struct ble_gap_event *event, void *arg)
             }
 
             /* Perform service discovery. */
-            rc = peer_disc_all(event->connect.conn_handle,
+            rc = ble_peer_disc_all(event->connect.conn_handle,
                                ble_on_disc_complete, NULL);
             if (rc != 0)
             {
@@ -223,7 +222,7 @@ ble_spp_client_gap_event(struct ble_gap_event *event, void *arg)
         MODLOG_DFLT(INFO, "\n");
 
         /* Forget about peer. */
-        peer_delete(event->disconnect.conn.conn_handle);
+        ble_peer_delete(event->disconnect.conn.conn_handle);
 
         /* Resume scanning. */
         ble_spp_client_scan();

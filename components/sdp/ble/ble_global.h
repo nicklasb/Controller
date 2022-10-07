@@ -12,7 +12,7 @@
  *********************/
 SemaphoreHandle_t BLE_Semaphore;
 
-void ble_on_disc_complete(const peer *peer, int status, void *arg);
+void ble_on_disc_complete(const ble_peer *peer, int status, void *arg);
 void ble_on_reset(int reason);
 int ble_negotiate_mtu(uint16_t conn_handle);
 void ble_host_task(void *param);

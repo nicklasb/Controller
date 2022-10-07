@@ -52,7 +52,7 @@ void parse_message(struct work_queue_item *queue_item)
 int handle_incoming(uint16_t conn_handle, uint16_t attr_handle, char* data, int data_len, e_media_type media_type, void *arg)
 {
     ESP_LOGI(log_prefix, "Payload length: %i, call count %i, CRC32: %u", data_len, callcount++,
-             crc32_be(0, &data, data_len));
+             crc32_be(0, (__uint8_t)data, data_len));
 
     struct work_queue_item *new_item;
 
@@ -175,9 +175,9 @@ int handle_incoming(uint16_t conn_handle, uint16_t attr_handle, char* data, int 
 int broadcast_message(uint16_t conversation_id,
                           enum e_work_type work_type, const void *data, int data_length)
 {
-    struct peer *curr_peer;
+    struct ble_peer *curr_peer;
     int ret = 0, total = 0, errors = 0;
-    SLIST_FOREACH(curr_peer, &peers, next)
+    SLIST_FOREACH(curr_peer, &ble_peers, next)
     {
         ret = send_message(curr_peer->conn_handle, conversation_id, work_type, data, data_length);
         if (ret != 0)

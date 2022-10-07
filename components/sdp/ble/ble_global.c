@@ -33,7 +33,7 @@ void ble_on_reset(int reason)
  * Called when service discovery of the specified peer has completed.
  */
 
-void ble_on_disc_complete(const struct peer *peer, int status, void *arg)
+void ble_on_disc_complete(const struct ble_peer *peer, int status, void *arg)
 {
 
     if (status != 0)

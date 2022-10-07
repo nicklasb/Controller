@@ -12,4 +12,10 @@ menu "SDP Configuration"
     help
         Set this option to tell SDP to load ESP-Now libraries
 
+    config SDP_PEER_NAME_LEN
+    int "Peer name length"
+    default 16
+    help
+        The length of the sdp peer name. 
+
 endmenu

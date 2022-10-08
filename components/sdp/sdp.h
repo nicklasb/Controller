@@ -7,19 +7,22 @@
  *
  */
 
+#ifndef _SDP_H_
+#define _SDP_H_
+
 #ifdef __cplusplus
 extern "C"
 {
 #endif
 
-#ifndef _SDP_H_
-#define _SDP_H_
 
 
-#include <os/queue.h>
+
+
 #include <nimble/ble.h>
 
-#include "sdp_peer.h"
+#include "sdp_def.h"
+#include "sdp_worker.h"
 
 
 /**
@@ -38,164 +41,6 @@ extern "C"
 /* The length, in bytes of the SDP preamble. */
 #define SDP_PREAMBLE_LENGTH 4
 
-// TODO: What is the reason using hex here? Just makes for worse readability?
-
-/* Common error codes */
-typedef enum e_sdp_error_codes
-{
-    /* An "error" code of 0x0 means success */
-    SDP_OK = 0,
-    /* A message failed to send for some reason */
-    SDP_ERR_SEND_FAIL = 1,
-    /* A one or more messages failed to send during a broadcast */
-    SDP_ERR_SEND_SOME_FAIL = 2,
-    /* There was an error adding a conversation to the conversation queue */
-    SDP_ERR_CONV_QUEUE = 3,
-    /* The conversation queue is full, too many concurrent conversations. TODO: Add setting? */
-    SDP_ERR_CONV_QUEUE_FULL = 4,
-    /* An identifier was not found */
-    SDP_ERR_INVALID_ID = 5,
-    /* Couldn't get a semaphore to successfully lock a resource for thread safe usage. */
-    SDP_ERR_SEMAPHORE = 6,
-    /* SDP failed in its initiation. */
-    SDP_ERR_INIT_FAIL = 7,
-    /* Incoming message filtered */
-    SDP_ERR_MESSAGE_FILTERED = 8,
-    /* Invalid input parameter */
-    SDP_ERR_INVALID_PARAM = 9,
-    /* Message to short to comply */
-    SDP_ERR_MESSAGE_TOO_SHORT = 10,
-    /* Peer not found (handle or name not found) */
-    SDP_ERR_PEER_NOT_FOUND = 11,
-    /* Peer already exists */
-    SDP_ERR_PEER_EXISTS = 12,
-     /* Out of memory */
-    SDP_ERR_OUT_OF_MEMORY = 13,
-    /* OS error.  See enum os_error in os/os_error.h for meaning of values when debugging */
-    SDP_ERR_OS_ERROR = 14
-} e_sdp_error_codes;
-
-/**
- * The work types are:
- * REQUEST: A peer have a request.
- * Requests are put on the work queue for consumption by the worker.
- *
- * DATA: Data, a response from a request.
- * A request can generate multible DATA responses.
- * Like requests, they are put on the work queue for consumption by the worker.
- *
- * PRIORITY: A priority message.
- * These are not put on the queue, but handled immidiately.
- * Examples may be message about an urgent problem, an emergency message (alarm) or an explicit instruction.
- * Immidiately, the peer responds with the CRC32 of the message, to prove to the reporter
- * that the message has been received before it invokes the callback.
- * In some cases it needs to know this to be able to start saving power or stop trying to send the message.
- * Emergency messages will be retried if the CRC32 doesn't match.
- * TODO: Move this into readme.md
- *
- */
-
-typedef enum e_work_type
-{
-    REQUEST = 0x00,
-    DATA = 0x01,
-    PRIORITY = 0x02
-} e_work_type;
-
-/**
- * @brief Supported media types
- * These are the media types, "ALL" is used as a way to broadcast over all types
- *
- */
-
-typedef enum e_media_type
-{
-    BLE = 0x00,
-    ESPNOW = 0x01,
-    LoRa = 0x02,
-    TCPIP = 0x03,
-    TTL = 0x04,
-    ALL = 0x05
-} e_media_type;
-
-/**
- * @brief This is the request queue
- * The queue is served by worker threads in a thread-safe manner.
- */
-struct work_queue_item
-{
-    /* The type of work */
-    enum e_work_type work_type;
-
-    /* Hash of indata */
-    uint16_t crc32;
-    /* Protocol version of the request */
-    uint8_t version;
-    /* The conversation it belongs to */
-    uint8_t conversation_id;
-    /* The data */
-    char *raw_data;
-    /* The length of the data in bytes */
-    uint16_t raw_data_length;
-    /* The message parts as an array of null-terminated strings */
-    char **parts;
-    /* The number of message parts */
-    int partcount;
-    /* The underlying media type, avoid using this data to stay tech agnostic */
-    enum e_media_type media_type;
-    /* A handle to the underlying connection */
-    uint16_t conn_handle;
-
-    /* Queue reference */
-    STAILQ_ENTRY(work_queue_item)
-    items;
-};
-
-/* Work queue initialisation */
-STAILQ_HEAD(work_queue, work_queue_item)
-work_q;
-
-/**
- * @brief The peer's list of conversations.
- */
-
-struct conversation_list_item
-{
-    uint8_t conversation_id; // The conversation it belongs to
-    char *reason;
-
-    SLIST_ENTRY(conversation_list_item)
-    items;
-
-    enum e_media_type media_type; // The underlying media type
-    uint16_t conn_handle;       // A handle to the underlying connection
-};
-
-/* Conversation list initialisation */
-SLIST_HEAD(conversation_list, conversation_list_item)
-conversation_l;
-
-/**
- * These callbacks are implemented to handle the different
- * work types.
- */
-/* Callbacks that handles incoming work items */
-typedef void(work_callback)(struct work_queue_item *work_item);
-
-/* Mandatory callback that handles incoming work items */
-work_callback *on_work_cb;
-
-/* Mandatory callback that handles incoming priority request immidiately */
-work_callback *on_priority_cb;
-
-/* Callbacks that act as filters on incoming work items */
-typedef int(filter_callback)(struct work_queue_item *work_item);
-
-/* Optional callback that intercepts before incoming request messages are added to the work queue */
-filter_callback *on_filter_request_cb;
-/* Optional callback that intercepts before incoming data messages are added to the work queue */
-filter_callback *on_filter_data_cb;
-
 /* The log prefix for all logging */
 char *log_prefix;
 
@@ -209,18 +54,11 @@ char *log_prefix;
  * @return int  Returns 0 value if successful.
  */
 int sdp_init(work_callback work_cb, work_callback priority_cb, const char *_log_prefix, bool is_controller);
-int safe_add_work_queue(struct work_queue_item *new_item);
-struct work_queue_item *safe_get_head_work_item(void);
-int start_conversation(e_media_type media_type, int conn_handle, e_work_type work_type,
-                       const char *reason, const void *data, int data_length);
-int end_conversation(uint16_t conversation_id);
-struct conversation_list_item *find_conversation(uint16_t conversation_id);
-int sdp_reply(struct work_queue_item queue_item, enum e_work_type work_type, const void *data, int data_length);
-int get_conversation_id(void);
 
-#endif
+
 
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
 
+#endif

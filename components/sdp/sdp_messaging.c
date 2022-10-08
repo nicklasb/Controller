@@ -11,6 +11,16 @@
 
 int callcount = 0;
 
+/* The current conversation id */
+uint16_t conversation_id = 0;
+
+/* The log prefix for all logging */
+char *log_prefix;
+
+/* Semaphore for thread safety  */
+SemaphoreHandle_t x_conversation_list_semaphore;
+
+
 void parse_message(struct work_queue_item *queue_item)
 {
 
@@ -222,4 +232,174 @@ int send_message(uint16_t conn_handle, uint16_t conversation_id,
     return ble_send_message(conn_handle, conversation_id, work_type, data, data_length);
     #endif
 
+}
+
+
+int safe_add_conversation(uint16_t conn_handle, e_media_type media_type, const char *reason)
+{
+    /* Create a conversation list item to keep track */
+
+    struct conversation_list_item *new_item = malloc(sizeof(struct conversation_list_item));
+    new_item->conn_handle = conn_handle;
+    new_item->media_type = media_type;
+    new_item->reason =malloc(strlen(reason));
+    strcpy(new_item->reason,reason);
+    
+    /* Some things needs to be thread-safe */
+    if (pdTRUE == xSemaphoreTake(x_conversation_list_semaphore, portMAX_DELAY))
+    {
+        new_item->conversation_id = conversation_id++;
+
+        SLIST_INSERT_HEAD(&conversation_l, new_item, items);
+        xSemaphoreGive(x_conversation_list_semaphore);
+        return new_item->conversation_id;
+    }
+    else
+    {
+        ESP_LOGE(log_prefix, "Error: Couldn't get semaphore to add to conversation queue!");
+        return -SDP_ERR_SEMAPHORE;
+    }
+}
+
+void *sdp_add_preamble(enum e_work_type work_type, uint16_t conversation_id, const void *data, int data_length)
+{
+    char *new_data = malloc(data_length + SDP_PREAMBLE_LENGTH);
+    new_data[0] = SPD_PROTOCOL_VERSION;
+    new_data[1] = (uint8_t)(&conversation_id)[0];
+    new_data[2] = (uint8_t)(&conversation_id)[1];
+    new_data[3] = (uint8_t)work_type;
+    memcpy(&(new_data[SDP_PREAMBLE_LENGTH]), data, (size_t)data_length);
+    return new_data;
+}
+/**
+ * @brief Replies to the sender in the queue item
+ *  
+ * 
+ * @param queue_item 
+ * @param work_type 
+ * @param data 
+ * @param data_length 
+ * @return int 
+ */
+int sdp_reply(struct work_queue_item queue_item, enum e_work_type work_type, const void *data, int data_length)
+{
+    int retval = SDP_OK;
+    ESP_LOGI(log_prefix, "In sdp reply- media type: %u.", (uint8_t)queue_item.media_type);
+    // Add preamble in a new data
+    void *new_data = sdp_add_preamble(work_type, (uint16_t)(queue_item.conversation_id), data, data_length);
+    switch (queue_item.media_type)
+    {
+    case BLE:
+        ESP_LOGI(log_prefix, "In sdp reply.");
+        retval = send_message(queue_item.conn_handle, queue_item.conversation_id, work_type,
+                                  new_data, data_length + SDP_PREAMBLE_LENGTH);
+        break;
+    default:
+        ESP_LOGE(log_prefix, "An unimplemented media type was used: %i", queue_item.media_type);
+        retval = SDP_ERR_INVALID_PARAM;
+        break;
+    }
+    free(new_data);
+    return retval;
+}
+/**
+ * @brief Start a new conversation
+ *
+ * @param media_type Media type
+ * @param conn_handle A handle to the connection (if negative -1 loop all)
+ * @param work_type
+ * @param data
+ * @param data_length
+ * @param log_tag
+ * @return int Returns the conversation id if successful.
+ * NOTE: Returns negative error values on failure.
+ */
+int start_conversation(enum e_media_type media_type, int conn_handle, enum e_work_type work_type, 
+                       const char *reason, const void *data, int data_length)
+{
+    int retval = SDP_OK;
+    // Create and add a new conversation item and add to queue
+    int new_conversation_id = safe_add_conversation(conn_handle, media_type, reason);
+    if (new_conversation_id >= 0) //
+    {
+        // Add preamble in a new data
+
+        void *new_data = sdp_add_preamble(work_type, (uint16_t)(new_conversation_id), data, data_length);
+
+        switch (media_type)
+        {
+            case BLE:
+                if (conn_handle < 0)
+                {
+                    retval = -broadcast_message(new_conversation_id, work_type,
+                                                    new_data, data_length + SDP_PREAMBLE_LENGTH);
+                }
+                else
+                {
+                    retval = -send_message(conn_handle, new_conversation_id, work_type,
+                                            new_data, data_length + SDP_PREAMBLE_LENGTH);
+                }
+                break;
+
+            default:
+                ESP_LOGE(log_prefix, "An unimplemented media type was used: %i", media_type);
+                retval = SDP_ERR_INVALID_PARAM;
+                break;
+        }
+        free(new_data);
+    }
+    else
+    {
+        // < 0 means that the conversation wasn't created.
+        ESP_LOGE(log_prefix, "Error: start_conversation - Failed to create a conversation.");
+        retval = -SDP_ERR_CONV_QUEUE;
+    }
+
+    return retval;
+}
+
+int end_conversation(uint16_t conversation_id)
+{
+    struct conversation_list_item *curr_conversation;
+    SLIST_FOREACH(curr_conversation, &conversation_l, items)
+    {
+        if (curr_conversation->conversation_id == conversation_id)
+        {
+            SLIST_REMOVE(&conversation_l, curr_conversation, conversation_list_item, items);
+            free(curr_conversation->reason);
+            free(curr_conversation);
+            return SDP_OK;
+        }
+    }
+    return SDP_ERR_CONV_QUEUE;
+}
+
+struct conversation_list_item *find_conversation(uint16_t conversation_id)
+{
+    struct conversation_list_item *curr_conversation;
+    SLIST_FOREACH(curr_conversation, &conversation_l, items)
+    {
+        if (curr_conversation->conversation_id == conversation_id)
+        {
+            return curr_conversation;
+
+        }
+    }
+    return NULL;
+}
+
+
+
+int get_conversation_id(void)
+{
+    return conversation_id;
+}
+
+void init_messaging(const char *log_prefix) {
+
+    /* Create a queue semaphore to ensure thread safety */
+    x_conversation_list_semaphore = xSemaphoreCreateMutex();
+
+    /* Conversation list initialisation */
+    SLIST_INIT(&conversation_l);
 }

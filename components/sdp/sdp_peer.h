@@ -6,8 +6,6 @@
 
 typedef char sdp_peer_name[CONFIG_SDP_PEER_NAME_LEN];
 
-
-
 typedef struct sdp_peer
 {
     SLIST_ENTRY(sdp_peer) next;

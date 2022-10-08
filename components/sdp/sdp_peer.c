@@ -17,6 +17,9 @@ static struct os_mempool sdp_peer_pool;
 /* Used for creating new peer handles*/
 __uint16_t _peer_handle_incrementor_ = -1;
 
+/* The log prefix for all logging */
+char *log_prefix;
+
 struct sdp_peer*
 sdp_peer_find_name(const sdp_peer_name name)
 {

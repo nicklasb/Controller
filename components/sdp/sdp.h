@@ -30,16 +30,6 @@ extern "C"
  * To be decided is how much of the implementation should be here.
  */
 
-// TODO: Break out all BLE-specifics, perhaps ifdef them.
-
-/* The current protocol version */
-#define SPD_PROTOCOL_VERSION 0
-
-/* Lowest supported protocol version */
-#define SPD_PROTOCOL_VERSION_MIN 0
-
-/* The length, in bytes of the SDP preamble. */
-#define SDP_PREAMBLE_LENGTH 4
 
 /* The log prefix for all logging */
 char *log_prefix;

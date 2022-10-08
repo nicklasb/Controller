@@ -1,3 +1,7 @@
+#ifndef _UI_TASK_H_
+#define _UI_TASK_H_
+
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -49,4 +53,6 @@ char ui_tag[35];
 
 #ifdef __cplusplus
 } /* extern "C" */
+#endif
+
 #endif

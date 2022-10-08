@@ -1,5 +1,6 @@
 
-
+#ifndef _BLE_CLIENT_H_
+#define _BLE_CLIENT_H_
     /*********************
      *      DEFINES
      *********************/
@@ -22,3 +23,5 @@
      *      MACROS
      **********************/
 
+
+#endif

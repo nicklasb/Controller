@@ -58,6 +58,9 @@ void ble_init(char *log_prefix, bool is_controller)
     ret = new_gatt_svr_init();
     assert(ret == 0);
 
+    /* Initialize service */
+    ble_init_service(log_prefix);
+    
     /* Register custom service */
     ret = gatt_svr_register();
     assert(ret == 0);

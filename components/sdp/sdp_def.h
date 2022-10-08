@@ -2,6 +2,16 @@
 #ifndef _SDP_DEF_H_
 #define _SDP_DEF_H_
 
+
+/* The current protocol version */
+#define SDP_PROTOCOL_VERSION 0
+
+/* Lowest supported protocol version */
+#define SDP_PROTOCOL_VERSION_MIN 0
+
+/* The length, in bytes of the SDP preamble. */
+#define SDP_PREAMBLE_LENGTH 4
+
 /* Common error codes */
 typedef enum e_sdp_error_codes
 {
@@ -59,9 +69,10 @@ typedef enum e_sdp_error_codes
 
 typedef enum e_work_type
 {
-    REQUEST = 0x00,
-    DATA = 0x01,
-    PRIORITY = 0x02
+    HANDSHAKE = 0,
+    REQUEST = 1,
+    DATA = 2,
+    PRIORITY = 3
 } e_work_type;
 
 /**
@@ -72,12 +83,25 @@ typedef enum e_work_type
 
 typedef enum e_media_type
 {
-    BLE = 0x00,
-    ESPNOW = 0x01,
-    LoRa = 0x02,
-    TCPIP = 0x03,
-    TTL = 0x04,
-    ALL = 0x05
+    SDP_MT_NONE = 0, 
+    SDP_MT_BLE = 1,
+    SDP_MT_ESPNOW = 2,
+    SDP_MT_LoRa = 3,
+    SDP_MT_TCPIP = 4,
+    SDP_MT_TTL = 5,
+    SDP_MT_ANY = 6
+
 } e_media_type;
+
+/* SDP peer stat, broadly categorizes the credibility of the peer */
+typedef enum e_peer_state
+{
+    /* The peer is unknown */
+    PEER_UNKNOWN = 0,
+    /* The peer has presented itself, but isn't encrypted*/
+    PEER_KNOWN_UNSECURE = 1,
+    /* The peer is both known and encrypted */
+    PEER_KNOWN_SECURE = 2
+} e_peer_state;
 
 #endif

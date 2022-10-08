@@ -3,6 +3,8 @@
  * Loosely based on the ESP-IDF-demo
  */
 
+#ifndef _BLE_SERVICE_H_
+#define _BLE_SERVICE_H_
 #include <os/queue.h>
 
 
@@ -24,3 +26,6 @@ void print_addr(const void *addr);
 int gatt_svr_register(void);
 void ble_store_config_init(void);
 
+void ble_init_service(char * _log_prefix);
+
+#endif

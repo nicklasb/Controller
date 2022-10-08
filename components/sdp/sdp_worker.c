@@ -101,6 +101,7 @@ int init_worker(work_callback work_cb, work_callback priority_cb, char *_log_pre
     char x_task_name[50] = "\0";
     strcpy(x_task_name, log_prefix);
     strcat(x_task_name, " Worker task");
+
     /** Register the client task.
      *
      * We are running it on Core 0, or PRO as it is called
@@ -114,4 +115,15 @@ int init_worker(work_callback work_cb, work_callback priority_cb, char *_log_pre
     ESP_LOGI(log_prefix, "Worker task registered.");
 
     return 0;
+}
+
+
+
+void cleanup_queue_task(struct work_queue_item *queue_item)
+{
+    free(queue_item->parts);
+    free(queue_item->raw_data);
+
+    free(queue_item);
+    vTaskDelete(NULL);
 }

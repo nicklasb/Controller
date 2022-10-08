@@ -1,16 +1,20 @@
 #include "sdp_messaging.h"
 #include <esp_log.h>
 #include <esp32/rom/crc.h>
-#include <os/queue.h>
+
 #include <freertos/FreeRTOS.h>
 #include <freertos/semphr.h>
 #include "sdp_peer.h"
+#include "sdp_def.h"
+#include "sdp_helpers.h"
+#include "string.h"
 
 #ifdef CONFIG_SDP_LOAD_BLE
 #include "ble/ble_global.h"
 #endif
 
 #define CONFIG_SDP_MAX_PEERS 20
+
 
 
 int callcount = 0;
@@ -23,7 +27,6 @@ char *log_prefix;
 
 /* Semaphore for thread safety  */
 SemaphoreHandle_t x_conversation_list_semaphore;
-
 
 void parse_message(struct work_queue_item *queue_item)
 {
@@ -63,10 +66,10 @@ void parse_message(struct work_queue_item *queue_item)
     }
 }
 
-int handle_incoming(uint16_t conn_handle, uint16_t attr_handle, char* data, int data_len, e_media_type media_type, void *arg)
+int handle_incoming(sdp_peer *peer, uint16_t attr_handle, const uint8_t *data, int data_len, e_media_type media_type)
 {
     ESP_LOGI(log_prefix, "Payload length: %i, call count %i, CRC32: %u", data_len, callcount++,
-             crc32_be(0, (__uint8_t)data, data_len));
+             crc32_be(0, &data, data_len));
 
     struct work_queue_item *new_item;
 
@@ -74,16 +77,16 @@ int handle_incoming(uint16_t conn_handle, uint16_t attr_handle, char* data, int 
     {
         // TODO: Change malloc to something more optimized?
         new_item = malloc(sizeof(struct work_queue_item));
-        new_item->version = (uint8_t)data[0];
-        new_item->conversation_id = (uint16_t)data[1];
-        new_item->work_type = (uint8_t)data[3];
+        new_item->version = data[0];
+        new_item->conversation_id = data[1];
+        new_item->work_type = data[3];
         new_item->raw_data_length = data_len - SDP_PREAMBLE_LENGTH;
         new_item->raw_data = malloc(new_item->raw_data_length);
         memcpy(new_item->raw_data, &(data[SDP_PREAMBLE_LENGTH]), new_item->raw_data_length);
 
         
         new_item->media_type = media_type;
-        new_item->conn_handle = conn_handle;
+        new_item->peer = peer;
         parse_message(new_item);
 
         ESP_LOGI(log_prefix, "Message info : Version: %u, Conv.id: %u, Work type: %u, Media type: %u,Data len: %u, Message parts: %i.",
@@ -93,7 +96,7 @@ int handle_incoming(uint16_t conn_handle, uint16_t attr_handle, char* data, int 
     else
     {
         ESP_LOGE(log_prefix, "Error: The request must be more than %i bytes for SDP v %i compliance.",
-                 SPD_PROTOCOL_VERSION, SDP_PREAMBLE_LENGTH);
+                 SDP_PROTOCOL_VERSION, SDP_PREAMBLE_LENGTH);
         return SDP_ERR_MESSAGE_TOO_SHORT;
     }
 
@@ -149,8 +152,7 @@ int handle_incoming(uint16_t conn_handle, uint16_t attr_handle, char* data, int 
             immidiately respond with CRC32 to tell the
             reporter that the information has reached the controller. */
             
-            send_message(new_item->conn_handle,
-                            new_item->conversation_id, DATA, &(new_item->crc32), 2);
+            send_message(new_item->peer, &(new_item->crc32), 2);
 
             /* Do NOT add the work item to the queue, it will be immidiately adressed in the callback */
 
@@ -189,17 +191,18 @@ int handle_incoming(uint16_t conn_handle, uint16_t attr_handle, char* data, int 
 int broadcast_message(uint16_t conversation_id,
                           enum e_work_type work_type, const void *data, int data_length)
 {
-    struct ble_peer *curr_peer;
-    int ret = 0, total = 0, errors = 0;
-    SLIST_FOREACH(curr_peer, &ble_peers, next)
+    struct sdp_peer *curr_peer;
+    int total = 0, errors = 0;
+    e_media_type ret;
+    SLIST_FOREACH(curr_peer, &sdp_peers, next)
     {
-        ret = send_message(curr_peer->conn_handle, conversation_id, work_type, data, data_length);
-        if (ret != 0)
+        ret = send_message(&curr_peer, data, data_length);
+        if (ret == SDP_MT_NONE)
         {
-            ESP_LOGE(log_prefix, "Error: ble_broadcast_message: Failure sending message! Peer: %u Code: %i", curr_peer->conn_handle, ret);
+            ESP_LOGE(log_prefix, "Error: broadcast_message: Failure sending message! Peer: %s Code: %i", curr_peer->name, ret);
             errors++;
         } else {
-            ESP_LOGI(log_prefix, "Sent a message to Peer: %u Code: %i", curr_peer->conn_handle, ret);
+            ESP_LOGI(log_prefix, "Sent a message to Peer: %s Code: %i", curr_peer->name, ret);
             
         }
 
@@ -225,27 +228,37 @@ int broadcast_message(uint16_t conversation_id,
 }
 
 /**
- * @brief Like send_message, but only sends to one specified peer.
+ * @brief Like send_message, but only sends to one specified peer using first available media type.
  * Note the unsigned type of the connection handle, a positive value is needed.
  */
-int send_message(uint16_t conn_handle, uint16_t conversation_id,
-                     enum e_work_type work_type, const void *data, int data_length)
+e_media_type send_message(struct sdp_peer *peer, const void *data, int data_length)
 {
+    int rc = 0;
+
     #ifdef CONFIG_SDP_LOAD_BLE
     // Send message using BLE
-    return ble_send_message(conn_handle, conversation_id, work_type, data, data_length);
+    if (peer->ble_conn_handle >= 0) {
+        rc = ble_send_message(peer->ble_conn_handle, data, data_length);
+        if (rc ==0) {
+            return SDP_MT_BLE;
+        } else {
+            ble_peer_find(peer->ble_conn_handle)->failure_count++;
+            //TODO: Add start general QoS monitoring, stop using some technologies if they are failing
+        }
+    }
     #endif
+
+    return SDP_MT_NONE;
 
 }
 
 
-int safe_add_conversation(uint16_t conn_handle, e_media_type media_type, const char *reason)
+int safe_add_conversation(sdp_peer *peer, const char *reason)
 {
     /* Create a conversation list item to keep track */
 
     struct conversation_list_item *new_item = malloc(sizeof(struct conversation_list_item));
-    new_item->conn_handle = conn_handle;
-    new_item->media_type = media_type;
+    new_item->peer = peer;
     new_item->reason =malloc(strlen(reason));
     strcpy(new_item->reason,reason);
     
@@ -265,16 +278,6 @@ int safe_add_conversation(uint16_t conn_handle, e_media_type media_type, const c
     }
 }
 
-void *sdp_add_preamble(enum e_work_type work_type, uint16_t conversation_id, const void *data, int data_length)
-{
-    char *new_data = malloc(data_length + SDP_PREAMBLE_LENGTH);
-    new_data[0] = SPD_PROTOCOL_VERSION;
-    new_data[1] = (uint8_t)(&conversation_id)[0];
-    new_data[2] = (uint8_t)(&conversation_id)[1];
-    new_data[3] = (uint8_t)work_type;
-    memcpy(&(new_data[SDP_PREAMBLE_LENGTH]), data, (size_t)data_length);
-    return new_data;
-}
 /**
  * @brief Replies to the sender in the queue item
  *  
@@ -289,20 +292,11 @@ int sdp_reply(struct work_queue_item queue_item, enum e_work_type work_type, con
 {
     int retval = SDP_OK;
     ESP_LOGI(log_prefix, "In sdp reply- media type: %u.", (uint8_t)queue_item.media_type);
-    // Add preamble in a new data
+    // Add preamble with all SDP specifics in a new data
     void *new_data = sdp_add_preamble(work_type, (uint16_t)(queue_item.conversation_id), data, data_length);
-    switch (queue_item.media_type)
-    {
-    case BLE:
-        ESP_LOGI(log_prefix, "In sdp reply.");
-        retval = send_message(queue_item.conn_handle, queue_item.conversation_id, work_type,
-                                  new_data, data_length + SDP_PREAMBLE_LENGTH);
-        break;
-    default:
-        ESP_LOGE(log_prefix, "An unimplemented media type was used: %i", queue_item.media_type);
-        retval = SDP_ERR_INVALID_PARAM;
-        break;
-    }
+
+    ESP_LOGI(log_prefix, "In sdp reply.");
+    retval = send_message(queue_item.peer, new_data, data_length + SDP_PREAMBLE_LENGTH);
     free(new_data);
     return retval;
 }
@@ -318,37 +312,24 @@ int sdp_reply(struct work_queue_item queue_item, enum e_work_type work_type, con
  * @return int Returns the conversation id if successful.
  * NOTE: Returns negative error values on failure.
  */
-int start_conversation(enum e_media_type media_type, int conn_handle, enum e_work_type work_type, 
+int start_conversation(struct sdp_peer *peer, enum e_work_type work_type, 
                        const char *reason, const void *data, int data_length)
 {
     int retval = SDP_OK;
     // Create and add a new conversation item and add to queue
-    int new_conversation_id = safe_add_conversation(conn_handle, media_type, reason);
+    int new_conversation_id = safe_add_conversation(peer, reason);
     if (new_conversation_id >= 0) //
     {
-        // Add preamble in a new data
-
+        // Add preamble including all SDP specifics in a new data
         void *new_data = sdp_add_preamble(work_type, (uint16_t)(new_conversation_id), data, data_length);
-
-        switch (media_type)
+        if (peer == NULL)
         {
-            case BLE:
-                if (conn_handle < 0)
-                {
-                    retval = -broadcast_message(new_conversation_id, work_type,
-                                                    new_data, data_length + SDP_PREAMBLE_LENGTH);
-                }
-                else
-                {
-                    retval = -send_message(conn_handle, new_conversation_id, work_type,
+            retval = -broadcast_message(new_conversation_id, work_type,
                                             new_data, data_length + SDP_PREAMBLE_LENGTH);
-                }
-                break;
-
-            default:
-                ESP_LOGE(log_prefix, "An unimplemented media type was used: %i", media_type);
-                retval = SDP_ERR_INVALID_PARAM;
-                break;
+        }
+        else
+        {
+            retval = -send_message(peer, new_data, data_length + SDP_PREAMBLE_LENGTH);
         }
         free(new_data);
     }

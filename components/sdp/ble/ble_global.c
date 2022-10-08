@@ -77,8 +77,7 @@ int ble_negotiate_mtu(uint16_t conn_handle)
 /**
  * @brief Sends a message through BLE.
  */
-int ble_send_message(uint16_t conn_handle, uint16_t conversation_id,
-                     enum e_work_type work_type, const void *data, int data_length)
+int ble_send_message(uint16_t conn_handle, const void *data, int data_length)
 {
 
     if (pdTRUE == xSemaphoreTake(xBLE_Comm_Semaphore, portMAX_DELAY))
@@ -92,6 +91,7 @@ int ble_send_message(uint16_t conn_handle, uint16_t conversation_id,
         else
         {
             ESP_LOGE(log_prefix, "Error: ble_send_message  - Failure when writing data! Peer: %i Code: %i", conn_handle, ret);
+            xSemaphoreGive(xBLE_Comm_Semaphore);
             return -ret;
         }
         xSemaphoreGive(xBLE_Comm_Semaphore);

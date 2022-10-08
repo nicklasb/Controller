@@ -1,4 +1,7 @@
 
+#ifndef _UI_BUILDER_H_
+#define _UI_BUILDER_H_
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -34,4 +37,6 @@ extern "C"
 
 #ifdef __cplusplus
 } /* extern "C" */
+#endif
+
 #endif

@@ -6,21 +6,20 @@
 #include "sdp.h"
 
 #ifdef CONFIG_SDP_LOAD_BLE
-    #include "ble/ble_spp.h"
-#endif    
-
+#include "ble/ble_spp.h"
+#endif
 
 /* */
 static void *sdp_peer_mem;
 static struct os_mempool sdp_peer_pool;
 
 /* Used for creating new peer handles*/
-__uint16_t _peer_handle_incrementor_ = -1;
+uint16_t _peer_handle_incrementor_ = -1;
 
 /* The log prefix for all logging */
 char *log_prefix;
 
-struct sdp_peer*
+struct sdp_peer *
 sdp_peer_find_name(const sdp_peer_name name)
 {
     struct sdp_peer *peer;
@@ -37,7 +36,7 @@ sdp_peer_find_name(const sdp_peer_name name)
     return NULL;
 }
 
-struct sdp_peer*
+struct sdp_peer *
 sdp_peer_find_handle(__int16_t peer_handle)
 {
     struct sdp_peer *peer;
@@ -53,7 +52,7 @@ sdp_peer_find_handle(__int16_t peer_handle)
     return NULL;
 }
 
-int sdp_peer_delete(__uint16_t peer_handle)
+int sdp_peer_delete(uint16_t peer_handle)
 {
     struct sdp_peer *peer;
     int rc;
@@ -64,12 +63,13 @@ int sdp_peer_delete(__uint16_t peer_handle)
         return SDP_ERR_PEER_NOT_FOUND;
     }
 
-    #ifdef CONFIG_SDP_LOAD_BLE
-        // If connected,remove BLE peer
-        if (peer->ble_conn_handle != 0) {
-            ble_peer_delete(peer->ble_conn_handle);
-        }
-    #endif 
+#ifdef CONFIG_SDP_LOAD_BLE
+    // If connected,remove BLE peer
+    if (peer->ble_conn_handle != 0)
+    {
+        ble_peer_delete(peer->ble_conn_handle);
+    }
+#endif
 
     SLIST_REMOVE(&sdp_peers, peer, sdp_peer, next);
 
@@ -78,8 +78,6 @@ int sdp_peer_delete(__uint16_t peer_handle)
     {
         return SDP_ERR_OS_ERROR;
     }
- 
-    
 
     return 0;
 }
@@ -100,7 +98,7 @@ int sdp_peer_add(sdp_peer_name name)
     peer = os_memblock_get(&sdp_peer_pool);
     if (peer == NULL)
     {
-        ESP_LOGE(log_prefix, "sdp_peer_add() - Out of  memory!");
+        ESP_LOGE(log_prefix, "sdp_peer_add() - Out of memory!");
         /* Out of memory. */
         return SDP_ERR_OUT_OF_MEMORY;
     }
@@ -112,7 +110,6 @@ int sdp_peer_add(sdp_peer_name name)
 
     ESP_LOGI(log_prefix, "sdp_peer_add() - Peer added, name: %s", peer->name);
 
-
     return peer->peer_handle;
 }
 
@@ -121,7 +118,6 @@ sdp_peer_free_mem(void)
 {
     free(sdp_peer_mem);
     sdp_peer_mem = NULL;
-
 }
 
 int sdp_peer_init(char *_log_prefix, int max_peers)
@@ -129,19 +125,17 @@ int sdp_peer_init(char *_log_prefix, int max_peers)
     int rc;
     log_prefix = _log_prefix;
 
-
     /* Free memory first in case this function gets called more than once. */
     sdp_peer_free_mem();
 
     sdp_peer_mem = malloc(
-    OS_MEMPOOL_BYTES(max_peers, sizeof(struct sdp_peer)));
+        OS_MEMPOOL_BYTES(max_peers, sizeof(struct sdp_peer)));
     if (sdp_peer_mem == NULL)
     {
         rc = SDP_ERR_OUT_OF_MEMORY;
         ESP_LOGE(log_prefix, "sdp_peer_init() - Out of memory!");
         goto err;
     }
-
 
     rc = os_mempool_init(&sdp_peer_pool, max_peers,
                          sizeof(struct sdp_peer), sdp_peer_mem,

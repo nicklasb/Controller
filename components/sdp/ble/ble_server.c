@@ -16,6 +16,9 @@
 #include "ble_global.h"
 #include "ble_server.h"
 
+#include "sdp_def.h"
+#include "sdp_helpers.h"
+
 static uint8_t own_addr_type;
 
 static int ble_spp_server_gap_event(struct ble_gap_event *event, void *arg);
@@ -147,6 +150,7 @@ ble_spp_server_gap_event(struct ble_gap_event *event, void *arg)
                 MODLOG_DFLT(ERROR, "Failed to discover services; rc=%d\n", rc);
                 return 0;
             }
+            ble_send_message(event->connect.conn_handle, make_who_msg(), who_msg_length());
         }
         
         if (event->connect.status != 0)

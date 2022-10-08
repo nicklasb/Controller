@@ -1,4 +1,6 @@
 
+#ifndef _BLE_SERVER_H_
+#define _BLE_SERVER_H_
 /*********************
  *      DEFINES
  *********************/
@@ -26,3 +28,4 @@
 
 
 
+#endif

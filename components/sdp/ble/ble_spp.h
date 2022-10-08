@@ -86,9 +86,9 @@ typedef void peer_disc_fn(const struct ble_peer *peer, int status, void *arg);
 typedef struct ble_peer {
     SLIST_ENTRY(ble_peer) next;
 
-    __uint16_t conn_handle;
+    uint16_t conn_handle;
 
-    __uint16_t sdp_handle;
+    uint16_t sdp_handle;
 
     /** Connection info */
     struct ble_gap_conn_desc desc;
@@ -96,8 +96,10 @@ typedef struct ble_peer {
     /** List of discovered GATT services. */
     struct peer_svc_list svcs;
 
+    int failure_count;
+
     /** Keeps track of where we are in the service discovery process. */
-    __uint16_t disc_prev_chr_val;
+    uint16_t disc_prev_chr_val;
     struct peer_svc *cur_svc;
 
     /** Callback that gets executed when service discovery completes. */
@@ -107,7 +109,7 @@ typedef struct ble_peer {
 
 SLIST_HEAD(, ble_peer) ble_peers;
 
-int ble_peer_disc_all(__uint16_t conn_handle, peer_disc_fn *disc_cb,
+int ble_peer_disc_all(uint16_t conn_handle, peer_disc_fn *disc_cb,
                   void *disc_cb_arg);
 const struct peer_dsc *
 ble_peer_dsc_find_uuid(const struct ble_peer *peer, const ble_uuid_t *svc_uuid,
@@ -117,11 +119,11 @@ ble_peer_chr_find_uuid(const struct ble_peer *peer, const ble_uuid_t *svc_uuid,
                    const ble_uuid_t *chr_uuid);
 const struct peer_svc *
 ble_peer_svc_find_uuid(const struct ble_peer *peer, const ble_uuid_t *uuid);
-int ble_peer_delete(__uint16_t conn_handle);
-int ble_peer_add(__uint16_t conn_handle, struct ble_gap_conn_desc desc);
+int ble_peer_delete(uint16_t conn_handle);
+int ble_peer_add(uint16_t conn_handle, struct ble_gap_conn_desc desc);
 int ble_peer_init(char *_log_prefix, int max_peers, int max_svcs, int max_chrs, int max_dscs);
 
-struct ble_peer * ble_peer_find(__uint16_t conn_handle);
+struct ble_peer * ble_peer_find(uint16_t conn_handle);
 
 #endif
 

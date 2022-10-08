@@ -4,10 +4,14 @@
 #include <os/queue.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/semphr.h>
+#include "sdp_peer.h"
 
 #ifdef CONFIG_SDP_LOAD_BLE
 #include "ble/ble_global.h"
 #endif
+
+#define CONFIG_SDP_MAX_PEERS 20
+
 
 int callcount = 0;
 
@@ -398,6 +402,8 @@ int get_conversation_id(void)
 void init_messaging(char *_log_prefix) {
 
     log_prefix = _log_prefix;
+
+    sdp_peer_init(_log_prefix, CONFIG_SDP_MAX_PEERS);
 
     /* Create a queue semaphore to ensure thread safety */
     x_conversation_list_semaphore = xSemaphoreCreateMutex();

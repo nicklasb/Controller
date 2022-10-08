@@ -23,8 +23,8 @@ static struct os_mempool peer_chr_pool;
 static void *peer_dsc_mem;
 static struct os_mempool peer_dsc_pool;
 
-static void *sdp_peer_mem;
-static struct os_mempool peer_pool;
+static void *ble_peer_mem;
+static struct os_mempool ble_peer_pool;
 
 
 static struct peer_svc *
@@ -749,7 +749,7 @@ int ble_peer_delete(__uint16_t conn_handle)
         peer_svc_delete(svc);
     }
 
-    rc = os_memblock_put(&peer_pool, peer);
+    rc = os_memblock_put(&ble_peer_pool, peer);
     if (rc != 0)
     {
         return BLE_HS_EOS;
@@ -769,7 +769,7 @@ int ble_peer_add(__uint16_t conn_handle, struct ble_gap_conn_desc desc)
         return BLE_HS_EALREADY;
     }
 
-    peer = os_memblock_get(&peer_pool);
+    peer = os_memblock_get(&ble_peer_pool);
     if (peer == NULL)
     {
         /* Out of memory. */
@@ -799,8 +799,8 @@ int ble_peer_add(__uint16_t conn_handle, struct ble_gap_conn_desc desc)
 static void
 peer_free_mem(void)
 {
-    free(sdp_peer_mem);
-    sdp_peer_mem = NULL;
+    free(ble_peer_mem);
+    ble_peer_mem = NULL;
 
     free(peer_svc_mem);
     peer_svc_mem = NULL;
@@ -821,17 +821,17 @@ int ble_peer_init(char *_log_prefix, int max_peers, int max_svcs, int max_chrs, 
     /* Free memory first in case this function gets called more than once. */
     peer_free_mem();
 
-    sdp_peer_mem = malloc(
+    ble_peer_mem = malloc(
         OS_MEMPOOL_BYTES(max_peers, sizeof(struct ble_peer)));
-    if (sdp_peer_mem == NULL)
+    if (ble_peer_mem == NULL)
     {
         rc = BLE_HS_ENOMEM;
         goto err;
     }
 
-    rc = os_mempool_init(&peer_pool, max_peers,
-                         sizeof(struct ble_peer), sdp_peer_mem,
-                         "peer_pool");
+    rc = os_mempool_init(&ble_peer_pool, max_peers,
+                         sizeof(struct ble_peer), ble_peer_mem,
+                         "ble_peer_pool");
     if (rc != 0)
     {
         rc = BLE_HS_EOS;

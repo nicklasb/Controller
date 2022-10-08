@@ -28,7 +28,7 @@ sdp_peer_find_name(const sdp_peer_name name)
     SLIST_FOREACH(peer, &sdp_peers, next)
     {
         ESP_LOGI(log_prefix, "Comparing %s with %s.", peer->name, name);
-        if (strcmp(peer->name, name) != 0)
+        if (strcmp(peer->name, name) == 0)
         {
             return peer;
         }
@@ -100,14 +100,18 @@ int sdp_peer_add(sdp_peer_name name)
     peer = os_memblock_get(&sdp_peer_pool);
     if (peer == NULL)
     {
+        ESP_LOGE(log_prefix, "sdp_peer_add() - Out of  memory!");
         /* Out of memory. */
         return SDP_ERR_OUT_OF_MEMORY;
     }
     memset(peer, 0, sizeof *peer);
     peer->peer_handle = _peer_handle_incrementor_++;
-    strcpy(peer->name, &name);
+    strcpy(peer->name, name);
 
     SLIST_INSERT_HEAD(&sdp_peers, peer, next);
+
+    ESP_LOGI(log_prefix, "sdp_peer_add() - Peer added, name: %s", peer->name);
+
 
     return peer->peer_handle;
 }
@@ -134,14 +138,14 @@ int sdp_peer_init(char *_log_prefix, int max_peers)
     if (sdp_peer_mem == NULL)
     {
         rc = SDP_ERR_OUT_OF_MEMORY;
+        ESP_LOGE(log_prefix, "sdp_peer_init() - Out of memory!");
         goto err;
     }
 
 
-
     rc = os_mempool_init(&sdp_peer_pool, max_peers,
                          sizeof(struct sdp_peer), sdp_peer_mem,
-                         "peer_pool");
+                         "sdp_peer_pool");
     if (rc != 0)
     {
         rc = SDP_ERR_OS_ERROR;

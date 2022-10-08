@@ -107,7 +107,6 @@ void memory_monitoring() {
     {
         first_average_memory_available = avg_mem_avail;
     }
-    ESP_LOGI(log_prefix, "4");
 
     int level = ESP_LOG_INFO;
     if ((most_memory_available - curr_mem_avail) > CONFIG_SDP_MONITOR_DANGER_USAGE) {
@@ -125,8 +124,6 @@ void memory_monitoring() {
              curr_mem_avail, avg_mem_avail, avg_mem_avail - first_average_memory_available, delta_mem_avail, least_memory_available, most_memory_available);
     
 }
-
-
 
 /**
  * @brief The monitor tasks periodically takes sampes of the current state
@@ -155,7 +152,8 @@ void init_monitor(char *_log_prefix)
     /* Init the monitor */
     const esp_timer_create_args_t monitor_timer_args = {
         .callback = &monitor_task,
-        .name = "monitor"};
+        .name = "monitor"
+        };
 
     ESP_ERROR_CHECK(esp_timer_create(&monitor_timer_args, &monitor_timer));
 

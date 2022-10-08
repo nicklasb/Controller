@@ -27,6 +27,7 @@ sdp_peer_find_name(const sdp_peer_name name)
 
     SLIST_FOREACH(peer, &sdp_peers, next)
     {
+        ESP_LOGI(log_prefix, "Comparing %s with %s.", peer->name, name);
         if (strcmp(peer->name, name) != 0)
         {
             return peer;
@@ -78,19 +79,22 @@ int sdp_peer_delete(__uint16_t peer_handle)
         return SDP_ERR_OS_ERROR;
     }
  
+    
 
     return 0;
 }
 
-int sdp_peer_add(const sdp_peer_name name)
+int sdp_peer_add(sdp_peer_name name)
 {
     struct sdp_peer *peer;
+
+    ESP_LOGI(log_prefix, "sdp_peer_add() - adding SDP peer, name: %s", name);
 
     /* TODO: Make sure the peer name is unique*/
     peer = sdp_peer_find_name(name);
     if (peer != NULL)
     {
-        return SDP_ERR_PEER_EXISTS;
+        return -SDP_ERR_PEER_EXISTS;
     }
 
     peer = os_memblock_get(&sdp_peer_pool);
@@ -101,7 +105,7 @@ int sdp_peer_add(const sdp_peer_name name)
     }
     memset(peer, 0, sizeof *peer);
     peer->peer_handle = _peer_handle_incrementor_++;
-    strcpy(peer->name, name);
+    strcpy(peer->name, &name);
 
     SLIST_INSERT_HEAD(&sdp_peers, peer, next);
 
@@ -116,10 +120,10 @@ sdp_peer_free_mem(void)
 
 }
 
-int sdp_peer_init(int max_peers)
+int sdp_peer_init(char *_log_prefix, int max_peers)
 {
     int rc;
-
+    log_prefix = _log_prefix;
 
 
     /* Free memory first in case this function gets called more than once. */

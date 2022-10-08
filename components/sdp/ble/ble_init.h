@@ -7,12 +7,11 @@
     /*********************
      *      INCLUDES
      *********************/
-#include <stdbool.h>
+    #include <stdbool.h>
     /**********************
      * GLOBAL PROTOTYPES
      **********************/
-    void ble_init(const char *log_prefix, bool is_controller);
-
+    void ble_init(char *log_prefix, bool is_controller);
     /**********************
      *      MACROS
      **********************/

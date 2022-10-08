@@ -80,7 +80,7 @@ filter_callback *on_filter_request_cb;
 filter_callback *on_filter_data_cb;
 
 
-int init_worker(work_callback work_cb, work_callback priority_cb, const char *log_prefix);
+int init_worker(work_callback work_cb, work_callback priority_cb, char *_log_prefix);
 
 int safe_add_work_queue(struct work_queue_item *new_item);
 struct work_queue_item *safe_get_head_work_item(void);

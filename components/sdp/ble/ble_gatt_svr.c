@@ -1,5 +1,5 @@
 /**
- * @file gatt_svr.h
+ * @file ble_gatt_svr.h
  * @brief Gatt server declaration
  * 
  * 

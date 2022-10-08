@@ -53,7 +53,7 @@ char *log_prefix;
  * @param is_controller Is this the controller?
  * @return int  Returns 0 value if successful.
  */
-int sdp_init(work_callback work_cb, work_callback priority_cb, const char *_log_prefix, bool is_controller);
+int sdp_init(work_callback work_cb, work_callback priority_cb, char *_log_prefix, bool is_controller);
 
 
 

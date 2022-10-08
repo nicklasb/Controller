@@ -86,7 +86,7 @@ static void sdp_worker(void)
     vTaskDelete(NULL);
 }
 
-int init_worker(work_callback work_cb, work_callback priority_cb,const char *log_prefix)
+int init_worker(work_callback work_cb, work_callback priority_cb, char *_log_prefix)
 {
     // Initialize the work queue
     STAILQ_INIT(&work_q);

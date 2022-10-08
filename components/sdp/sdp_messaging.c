@@ -395,7 +395,9 @@ int get_conversation_id(void)
     return conversation_id;
 }
 
-void init_messaging(const char *log_prefix) {
+void init_messaging(char *_log_prefix) {
+
+    log_prefix = _log_prefix;
 
     /* Create a queue semaphore to ensure thread safety */
     x_conversation_list_semaphore = xSemaphoreCreateMutex();

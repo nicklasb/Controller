@@ -5,5 +5,5 @@
  * troubleshooting (especially memory leaks) and optimization.
  */
 
-void init_monitor(char *log_prefix);
+void init_monitor(char *_log_prefix);
 

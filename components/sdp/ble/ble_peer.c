@@ -1,5 +1,5 @@
 /**
- * @file peer.c
+ * @file ble_peer.c
  * @brief BLE peer lists
  * 
  * 
@@ -12,6 +12,7 @@
 #include <host/ble_hs.h>
 #include "ble_spp.h"
 #include "../sdp_peer.h"
+#include "../sdp_def.h"
 
 static void *peer_svc_mem;
 static struct os_mempool peer_svc_pool;
@@ -27,7 +28,7 @@ static struct os_mempool peer_pool;
 
 
 static struct peer_svc *
-peer_svc_find_range(struct ble_peer *peer, uint16_t attr_handle);
+peer_svc_find_range(struct ble_peer *peer, __uint16_t attr_handle);
 static struct peer_svc *
 peer_svc_find(struct ble_peer *peer, uint16_t svc_start_handle,
               struct peer_svc **out_prev);
@@ -43,12 +44,16 @@ static void
 peer_disc_chrs(struct ble_peer *peer);
 
 static int
-peer_dsc_disced(uint16_t conn_handle, const struct ble_gatt_error *error,
-                uint16_t chr_val_handle, const struct ble_gatt_dsc *dsc,
+peer_dsc_disced(__uint16_t conn_handle, const struct ble_gatt_error *error,
+                __uint16_t chr_val_handle, const struct ble_gatt_dsc *dsc,
                 void *arg);
 
+/* Log prefix*/
+char *log_prefix; 
+
+
 struct ble_peer *
-ble_peer_find(uint16_t conn_handle)
+ble_peer_find(__uint16_t conn_handle)
 {
     struct ble_peer *peer;
 
@@ -76,7 +81,7 @@ peer_disc_complete(struct ble_peer *peer, int rc)
 }
 
 static struct peer_dsc *
-peer_dsc_find_prev(const struct peer_chr *chr, uint16_t dsc_handle)
+peer_dsc_find_prev(const struct peer_chr *chr, __uint16_t dsc_handle)
 {
     struct peer_dsc *prev;
     struct peer_dsc *dsc;
@@ -96,7 +101,7 @@ peer_dsc_find_prev(const struct peer_chr *chr, uint16_t dsc_handle)
 }
 
 static struct peer_dsc *
-peer_dsc_find(const struct peer_chr *chr, uint16_t dsc_handle,
+peer_dsc_find(const struct peer_chr *chr, __uint16_t dsc_handle,
               struct peer_dsc **out_prev)
 {
     struct peer_dsc *prev;
@@ -125,7 +130,7 @@ peer_dsc_find(const struct peer_chr *chr, uint16_t dsc_handle,
 }
 
 static int
-peer_dsc_add(struct ble_peer *peer, uint16_t chr_val_handle,
+peer_dsc_add(struct ble_peer *peer, __uint16_t chr_val_handle,
              const struct ble_gatt_dsc *gatt_dsc)
 {
     struct peer_dsc *prev;
@@ -222,8 +227,8 @@ peer_disc_dscs(struct ble_peer *peer)
 }
 
 static int
-peer_dsc_disced(uint16_t conn_handle, const struct ble_gatt_error *error,
-                uint16_t chr_val_handle, const struct ble_gatt_dsc *dsc,
+peer_dsc_disced(__uint16_t conn_handle, const struct ble_gatt_error *error,
+                __uint16_t chr_val_handle, const struct ble_gatt_dsc *dsc,
                 void *arg)
 {
     struct ble_peer *peer;
@@ -306,7 +311,7 @@ peer_chr_find_prev(const struct peer_svc *svc, uint16_t chr_val_handle)
 }
 
 static struct peer_chr *
-peer_chr_find(const struct peer_svc *svc, uint16_t chr_val_handle,
+peer_chr_find(const struct peer_svc *svc, __uint16_t chr_val_handle,
               struct peer_chr **out_prev)
 {
     struct peer_chr *prev;
@@ -349,7 +354,7 @@ peer_chr_delete(struct peer_chr *chr)
 }
 
 static int
-peer_chr_add(struct ble_peer *peer, uint16_t svc_start_handle,
+peer_chr_add(struct ble_peer *peer, __uint16_t svc_start_handle,
              const struct ble_gatt_chr *gatt_chr)
 {
     struct peer_chr *prev;
@@ -396,7 +401,7 @@ peer_chr_add(struct ble_peer *peer, uint16_t svc_start_handle,
 }
 
 static int
-peer_chr_disced(uint16_t conn_handle, const struct ble_gatt_error *error,
+peer_chr_disced(__uint16_t conn_handle, const struct ble_gatt_error *error,
                 const struct ble_gatt_chr *chr, void *arg)
 {
     struct ble_peer *peer;
@@ -473,7 +478,7 @@ int peer_svc_is_empty(const struct peer_svc *svc)
 }
 
 static struct peer_svc *
-peer_svc_find_prev(struct ble_peer *peer, uint16_t svc_start_handle)
+peer_svc_find_prev(struct ble_peer *peer, __uint16_t svc_start_handle)
 {
     struct peer_svc *prev;
     struct peer_svc *svc;
@@ -493,7 +498,7 @@ peer_svc_find_prev(struct ble_peer *peer, uint16_t svc_start_handle)
 }
 
 static struct peer_svc *
-peer_svc_find(struct ble_peer *peer, uint16_t svc_start_handle,
+peer_svc_find(struct ble_peer *peer, __uint16_t svc_start_handle,
               struct peer_svc **out_prev)
 {
     struct peer_svc *prev;
@@ -522,7 +527,7 @@ peer_svc_find(struct ble_peer *peer, uint16_t svc_start_handle,
 }
 
 static struct peer_svc *
-peer_svc_find_range(struct ble_peer *peer, uint16_t attr_handle)
+peer_svc_find_range(struct ble_peer *peer, __uint16_t attr_handle)
 {
     struct peer_svc *svc;
 
@@ -654,7 +659,7 @@ peer_svc_delete(struct peer_svc *svc)
 }
 
 static int
-peer_svc_disced(uint16_t conn_handle, const struct ble_gatt_error *error,
+peer_svc_disced(__uint16_t conn_handle, const struct ble_gatt_error *error,
                 const struct ble_gatt_svc *service, void *arg)
 {
     struct ble_peer *peer;
@@ -692,7 +697,7 @@ peer_svc_disced(uint16_t conn_handle, const struct ble_gatt_error *error,
     return rc;
 }
 
-int ble_peer_disc_all(uint16_t conn_handle, peer_disc_fn *disc_cb, void *disc_cb_arg)
+int ble_peer_disc_all(__uint16_t conn_handle, peer_disc_fn *disc_cb, void *disc_cb_arg)
 {
     struct peer_svc *svc;
     struct ble_peer *peer;
@@ -724,7 +729,7 @@ int ble_peer_disc_all(uint16_t conn_handle, peer_disc_fn *disc_cb, void *disc_cb
     return 0;
 }
 
-int ble_peer_delete(uint16_t conn_handle)
+int ble_peer_delete(__uint16_t conn_handle)
 {
     struct peer_svc *svc;
     struct ble_peer *peer;
@@ -753,7 +758,7 @@ int ble_peer_delete(uint16_t conn_handle)
     return 0;
 }
 
-int ble_peer_add(uint16_t conn_handle, struct ble_gap_conn_desc desc)
+int ble_peer_add(__uint16_t conn_handle, struct ble_gap_conn_desc desc)
 {
     struct ble_peer *peer;
 
@@ -771,13 +776,20 @@ int ble_peer_add(uint16_t conn_handle, struct ble_gap_conn_desc desc)
         return BLE_HS_ENOMEM;
     }
 
-    // Add an SDP-peer that contains this
-    char* tmpPeerName = asprintf("UNKNOWN_BLE_%i", conn_handle);
-    sdp_peer_add(tmpPeerName);
 
     memset(peer, 0, sizeof *peer);
     peer->conn_handle = conn_handle;
     peer->desc = desc;
+
+    // Add an SDP-peer that contains this
+    sdp_peer_name tmpPeerName;
+    sprintf((char *)tmpPeerName, "UNKN_BLE_%i", conn_handle);
+    int _sdp_handle = sdp_peer_add(tmpPeerName);
+    if (_sdp_handle > -1) {
+        peer->sdp_handle = _sdp_handle;
+    } else if (_sdp_handle == -SDP_ERR_PEER_EXISTS) {
+        ESP_LOGI(log_prefix, "Didn't add SDP peer due to BLE reconnection.");
+    }
 
     SLIST_INSERT_HEAD(&ble_peers, peer, next);
 
@@ -800,9 +812,11 @@ peer_free_mem(void)
     peer_dsc_mem = NULL;
 }
 
-int ble_peer_init(int max_peers, int max_svcs, int max_chrs, int max_dscs)
+int ble_peer_init(char *_log_prefix, int max_peers, int max_svcs, int max_chrs, int max_dscs)
 {
     int rc;
+
+    log_prefix = _log_prefix;
 
     /* Free memory first in case this function gets called more than once. */
     peer_free_mem();

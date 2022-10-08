@@ -22,8 +22,8 @@ typedef struct sdp_peer
 SLIST_HEAD(, sdp_peer) sdp_peers;
 
 int sdp_peer_delete(__uint16_t peer_handle);
-int sdp_peer_add(const sdp_peer_name name);
-int sdp_peer_init(int max_peers);
+int sdp_peer_add(sdp_peer_name name);
+int sdp_peer_init(char *_log_prefix, int max_peers);
 
 struct sdp_peer *sdp_peer_find_name(const sdp_peer_name name);
 struct sdp_peer *sdp_peer_find_handle(__int16_t peer_handle);

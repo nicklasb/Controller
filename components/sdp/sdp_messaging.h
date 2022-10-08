@@ -44,6 +44,6 @@ struct conversation_list_item *find_conversation(__uint16_t conversation_id);
 int sdp_reply(struct work_queue_item queue_item, enum e_work_type work_type, const void *data, int data_length);
 int get_conversation_id(void);
 
-void init_messaging(const char *log_prefix);
+void init_messaging(char *_log_prefix);
 
 #endif

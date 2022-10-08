@@ -11,6 +11,7 @@
 #include <string.h>
 #include <host/ble_hs.h>
 #include "ble_spp.h"
+#include "../sdp_peer.h"
 
 static void *peer_svc_mem;
 static struct os_mempool peer_svc_pool;
@@ -21,7 +22,7 @@ static struct os_mempool peer_chr_pool;
 static void *peer_dsc_mem;
 static struct os_mempool peer_dsc_pool;
 
-static void *peer_mem;
+static void *sdp_peer_mem;
 static struct os_mempool peer_pool;
 
 
@@ -770,6 +771,10 @@ int ble_peer_add(uint16_t conn_handle, struct ble_gap_conn_desc desc)
         return BLE_HS_ENOMEM;
     }
 
+    // Add an SDP-peer that contains this
+    char* tmpPeerName = asprintf("UNKNOWN_BLE_%i", conn_handle);
+    sdp_peer_add(tmpPeerName);
+
     memset(peer, 0, sizeof *peer);
     peer->conn_handle = conn_handle;
     peer->desc = desc;
@@ -782,8 +787,8 @@ int ble_peer_add(uint16_t conn_handle, struct ble_gap_conn_desc desc)
 static void
 peer_free_mem(void)
 {
-    free(peer_mem);
-    peer_mem = NULL;
+    free(sdp_peer_mem);
+    sdp_peer_mem = NULL;
 
     free(peer_svc_mem);
     peer_svc_mem = NULL;
@@ -802,16 +807,16 @@ int ble_peer_init(int max_peers, int max_svcs, int max_chrs, int max_dscs)
     /* Free memory first in case this function gets called more than once. */
     peer_free_mem();
 
-    peer_mem = malloc(
+    sdp_peer_mem = malloc(
         OS_MEMPOOL_BYTES(max_peers, sizeof(struct ble_peer)));
-    if (peer_mem == NULL)
+    if (sdp_peer_mem == NULL)
     {
         rc = BLE_HS_ENOMEM;
         goto err;
     }
 
     rc = os_mempool_init(&peer_pool, max_peers,
-                         sizeof(struct ble_peer), peer_mem,
+                         sizeof(struct ble_peer), sdp_peer_mem,
                          "peer_pool");
     if (rc != 0)
     {

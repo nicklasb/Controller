@@ -4,24 +4,30 @@
 #include <sys/queue.h>
 #include <sdkconfig.h>
 
-typedef char peer_name[CONFIG_SDP_PEER_NAME_LEN];
+typedef char sdp_peer_name[CONFIG_SDP_PEER_NAME_LEN];
+
+
 
 typedef struct sdp_peer
 {
     SLIST_ENTRY(sdp_peer) next;
 
     __uint16_t peer_handle;
-    peer_name name;
+    sdp_peer_name name;
+
+    #ifdef CONFIG_SDP_LOAD_BLE
+    int ble_conn_handle;
+    #endif    
 
 } sdp_peer;
 
 SLIST_HEAD(, sdp_peer) sdp_peers;
 
-int ble_peer_delete(__uint16_t peer_handle);
-int peer_add(__uint16_t conn_handle, const peer_name name);
-int peer_init(int max_peers);
+int sdp_peer_delete(__uint16_t peer_handle);
+int sdp_peer_add(const sdp_peer_name name);
+int sdp_peer_init(int max_peers);
 
-struct sdp_peer *peer_find(__uint16_t peer_handle);
-
+struct sdp_peer *sdp_peer_find_name(const sdp_peer_name name);
+struct sdp_peer *sdp_peer_find_handle(__int16_t peer_handle);
 
 #endif

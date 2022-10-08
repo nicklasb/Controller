@@ -5,18 +5,18 @@
 #include <freertos/FreeRTOS.h>
 
 /* How often should we look */
-#define CONFIG_MONITOR_DELAY 10000000
+#define CONFIG_SDP_MONITOR_DELAY 10000000
 
-#define CONFIG_MONITOR_HISTORY_LENGTH 5
+#define CONFIG_SDP_MONITOR_HISTORY_LENGTH 5
 
 /* Limits for built-in levels levels and warnings. */
 
 /* Memory limits */
 
 /* This much memory should not be used in any situation, a problem will be reported! */
-#define CONFIG_MONITOR_DANGER_USAGE 120000
+#define CONFIG_SDP_MONITOR_DANGER_USAGE 120000
 /* This is more memory than is used in normal operations, a warning will be sent*/
-#define CONFIG_MONITOR_WARNING_USAGE 80000
+#define CONFIG_SDP_MONITOR_WARNING_USAGE 80000
 
 /* TODO: Implement callbacks for external monitoring points and for problem and warning reporting */
 /* TODO: Useful monitors: Queue length, stale conversations? UI? Too long-running work loads? */
@@ -24,8 +24,8 @@
 /* TODO: Should this be a separate project? Like IoT monitor or something? */
 
 /* At what monitor count should the reference memory average be stored?*/
-#define CONFIG_MONITOR_FIRST_AVG_POINT 7
-#if (CONFIG_MONITOR_FIRST_AVG_POINT < HISTORY_LENGTH + 1)
+#define CONFIG_SDP_MONITOR_FIRST_AVG_POINT 7
+#if (CONFIG_SDP_MONITOR_FIRST_AVG_POINT < CONFIG_SDP_MONITOR_HISTORY_LENGTH + 1)
 #error "The first average cannot be before the history is populated, i.e. less than its length + 1. \
 It is also not recommended to include the first sample as that is taken before system initialisation, \
 and thus less helpful for finding memory leaks. "
@@ -40,7 +40,7 @@ int sample_count = 0;
 int most_memory_available = 0;
 /* This is the least memory available at any sample since startup */
 int least_memory_available = 0;
-/* This is the first calulated average (first done after CONFIG_MONITOR_FIRST_AVG_POINT samples) */
+/* This is the first calulated average (first done after CONFIG_SDP_MONITOR_FIRST_AVG_POINT samples) */
 int first_average_memory_available = 0;
 
 /* The log prefix for all logging */
@@ -52,7 +52,7 @@ struct history_item
     // An array of other values (this is dynamically allocated)
     int *other_values;
 };
-struct history_item history[CONFIG_MONITOR_HISTORY_LENGTH];
+struct history_item history[CONFIG_SDP_MONITOR_HISTORY_LENGTH];
 
 /** 
  * The built-in functionality of the SDP monitoring is that of memory
@@ -72,9 +72,10 @@ void memory_monitoring() {
     {
         least_memory_available = curr_mem_avail;
     }
+
     /* Loop history backwards, aggregate and push everything one step */
     int agg_avail = curr_mem_avail;
-    for (int i = CONFIG_MONITOR_HISTORY_LENGTH - 1; i > -1; i--)
+    for (int i = CONFIG_SDP_MONITOR_HISTORY_LENGTH - 1; i > -1; i--)
     {
 
         agg_avail = agg_avail + history[i].memory_available;
@@ -92,28 +93,31 @@ void memory_monitoring() {
 
         }
     }
+
     float avg_mem_avail = 0;
     // In the beginning, we dont have data, and can't do aggregates
-    if (sample_count > CONFIG_MONITOR_HISTORY_LENGTH)
+    if (sample_count > CONFIG_SDP_MONITOR_HISTORY_LENGTH)
     {
         /* We actually have HISTORY_LENGTH + 1 samples */
-        avg_mem_avail = (float)agg_avail / (CONFIG_MONITOR_HISTORY_LENGTH + 1);
+        avg_mem_avail = (float)agg_avail / (CONFIG_SDP_MONITOR_HISTORY_LENGTH + 1);
         delta_mem_avail = history[0].memory_available - history[1].memory_available;
     }
     // At a specified point, stored it for future reference
-    if (sample_count == CONFIG_MONITOR_FIRST_AVG_POINT)
+    if (sample_count == CONFIG_SDP_MONITOR_FIRST_AVG_POINT)
     {
         first_average_memory_available = avg_mem_avail;
     }
+    ESP_LOGI(log_prefix, "4");
+
     int level = ESP_LOG_INFO;
-    if ((most_memory_available - curr_mem_avail) > CONFIG_MONITOR_DANGER_USAGE) {
-        ESP_LOGE(log_prefix, "Dangerously high memory usage at %i bytes! Will report!(CONFIG_MONITOR_DANGER_USAGE=%i)", 
-        most_memory_available - curr_mem_avail, CONFIG_MONITOR_WARNING_USAGE);
+    if ((most_memory_available - curr_mem_avail) > CONFIG_SDP_MONITOR_DANGER_USAGE) {
+        ESP_LOGE(log_prefix, "Dangerously high memory usage at %i bytes! Will report!(CONFIG_SDP_MONITOR_DANGER_USAGE=%i)", 
+        most_memory_available - curr_mem_avail, CONFIG_SDP_MONITOR_WARNING_USAGE);
         // TODO: Implement problem callback!
         level = ESP_LOG_ERROR;
-    } else if ((most_memory_available - curr_mem_avail) > CONFIG_MONITOR_WARNING_USAGE) {
-        ESP_LOGW(log_prefix, "Inusually high memory usage at %i bytes(CONFIG_MONITOR_WARNING_USAGE=%i).", 
-        most_memory_available - curr_mem_avail, CONFIG_MONITOR_WARNING_USAGE);
+    } else if ((most_memory_available - curr_mem_avail) > CONFIG_SDP_MONITOR_WARNING_USAGE) {
+        ESP_LOGW(log_prefix, "Unusually high memory usage at %i bytes(CONFIG_SDP_MONITOR_WARNING_USAGE=%i).", 
+        most_memory_available - curr_mem_avail, CONFIG_SDP_MONITOR_WARNING_USAGE);
         // TODO: Implement warning callback!
         level = ESP_LOG_WARN;
     }
@@ -141,12 +145,13 @@ void monitor_task(void *arg)
     // TODO: Add an SLIST of external monitors
     // TODO: Add problem and warning callbacks to make it possible to raise the alarm if .
     sample_count++;
-    ESP_ERROR_CHECK(esp_timer_start_once(monitor_timer, CONFIG_MONITOR_DELAY));
+    ESP_ERROR_CHECK(esp_timer_start_once(monitor_timer, CONFIG_SDP_MONITOR_DELAY));
 }
 
 
-void init_monitor(char *log_prefix)
-{   log_prefix = log_prefix;
+void init_monitor(char *_log_prefix)
+{   
+    log_prefix = _log_prefix;
     /* Init the monitor */
     const esp_timer_create_args_t monitor_timer_args = {
         .callback = &monitor_task,
@@ -156,6 +161,6 @@ void init_monitor(char *log_prefix)
 
     // TODO: Loop list of external monitors 
 
-    ESP_LOGI(log_prefix, "Launching monitor, activate every %.2f seconds, history length: %i samples.", (float)CONFIG_MONITOR_DELAY/1000000, CONFIG_MONITOR_HISTORY_LENGTH);
+    ESP_LOGI(log_prefix, "Launching monitor, activate every %.2f seconds, history length: %i samples.", (float)CONFIG_SDP_MONITOR_DELAY/1000000, CONFIG_SDP_MONITOR_HISTORY_LENGTH);
     monitor_task(NULL);
 }

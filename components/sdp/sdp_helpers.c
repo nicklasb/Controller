@@ -43,7 +43,7 @@ int add_to_message(uint8_t **message, const char *format, ...)
     
     char *loc_format = heap_caps_malloc(format_len + 1, MALLOC_CAP_8BIT);
     strcpy(loc_format, format);
-    ESP_LOGI(log_prefix, "Format string %s len %i", loc_format, format_len);
+    ESP_LOGD(log_prefix, "Format string %s len %i", loc_format, format_len);
 
     int break_count = 1;
     /* Make a pass to count pipes and replace them with nulls */
@@ -106,11 +106,11 @@ int add_to_message(uint8_t **message, const char *format, ...)
         };
         memcpy((*message) + curr_pos, value_str, value_length);   
         (*message)[new_length - 1] = (uint8_t)0x00;
-//        ESP_LOGE(log_prefix, "Message: %s, value_str: %s, new_length: %i.", (char *)*message, value_str, (int)new_length);
+        ESP_LOGD(log_prefix, "Message: %s, value_str: %s, new_length: %i.", (char *)*message, value_str, (int)new_length);
         curr_pos = new_length;
 
     }
-    ESP_LOG_BUFFER_HEXDUMP(log_prefix, (char*)*message, new_length,  ESP_LOG_INFO);    
+    ESP_LOG_BUFFER_HEXDUMP(log_prefix, (char*)*message, new_length,  ESP_LOG_DEBUG);    
     va_end(arg);
     free(value_str);   
     free(loc_format);

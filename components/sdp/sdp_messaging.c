@@ -132,7 +132,6 @@ void parse_message(work_queue_item_t *queue_item)
 static int sdp_peer_inform(work_queue_item_t *queue_item) {
 
 
-    ESP_LOGE(log_prefix, "INFORM0");
     // In this version, the part count should be 5
     if (queue_item->partcount != 5) {
         if (queue_item->partcount > 1) {
@@ -146,17 +145,13 @@ static int sdp_peer_inform(work_queue_item_t *queue_item) {
         return -SDP_ERR_INVALID_PARAM;
     }
 
-    ESP_LOGE(log_prefix, "INFORM1");
     /* Set the protocol versions*/
     queue_item->peer->protocol_version = (uint8_t)atoi(queue_item->parts[1]);
     queue_item->peer->min_protocol_version = (uint8_t)atoi(queue_item->parts[2]);
- ESP_LOGE(log_prefix, "INFORM2");
     /* Set the name of the peer */
     strcpy(queue_item->peer->name, queue_item->parts[3]);
- ESP_LOGE(log_prefix, "INFORM3");
     /* Set supported media types*/
     queue_item->peer->supported_media_types = (uint8_t)atoi(queue_item->parts[4]);
- ESP_LOGE(log_prefix, "INFORM4");
     if (strcmp(queue_item->peer->name, "") == 0) {
         queue_item->peer->state = PEER_UNKNOWN;
     } else {
@@ -342,7 +337,7 @@ int broadcast_message(uint16_t conversation_id,
         }
         else
         {
-            ESP_LOGI(log_prefix, "Sent a message to Peer: %s Code: %i", curr_peer->name, ret);
+            ESP_LOGI(log_prefix, "Sent a message to peer: %s Code: %i", curr_peer->name, ret);
         }
 
         total++;
@@ -367,15 +362,34 @@ int broadcast_message(uint16_t conversation_id,
     }
 }
 
+#ifdef CONFIG_SDP_LOAD_BLE
+void report_ble_connection_error(int conn_handle, int code) {
+    struct ble_peer *b_peer = ble_peer_find(conn_handle);
+    
+    if (b_peer != NULL) {
+        struct sdp_peer *s_peer = sdp_peer_find_handle(b_peer->sdp_handle);
+        if (s_peer != NULL) {
+            ESP_LOGE(log_prefix, "Peer %s encountered a BLE error. Code: %i", s_peer->name, code);
+        } else {
+           ESP_LOGE(log_prefix, "Unresolved BLE peer (no or invalid SDP peer handle), conn handle %i", conn_handle);
+           ESP_LOGE(log_prefix, "encountered a BLE error. Code: %i.", code);
+        }
+        b_peer->failure_count++;
+    }
+    ESP_LOGE(log_prefix, "Unregistered peer (!) at conn handle %i encountered a BLE error. Code: %i.", conn_handle, code);
+
+}
+#endif
+
 /**
  * @brief Like send_message, but only sends to one specified peer using first available media type.
 
  */
 e_media_type send_message(struct sdp_peer *peer, void *data, int data_length)
 {
-    int rc = 0;
-    ESP_LOGI(log_prefix, "000 Conn: %i", peer->ble_conn_handle);
+
 #ifdef CONFIG_SDP_LOAD_BLE
+    int rc = 0;
     // Send message using BLE
     if (peer->ble_conn_handle >= 0)
     { 
@@ -386,7 +400,7 @@ e_media_type send_message(struct sdp_peer *peer, void *data, int data_length)
         }
         else
         {
-            ble_peer_find(peer->ble_conn_handle)->failure_count++;
+            report_ble_connection_error(peer->ble_conn_handle, rc);
             // TODO: Add start general QoS monitoring, stop using some technologies if they are failing
         }
 
@@ -437,8 +451,7 @@ int sdp_reply(work_queue_item_t queue_item, enum e_work_type work_type, const vo
     // Add preamble with all SDP specifics in a new data
     void *new_data = sdp_add_preamble(work_type, queue_item.conversation_id, data, data_length);
 
-    ESP_LOGI(log_prefix, "In sdp reply.");
-    ESP_LOG_BUFFER_HEXDUMP(log_prefix, new_data, data_length + SDP_PREAMBLE_LENGTH,  ESP_LOG_INFO);  
+    ESP_LOGD(log_prefix, "In sdp reply.");
     retval = send_message(queue_item.peer, new_data, data_length + SDP_PREAMBLE_LENGTH);
     free(new_data);
     return retval;

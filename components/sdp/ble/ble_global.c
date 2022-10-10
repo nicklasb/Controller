@@ -56,6 +56,14 @@ void ble_on_disc_complete(const struct ble_peer *peer, int status, void *arg)
                 status, peer->conn_handle);
 }
 
+/**
+ * @brief Sends an MTU negotiation request to the peer.
+ * Makes it accept the proposed MTU (it will not start *sending* using that)
+ * Goes by the MTU settings in menuconfig.
+ * 
+ * @param conn_handle 
+ * @return int 
+ */
 int ble_negotiate_mtu(uint16_t conn_handle)
 {
 
@@ -75,12 +83,21 @@ int ble_negotiate_mtu(uint16_t conn_handle)
     return 0;
 }
 
+/**
+ * @brief Optional callback for transmitting gatt messages, use in ble_gattc_write_*-calls.
+ * 
+ * @param conn_handle 
+ * @param error 
+ * @param attr 
+ * @param arg 
+ * @return int 
+ */
 int ble_gatt_cb(uint16_t conn_handle,
                              const struct ble_gatt_error *error,
                              struct ble_gatt_attr *attr,
                              void *arg) {
     
-    ESP_LOGI(log_prefix, "ble_send_message callback: error.status: %i error.att_handle: %i attr.handle: %i attr.offset: %i",
+    ESP_LOGI(log_prefix, "ble_gattc_write_ callback: error.status: %i error.att_handle: %i attr.handle: %i attr.offset: %i",
     error->status, error->att_handle, attr->handle, attr->offset);
     return 0;
 }
@@ -95,9 +112,8 @@ int ble_send_message(uint16_t conn_handle, void *data, int data_length)
 
     if (pdTRUE == xSemaphoreTake(xBLE_Comm_Semaphore, portMAX_DELAY))
     {
-        ESP_LOG_BUFFER_HEXDUMP(log_prefix, data, data_length, ESP_LOG_INFO);
         int ret;
-        ret = ble_gattc_write_flat(conn_handle, ble_spp_svc_gatt_read_val_handle, data, data_length, ble_gatt_cb, NULL);
+        ret = ble_gattc_write_flat(conn_handle, ble_spp_svc_gatt_read_val_handle, data, data_length, NULL, NULL);
         if (ret == 0)
         {
             ESP_LOGI(log_prefix, "ble_send_message: Success sending %i bytes of data! CRC32: %u", data_length, (int)crc32_be(0, data, data_length));

@@ -78,14 +78,14 @@ static void sdp_worker(void)
             sprintf(taskname, "%s_worker_%d_%d", log_prefix, curr_work->conversation_id, worker_task_count);
             if (on_work_cb != NULL)
             {   
-                ESP_LOGI(log_prefix, "Running callback on_work.%i, %i", curr_work->partcount, (int)on_work_cb);
+                ESP_LOGD(log_prefix, "Running callback on_work.%i, %i", curr_work->partcount, (int)on_work_cb);
                 /* To avoid congestion on Core 0, we act on non-immidiate requests on Core 1 (APP) */
                 TaskHandle_t th;
                 int rc = xTaskCreatePinnedToCore((TaskFunction_t)on_work_cb, taskname, 8192, curr_work, 8, &th, 1);
                 if (rc != pdPASS) {
                     ESP_LOGE(log_prefix, "Failed creating work task, returned: %i (see projdefs.h)", rc);
                 } 
-                ESP_LOGI(log_prefix, "Created task %s, taskhandle %i",taskname, (int)th);
+                ESP_LOGD(log_prefix, "Created task %s, taskhandle %i",taskname, (int)th);
                    
             }
         }

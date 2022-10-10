@@ -4,6 +4,7 @@
 #include <esp_log.h>
 
 #include "sdp.h"
+#include "sdp_messaging.h"
 
 #ifdef CONFIG_SDP_LOAD_BLE
 #include "ble/ble_spp.h"
@@ -14,7 +15,7 @@ static void *sdp_peer_mem;
 static struct os_mempool sdp_peer_pool;
 
 /* Used for creating new peer handles*/
-uint16_t _peer_handle_incrementor_ = -1;
+uint16_t _peer_handle_incrementor_ = 0;
 
 /* The log prefix for all logging */
 char *log_prefix;
@@ -43,6 +44,7 @@ sdp_peer_find_handle(__int16_t peer_handle)
 
     SLIST_FOREACH(peer, &sdp_peers, next)
     {
+        ESP_LOGI(log_prefix, "sdp_peer_find_handle %i, %i ", peer->peer_handle, peer_handle);
         if (peer->peer_handle == peer_handle)
         {
             return peer;
@@ -82,6 +84,17 @@ int sdp_peer_delete(uint16_t peer_handle)
     return 0;
 }
 
+
+/**
+ * @brief Send a "WHO"-message that asks the peer to describe themselves
+ * 
+ * @return int A pointer to the created conversation
+ */
+int send_who_message(sdp_peer *peer) {
+    char who_msg[4] = "WHO\0";
+    return start_conversation(peer, HANDSHAKE, "Handshaking", &who_msg,4);
+}
+
 int sdp_peer_add(sdp_peer_name name)
 {
     struct sdp_peer *peer;
@@ -108,7 +121,13 @@ int sdp_peer_add(sdp_peer_name name)
 
     SLIST_INSERT_HEAD(&sdp_peers, peer, next);
 
-    ESP_LOGI(log_prefix, "sdp_peer_add() - Peer added, name: %s", peer->name);
+    ESP_LOGI(log_prefix, "sdp_peer_add() - Peer added - asking for more information: %s", peer->name);
+
+    // Ask for more information.
+    if (send_who_message(peer) == SDP_MT_NONE)
+    {
+        ESP_LOGE(log_prefix, "sdp_peer_add() - Failed to ask for more information: %s", peer->name);
+    }
 
     return peer->peer_handle;
 }
@@ -119,6 +138,8 @@ sdp_peer_free_mem(void)
     free(sdp_peer_mem);
     sdp_peer_mem = NULL;
 }
+
+
 
 int sdp_peer_init(char *_log_prefix, int max_peers)
 {

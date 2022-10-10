@@ -89,7 +89,7 @@ void ble_init(char *log_prefix, bool is_controller)
     ble_hs_cfg.sm_sc = 0;
     /* Initialize data structures to track connected peers.
     There is a local pool in spp.h */
-    ESP_LOGI(log_prefix, "Init peer with %i max connestions.", MYNEWT_VAL(BLE_MAX_CONNECTIONS));
+    ESP_LOGI(log_prefix, "Init peer with %i max connections.", MYNEWT_VAL(BLE_MAX_CONNECTIONS));
     ret = ble_peer_init(log_prefix, MYNEWT_VAL(BLE_MAX_CONNECTIONS), 64, 64, 64);
     assert(ret == 0);
 

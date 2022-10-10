@@ -162,3 +162,6 @@ void init_monitor(char *_log_prefix)
     ESP_LOGI(log_prefix, "Launching monitor, activate every %.2f seconds, history length: %i samples.", (float)CONFIG_SDP_MONITOR_DELAY/1000000, CONFIG_SDP_MONITOR_HISTORY_LENGTH);
     monitor_task(NULL);
 }
+
+// TODO: Add a QoS monitor - Do we have problems with different media types?
+// TODO: Add a conversation monitor - Are requests getting replies? And how quickly?

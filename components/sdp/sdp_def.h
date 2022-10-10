@@ -71,8 +71,9 @@ typedef enum e_work_type
 {
     HANDSHAKE = 0,
     REQUEST = 1,
-    DATA = 2,
-    PRIORITY = 3
+    REPLY = 2,
+    DATA = 3,
+    PRIORITY = 4
 } e_work_type;
 
 /**
@@ -86,10 +87,10 @@ typedef enum e_media_type
     SDP_MT_NONE = 0, 
     SDP_MT_BLE = 1,
     SDP_MT_ESPNOW = 2,
-    SDP_MT_LoRa = 3,
-    SDP_MT_TCPIP = 4,
-    SDP_MT_TTL = 5,
-    SDP_MT_ANY = 6
+    SDP_MT_LoRa = 4,
+    SDP_MT_TCPIP = 8,
+    SDP_MT_TTL = 16,
+    SDP_MT_ANY = 128
 
 } e_media_type;
 
@@ -99,7 +100,7 @@ typedef enum e_peer_state
     /* The peer is unknown */
     PEER_UNKNOWN = 0,
     /* The peer has presented itself, but isn't encrypted*/
-    PEER_KNOWN_UNSECURE = 1,
+    PEER_KNOWN_INSECURE = 1,
     /* The peer is both known and encrypted */
     PEER_KNOWN_SECURE = 2
 } e_peer_state;

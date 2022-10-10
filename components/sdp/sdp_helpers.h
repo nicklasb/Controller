@@ -15,6 +15,7 @@
 
 #include "stdint.h"
 #include "sdp_def.h"
+#include "sdp_peer.h"
 
 
 int add_to_message(uint8_t **message, const char *format, ...);
@@ -23,7 +24,6 @@ void *sdp_add_preamble(e_work_type work_type, uint16_t conversation_id, const vo
 
 void sdp_helpers_init(char * _log_prefix);
 
-char * make_who_msg();
-int who_msg_length();
+int send_who_message(sdp_peer *peer);
 
 #endif

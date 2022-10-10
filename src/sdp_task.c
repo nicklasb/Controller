@@ -19,7 +19,7 @@ esp_timer_handle_t periodic_timer;
  *
  * @param work_item
  */
-int do_on_filter_request(struct work_queue_item *work_item)
+int do_on_filter_request(work_queue_item_t *work_item)
 {
 
     ESP_LOGI(log_prefix, "In filter request callback on the controller!");
@@ -33,7 +33,7 @@ int do_on_filter_request(struct work_queue_item *work_item)
  *
  * @param work_item
  */
-int do_on_filter_data(struct work_queue_item *work_item)
+int do_on_filter_data(work_queue_item_t *work_item)
 {
     ESP_LOGI(log_prefix, "In filter data callback on the controller!");
 
@@ -54,7 +54,7 @@ It will instead contact all peripherals and ask for data, in the following situa
  *
  * @param work_item
  */
-void do_on_priority(struct work_queue_item *work_item)
+void do_on_priority(work_queue_item_t *work_item)
 {
 
     ESP_LOGI(log_prefix, "In ble data callback on the controller!");
@@ -64,7 +64,7 @@ void do_on_priority(struct work_queue_item *work_item)
     }
 }
 
-void do_on_data(struct work_queue_item *queue_item)
+void do_on_data(work_queue_item_t *queue_item)
 {
     struct conversation_list_item *conversation;
     conversation = find_conversation(queue_item->conversation_id);
@@ -99,7 +99,7 @@ void do_on_data(struct work_queue_item *queue_item)
  *
  * @param queue_item The work item
  */
-void do_on_work(struct work_queue_item *queue_item)
+void do_on_work(work_queue_item_t *queue_item)
 {
     ESP_LOGI(log_prefix, "In do_on_work task on the controller, got a message:\n");
     for (int i = 0; i < queue_item->partcount; i++)
@@ -131,7 +131,7 @@ void periodic_sensor_query(void *arg)
     /* Note that the worker task is run on Core 1 (APP) as upposed to all the other callbacks. */
     ESP_LOGI(log_prefix, "In prediodic_sensor_query task on the controller.");
 
-    char data[9] = "sensors\0";
+    char data[8] = "sensors\0";
     ESP_LOGI(log_prefix, "Test broadcast beginning.");
     start_conversation(NULL, REQUEST, "sensors", &data, sizeof(data));
     ESP_LOGI(log_prefix, "Test broadcast done.");
@@ -142,7 +142,7 @@ void init_sdp_task() {
 
     on_filter_request_cb = &do_on_filter_request;
     on_filter_data_cb = &do_on_filter_data;  
-    sdp_init(do_on_work, do_on_priority, "Controller\0", true);
+    sdp_init(&do_on_work, &do_on_priority, "Controller\0", true);
 
     const esp_timer_create_args_t periodic_timer_args = {
             .callback =  &periodic_sensor_query,

@@ -17,6 +17,6 @@ void ble_on_reset(int reason);
 int ble_negotiate_mtu(uint16_t conn_handle);
 void ble_host_task(void *param);
 
-int ble_send_message(uint16_t conn_handle, const void *data, int data_length);
+int ble_send_message(uint16_t conn_handle, void *data, int data_length);
 
 #endif

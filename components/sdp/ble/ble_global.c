@@ -4,6 +4,7 @@
 #include <nimble/nimble_port.h>
 #include <nimble/nimble_port_freertos.h>
 #include <esp32/rom/crc.h>
+#include <esp_log.h>
 
 #include "ble_service.h"
 #include "sdp.h"
@@ -74,19 +75,32 @@ int ble_negotiate_mtu(uint16_t conn_handle)
     return 0;
 }
 
+int ble_gatt_cb(uint16_t conn_handle,
+                             const struct ble_gatt_error *error,
+                             struct ble_gatt_attr *attr,
+                             void *arg) {
+    
+    ESP_LOGI(log_prefix, "ble_send_message callback: error.status: %i error.att_handle: %i attr.handle: %i attr.offset: %i",
+    error->status, error->att_handle, attr->handle, attr->offset);
+    return 0;
+}
+
+
+
 /**
  * @brief Sends a message through BLE.
  */
-int ble_send_message(uint16_t conn_handle, const void *data, int data_length)
+int ble_send_message(uint16_t conn_handle, void *data, int data_length)
 {
 
     if (pdTRUE == xSemaphoreTake(xBLE_Comm_Semaphore, portMAX_DELAY))
     {
+        ESP_LOG_BUFFER_HEXDUMP(log_prefix, data, data_length, ESP_LOG_INFO);
         int ret;
-        ret = ble_gattc_write_flat(conn_handle, ble_spp_svc_gatt_read_val_handle, data, data_length, NULL, NULL);
+        ret = ble_gattc_write_flat(conn_handle, ble_spp_svc_gatt_read_val_handle, data, data_length, ble_gatt_cb, NULL);
         if (ret == 0)
         {
-            ESP_LOGI(log_prefix, "ble_send_message: Success sending data! CRC32: %u", (int)crc32_be(0, data, data_length));
+            ESP_LOGI(log_prefix, "ble_send_message: Success sending %i bytes of data! CRC32: %u", data_length, (int)crc32_be(0, data, data_length));
         }
         else
         {

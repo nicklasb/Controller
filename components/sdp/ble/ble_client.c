@@ -188,6 +188,12 @@ ble_spp_client_gap_event(struct ble_gap_event *event, void *arg)
             print_conn_desc(&desc);
             MODLOG_DFLT(INFO, "\n");
 
+            rc = ble_negotiate_mtu(event->connect.conn_handle);
+            if (rc != 0)
+            {
+                MODLOG_DFLT(ERROR, "Failed to negotiate MTU; rc=%d\n", rc);
+                return 0;
+            }
             /* Remember peer. */
             rc = ble_peer_add(event->connect.conn_handle, desc);
             if (rc != 0)
@@ -195,7 +201,7 @@ ble_spp_client_gap_event(struct ble_gap_event *event, void *arg)
                 MODLOG_DFLT(ERROR, "Failed to add peer; rc=%d\n", rc);
                 return 0;
             }
-
+            MODLOG_DFLT(INFO, "Added peer.");
             /* Perform service discovery. */
             rc = ble_peer_disc_all(event->connect.conn_handle,
                                ble_on_disc_complete, NULL);

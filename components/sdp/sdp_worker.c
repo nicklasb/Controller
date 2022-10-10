@@ -22,7 +22,7 @@ char *log_prefix;
 /* Semaphore for thread safety Must be used when changing the work queue  */
 SemaphoreHandle_t x_worker_queue_semaphore;
 
-int safe_add_work_queue(struct work_queue_item *new_item)
+int safe_add_work_queue(work_queue_item_t *new_item)
 {
     if (pdTRUE == xSemaphoreTake(x_worker_queue_semaphore, portMAX_DELAY))
     {
@@ -38,26 +38,27 @@ int safe_add_work_queue(struct work_queue_item *new_item)
     return 0;
 }
 
-struct work_queue_item *safe_get_head_work_item(void)
+work_queue_item_t *safe_get_head_work_item(void)
 {
-
-    struct work_queue_item *curr_work = NULL;
+    
     if (pdTRUE == xSemaphoreTake(x_worker_queue_semaphore, portMAX_DELAY))
     {
         /* Pull the first item from the work queue */
-        curr_work = STAILQ_FIRST(&work_q);
+        work_queue_item_t *curr_work = STAILQ_FIRST(&work_q);
         /* Immidiate deletion from the head of the queue */
         if (curr_work != NULL)
         {
             STAILQ_REMOVE_HEAD(&work_q, items);
         }
         xSemaphoreGive(x_worker_queue_semaphore);
+        return curr_work;
     }
     else
     {
         ESP_LOGE(log_prefix, "Error: Couldn't get semaphore to access work queue!");
+        return NULL;
     }
-    return curr_work;
+    
 }
 
 
@@ -65,7 +66,7 @@ static void sdp_worker(void)
 {
 
     int worker_task_count = 0;
-    struct work_queue_item *curr_work;
+    work_queue_item_t *curr_work;
     ESP_LOGI(log_prefix, "Worker task running.");
     for (;;)
     {
@@ -76,9 +77,16 @@ static void sdp_worker(void)
             char taskname[50] = "\0";
             sprintf(taskname, "%s_worker_%d_%d", log_prefix, curr_work->conversation_id, worker_task_count);
             if (on_work_cb != NULL)
-            {
+            {   
+                ESP_LOGI(log_prefix, "Running callback on_work.%i, %i", curr_work->partcount, (int)on_work_cb);
                 /* To avoid congestion on Core 0, we act on non-immidiate requests on Core 1 (APP) */
-                xTaskCreatePinnedToCore((TaskFunction_t)on_work_cb, taskname, 8192, curr_work, 8, NULL, 1);
+                TaskHandle_t th;
+                int rc = xTaskCreatePinnedToCore((TaskFunction_t)on_work_cb, taskname, 8192, curr_work, 8, &th, 1);
+                if (rc != pdPASS) {
+                    ESP_LOGE(log_prefix, "Failed creating work task, returned: %i (see projdefs.h)", rc);
+                } 
+                ESP_LOGI(log_prefix, "Created task %s, taskhandle %i",taskname, (int)th);
+                   
             }
         }
         vTaskDelay(5);
@@ -111,7 +119,11 @@ int init_worker(work_callback work_cb, work_callback priority_cb, char *_log_pre
      */
 
     ESP_LOGI(log_prefix, "Register the worker task. Name: %s", x_task_name);
-    xTaskCreatePinnedToCore((TaskFunction_t)sdp_worker, x_task_name, 8192, NULL, 8, NULL, 0);
+    int rc = xTaskCreatePinnedToCore((TaskFunction_t)sdp_worker, x_task_name, 8192, NULL, 8, NULL, 0);
+    if (rc != pdPASS) {
+        ESP_LOGE(log_prefix, "Failed creating worker task, returned: %i (see projdefs.h)", rc);
+        return SDP_ERR_INIT_FAIL;
+    } 
     ESP_LOGI(log_prefix, "Worker task registered.");
 
     return 0;
@@ -119,7 +131,7 @@ int init_worker(work_callback work_cb, work_callback priority_cb, char *_log_pre
 
 
 
-void cleanup_queue_task(struct work_queue_item *queue_item)
+void cleanup_queue_task(work_queue_item_t *queue_item)
 {
     free(queue_item->parts);
     free(queue_item->raw_data);

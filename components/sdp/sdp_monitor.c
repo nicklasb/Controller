@@ -164,11 +164,13 @@ void init_monitor(char *_log_prefix)
 }
 
 /**
- * @brief 
- * 
- 
- * TODO: Add a QoS monitor - Do we have problems with different media types?
- * TODO: Add a conversation monitor - 
+ * TODO: Add a QoS monitor - every 30 seconds
+ *          * Do we have problems with different media types?
+ *          * Have we duplicate, unknown or other peers
+ * TODO: Add a security monitor - every 10 seconds 
+ *          * Attack detection?
+ *          * Lots of login attempts (lock down to specific accounts or OOB)
+ * TODO: Add a conversation monitor - every 2 minutes
  *          * Are requests getting replies? And how quickly? 
  *          * Unanswered conversations needs to be pruned after a timeout
  *          * Stats needs to be collected

@@ -134,6 +134,7 @@ void periodic_sensor_query(void *arg)
     char data[8] = "sensors\0";
     ESP_LOGI(log_prefix, "Test broadcast beginning.");
     start_conversation(NULL, REQUEST, "sensors", &data, sizeof(data));
+
     ESP_LOGI(log_prefix, "Test broadcast done.");
     ESP_ERROR_CHECK(esp_timer_start_once(periodic_timer, 10000000));
 }

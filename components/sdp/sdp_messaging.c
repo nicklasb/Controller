@@ -348,6 +348,7 @@ int broadcast_message(uint16_t conversation_id,
     if (total == 0)
     {
         ESP_LOGW(log_prefix, "Broadcast had no peers to send to!");
+        return SDP_WARN_NO_PEERS;
     }
 
     if (errors == total)
@@ -415,7 +416,7 @@ e_media_type send_message(struct sdp_peer *peer, void *data, int data_length)
 int safe_add_conversation(sdp_peer *peer, const char *reason)
 {
     /* Create a conversation list item to keep track */
-
+    
     struct conversation_list_item *new_item = malloc(sizeof(struct conversation_list_item));
     new_item->peer = peer;
     new_item->reason = malloc(strlen(reason));
@@ -490,6 +491,17 @@ int start_conversation(sdp_peer *peer, enum e_work_type work_type,
             retval = -send_message(peer, new_data, data_length + SDP_PREAMBLE_LENGTH);
         }
         free(new_data);
+
+        if (retval < 0) {
+            if (retval == -SDP_WARN_NO_PEERS) {
+                ESP_LOGW(log_prefix, "Removing conversation, no peers");
+            } else {
+                ESP_LOGE(log_prefix, "Error in communication, removing conversation.");
+            }
+            /* The communication failed, remove the conversation*/
+            
+            end_conversation(new_conversation_id);
+        }
     }
     else
     {

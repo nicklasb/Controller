@@ -47,6 +47,13 @@ typedef enum e_sdp_error_codes
     SDP_ERR_OS_ERROR = 14
 } e_sdp_error_codes;
 
+/* Common warning codes */
+typedef enum e_sdp_warning_codes
+{
+    /* No peers */
+    SDP_WARN_NO_PEERS = 1    
+} e_sdp_warning_codes;
+
 /**
  * The work types are:
  * REQUEST: A peer have a request.

@@ -1,0 +1,6 @@
+[submodule "components/esp-now"]
+	path = components/esp-now
+	url = https://github.com/espressif/esp-now.git
+[submodule "components/lvgl_esp32_drivers"]
+	path = components/lvgl_esp32_drivers
+	url = https://github.com/nicklasb/lvgl_esp32_drivers.git

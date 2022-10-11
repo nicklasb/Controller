@@ -43,8 +43,6 @@ void ble_init(char *log_prefix, bool is_controller)
 
     // Note: NVS is not initiated here butin the main initiation
 
-    ESP_ERROR_CHECK(ret);
-
     ESP_ERROR_CHECK(esp_nimble_hci_and_controller_init());
 
     /* Initialize the host stack */
@@ -52,7 +50,7 @@ void ble_init(char *log_prefix, bool is_controller)
 
     // TODO: Check out if ESP_ERROR_CHECK could't be used.
     // Server as well
-    ret = new_gatt_svr_init();
+    int ret = new_gatt_svr_init();
     assert(ret == 0);
 
     /* Initialize service */

@@ -49,6 +49,7 @@ int sdp_init(work_callback work_cb, work_callback priority_cb, char *_log_prefix
         ESP_ERROR_CHECK(nvs_flash_erase());
         ret = nvs_flash_init();
     }
+    ESP_ERROR_CHECK(ret);
  
     init_worker(work_cb, priority_cb, _log_prefix);
     init_messaging(_log_prefix);

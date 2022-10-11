@@ -163,5 +163,13 @@ void init_monitor(char *_log_prefix)
     monitor_task(NULL);
 }
 
-// TODO: Add a QoS monitor - Do we have problems with different media types?
-// TODO: Add a conversation monitor - Are requests getting replies? And how quickly?
+/**
+ * @brief 
+ * 
+ 
+ * TODO: Add a QoS monitor - Do we have problems with different media types?
+ * TODO: Add a conversation monitor - 
+ *          * Are requests getting replies? And how quickly? 
+ *          * Unanswered conversations needs to be pruned after a timeout
+ *          * Stats needs to be collected
+*/

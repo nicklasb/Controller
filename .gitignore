@@ -95,3 +95,6 @@ managed_components
 
 # Platform IO
 .pio
+
+# SDP specifiks
+old

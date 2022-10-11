@@ -3,6 +3,8 @@
  * @brief This is the BLE initialization routines
  *
  */
+#include "sdkconfig.h"
+#ifdef CONFIG_SDP_LOAD_BLE
 
 #include "ble_init.h"
 
@@ -39,13 +41,8 @@ void ble_init(char *log_prefix, bool is_controller)
 
     ESP_LOGI(log_prefix, "Initialising BLE..");
 
-    /* Initialize NVS — it is used to store PHY calibration data */
-    esp_err_t ret = nvs_flash_init();
-    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND)
-    {
-        ESP_ERROR_CHECK(nvs_flash_erase());
-        ret = nvs_flash_init();
-    }
+    // Note: NVS is not initiated here butin the main initiation
+
     ESP_ERROR_CHECK(ret);
 
     ESP_ERROR_CHECK(esp_nimble_hci_and_controller_init());
@@ -107,3 +104,5 @@ void ble_init(char *log_prefix, bool is_controller)
 
     ESP_LOGI(log_prefix, "BLE initialized.");
 }
+
+#endif

@@ -57,7 +57,7 @@ It will instead contact all peripherals and ask for data, in the following situa
 void do_on_priority(work_queue_item_t *work_item)
 {
 
-    ESP_LOGI(log_prefix, "In ble data callback on the controller!");
+    ESP_LOGI(log_prefix, "In SDP data callback on the controller!");
     if (strcmp((char *)(work_item->raw_data), (char *)"status") == 0)
     {
         ESP_LOGI(log_prefix, "Got asked for status!");

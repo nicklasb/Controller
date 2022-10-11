@@ -7,6 +7,9 @@
  * @todo Restructure this into a more understandable solution, perhaps a separate header for peer and gatt stuff.
  */
 
+#include "sdkconfig.h"
+#ifdef CONFIG_SDP_LOAD_BLE
+
 #include <assert.h>
 #include <string.h>
 #include <host/ble_hs.h>
@@ -798,6 +801,7 @@ int ble_peer_add(uint16_t conn_handle, struct ble_gap_conn_desc desc)
             ESP_LOGE(log_prefix, "ble_peer_add() - Wasn't able to map back to the sdp_handle. Handle: %i", _sdp_handle);
             return BLE_ERR_HW_FAIL;
         } 
+        
         sdp_peer->ble_conn_handle = conn_handle;        
         
     } else if (_sdp_handle == -SDP_ERR_PEER_EXISTS) {
@@ -910,3 +914,5 @@ err:
     peer_free_mem();
     return rc;
 }
+
+#endif

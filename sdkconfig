@@ -1838,6 +1838,36 @@ CONFIG_LV_I2C_TOUCH_PORT=0
 # end of LVGL ESP Drivers
 
 #
+# LVGL ESP Drivers
+#
+
+#
+# LVGL TFT Display controller
+#
+
+#
+# Display Pin Assignments
+#
+# end of Display Pin Assignments
+# end of LVGL TFT Display controller
+
+#
+# LVGL Touch controller
+#
+
+#
+# Touchpanel (XPT2046) Pin Assignments
+#
+# end of Touchpanel (XPT2046) Pin Assignments
+
+#
+# Touchpanel Configuration (XPT2046)
+#
+# end of Touchpanel Configuration (XPT2046)
+# end of LVGL Touch controller
+# end of LVGL ESP Drivers
+
+#
 # SDP Configuration
 #
 CONFIG_SDP_LOAD_BLE=y

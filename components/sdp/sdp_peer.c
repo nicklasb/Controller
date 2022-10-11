@@ -5,6 +5,7 @@
 
 #include "sdp.h"
 #include "sdp_messaging.h"
+#include "sdkconfig.h"
 
 #ifdef CONFIG_SDP_LOAD_BLE
 #include "ble/ble_spp.h"

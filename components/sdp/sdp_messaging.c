@@ -9,6 +9,8 @@
 #include "sdp_helpers.h"
 #include "string.h"
 
+#include "sdkconfig.h"
+
 #ifdef CONFIG_SDP_LOAD_BLE
 #include "ble/ble_global.h"
 #endif
@@ -217,7 +219,7 @@ int handle_incoming(sdp_peer *peer, uint16_t attr_handle, const uint8_t *data, i
             }
             else
             {
-                ESP_LOGE(log_prefix, "BLE service: on_filter_request_cb returned a nonzero value, request not added to queue!");
+                ESP_LOGE(log_prefix, "SDP service: on_filter_request_cb returned a nonzero value, request not added to queue!");
                 return SDP_ERR_MESSAGE_FILTERED;
             }
         }
@@ -238,7 +240,7 @@ int handle_incoming(sdp_peer *peer, uint16_t attr_handle, const uint8_t *data, i
             }
             else
             {
-                ESP_LOGE(log_prefix, "BLE service: on_filter_request_cb returned a nonzero value, request not added to queue!");
+                ESP_LOGE(log_prefix, "SDP service: on_filter_request_cb returned a nonzero value, request not added to queue!");
                 return SDP_ERR_MESSAGE_FILTERED;
             }
         }
@@ -258,7 +260,7 @@ int handle_incoming(sdp_peer *peer, uint16_t attr_handle, const uint8_t *data, i
             }
             else
             {
-                ESP_LOGE(log_prefix, "BLE service: on_filter_data_cb returned a nonzero value, request not added to queue!");
+                ESP_LOGE(log_prefix, "SDP service: on_filter_data_cb returned a nonzero value, request not added to queue!");
                 return SDP_ERR_MESSAGE_FILTERED;
             }
         }
@@ -292,13 +294,13 @@ int handle_incoming(sdp_peer *peer, uint16_t attr_handle, const uint8_t *data, i
 
         if (on_priority_cb != NULL)
         {
-            ESP_LOGW(log_prefix, "BLE Calling on_priority_callback!");
+            ESP_LOGW(log_prefix, "SDP Calling on_priority_callback!");
 
             on_priority_cb(new_item);
         }
         else
         {
-            ESP_LOGE(log_prefix, "ERROR: BLE on_priority callback is not assigned, assigning to normal handling!");
+            ESP_LOGE(log_prefix, "ERROR: SDP on_priority callback is not assigned, assigning to normal handling!");
             safe_add_work_queue(new_item);
         }
         break;

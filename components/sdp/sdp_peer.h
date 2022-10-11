@@ -2,7 +2,7 @@
 #define _SDP_PEER_H_
 
 #include <sys/queue.h>
-#include <sdkconfig.h>
+#include "sdkconfig.h"
 #include "stdint.h"
 
 #include "sdp_def.h"

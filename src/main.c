@@ -22,6 +22,7 @@
 #include "sdp_task.h"
 #include "ui_task.h"
 #include "esp_log.h"
+#include "esp_heap_caps.h"
 
 
 
@@ -33,7 +34,9 @@
  *   APPLICATION MAIN
  **********************/
 void app_main() {
+    ESP_LOGE("___INIT___",  "8BIT: %i, EXEC: %i", heap_caps_get_free_size(MALLOC_CAP_8BIT), heap_caps_get_free_size(MALLOC_CAP_EXEC));
     init_sdp_task();
+
     ui_init("UI\0");
 
 

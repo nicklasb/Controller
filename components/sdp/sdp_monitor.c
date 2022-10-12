@@ -61,7 +61,7 @@ struct history_item history[CONFIG_SDP_MONITOR_HISTORY_LENGTH];
  */ 
 void memory_monitoring() {
 
-    int curr_mem_avail = heap_caps_get_free_size(MALLOC_CAP_8BIT);
+    int curr_mem_avail = heap_caps_get_free_size(MALLOC_CAP_EXEC);
     int delta_mem_avail = 0;
 
     if (curr_mem_avail > most_memory_available)

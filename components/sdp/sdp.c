@@ -58,9 +58,11 @@ int sdp_init(work_callback work_cb, work_callback priority_cb, char *_log_prefix
 
     /* Init media types */
     #ifdef CONFIG_SDP_LOAD_BLE
+        ESP_LOGI(_log_prefix, "Initiating BLE..");
         ble_init(_log_prefix, is_controller);
     #endif
     #ifdef CONFIG_SDP_LOAD_ESP_NOW
+        ESP_LOGI(_log_prefix, "Initiating ESP-NOW..");
         espnow_init(_log_prefix, is_controller);
     #endif
     return 0;

@@ -106,16 +106,17 @@ static void ui_task(void *pvParameter)
     build_ui();
 
     int loop_count = 0;
+    int delay = 10;
 
     while (1)
     {
         /* Delay 1 tick (assumes FreeRTOS tick is 10ms */
-        vTaskDelay(pdMS_TO_TICKS(10));
+        vTaskDelay(pdMS_TO_TICKS(delay));
 
         /* Try to take the semaphore, call lvgl related function on success */
         if (pdTRUE == xSemaphoreTake(xGuiSemaphore, portMAX_DELAY))
         {
-            lv_task_handler();
+            delay = lv_task_handler();
             xSemaphoreGive(xGuiSemaphore);
         }
 

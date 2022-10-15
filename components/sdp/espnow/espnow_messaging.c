@@ -276,7 +276,7 @@ static void example_espnow_task(void *pvParameter)
 }
 
 
-static esp_err_t example_espnow_init(void)
+static esp_err_t espnow_init(void)
 {
     example_espnow_send_param_t *send_param;
 
@@ -343,7 +343,12 @@ static esp_err_t example_espnow_init(void)
 
     return ESP_OK;
 }
-
+/**
+ * @brief Deinitialization of ESP-NOW - 
+ * TODO: Consider if this must be done before sleep modes
+ * 
+ * @param send_param 
+ */
 static void example_espnow_deinit(example_espnow_send_param_t *send_param)
 {
     free(send_param->buffer);
@@ -363,7 +368,7 @@ int espnow_send_message(uint16_t conn_handle, void *data, int data_length) {
 
 void init_espnow_messaging(char * _log_prefix){
     log_prefix = _log_prefix;
-    example_espnow_init();
+    espnow_init();
 }
 
 

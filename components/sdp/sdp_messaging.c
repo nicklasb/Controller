@@ -5,6 +5,7 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/semphr.h>
 #include "sdp_peer.h"
+#include "sdp_mesh.h"
 #include "sdp_def.h"
 #include "sdp_helpers.h"
 #include "string.h"

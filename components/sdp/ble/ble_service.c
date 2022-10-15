@@ -12,6 +12,7 @@
 
 #include "../sdp_messaging.h"
 #include "../sdp_peer.h"
+#include "../sdp_mesh.h"
 #include "../sdp_def.h"
 
 /* 16 Bit Alert Notification Service UUID */

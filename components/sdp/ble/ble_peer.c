@@ -14,6 +14,7 @@
 #include <string.h>
 #include <host/ble_hs.h>
 #include "ble_spp.h"
+#include "../sdp_mesh.h"
 #include "../sdp_peer.h"
 #include "../sdp_def.h"
 

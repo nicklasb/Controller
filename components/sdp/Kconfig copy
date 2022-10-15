@@ -1,0 +1,21 @@
+# Kconfig file for SDP v0.1.0
+
+menu "SDP Configuration"
+
+    rsource "espnow/Kconfig"
+    config SDP_LOAD_BLE
+    bool "Load Bluetooth libraries"
+    help
+        Set this option to tell SDP to load Bluetooth libraries
+    config SDP_LOAD_ESP_NOW
+    bool "Load ESP-Now libraries"
+    help
+        Set this option to tell SDP to load ESP-Now libraries
+
+    config SDP_PEER_NAME_LEN
+    int "Peer name length"
+    default 16
+    help
+        The length of the sdp peer name. 
+
+endmenu

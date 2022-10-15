@@ -4,12 +4,14 @@
 #include <esp_log.h>
 
 #include "sdp.h"
-#include "sdp_messaging.h"
+#include "sdp_peer.h"
 #include "sdkconfig.h"
 
 #ifdef CONFIG_SDP_LOAD_BLE
 #include "ble/ble_spp.h"
 #endif
+
+
 
 /* */
 static void *sdp_peer_mem;
@@ -22,7 +24,7 @@ uint16_t _peer_handle_incrementor_ = 0;
 char *log_prefix;
 
 struct sdp_peer *
-sdp_peer_find_name(const sdp_peer_name name)
+sdp_mesh_find_peer_by_name(const sdp_peer_name name)
 {
     struct sdp_peer *peer;
 
@@ -39,7 +41,7 @@ sdp_peer_find_name(const sdp_peer_name name)
 }
 
 struct sdp_peer *
-sdp_peer_find_handle(__int16_t peer_handle)
+sdp_mesh_find_peer_by_handle(__int16_t peer_handle)
 {
     struct sdp_peer *peer;
 
@@ -55,12 +57,12 @@ sdp_peer_find_handle(__int16_t peer_handle)
     return NULL;
 }
 
-int sdp_peer_delete(uint16_t peer_handle)
+int sdp_mesh_delete_peer(uint16_t peer_handle)
 {
     struct sdp_peer *peer;
     int rc;
 
-    peer = sdp_peer_find_handle(peer_handle);
+    peer = sdp_mesh_find_peer_by_handle(peer_handle);
     if (peer == NULL)
     {
         return SDP_ERR_PEER_NOT_FOUND;
@@ -86,24 +88,15 @@ int sdp_peer_delete(uint16_t peer_handle)
 }
 
 
-/**
- * @brief Send a "WHO"-message that asks the peer to describe themselves
- * 
- * @return int A pointer to the created conversation
- */
-int send_who_message(sdp_peer *peer) {
-    char who_msg[4] = "WHO\0";
-    return start_conversation(peer, HANDSHAKE, "Handshaking", &who_msg,4);
-}
 
-int sdp_peer_add(sdp_peer_name name)
+int sdp_mesh_peer_add(sdp_peer_name name)
 {
     struct sdp_peer *peer;
 
     ESP_LOGI(log_prefix, "sdp_peer_add() - adding SDP peer, name: %s", name);
 
     /* TODO: Make sure the peer name is unique*/
-    peer = sdp_peer_find_name(name);
+    peer = sdp_mesh_find_peer_by_name(name);
     if (peer != NULL)
     {
         return -SDP_ERR_PEER_EXISTS;
@@ -125,7 +118,7 @@ int sdp_peer_add(sdp_peer_name name)
     ESP_LOGI(log_prefix, "sdp_peer_add() - Peer added - asking for more information: %s", peer->name);
 
     // Ask for more information.
-    if (send_who_message(peer) == SDP_MT_NONE)
+    if (sdp_peer_send_who_message(peer) == SDP_MT_NONE)
     {
         ESP_LOGE(log_prefix, "sdp_peer_add() - Failed to ask for more information: %s", peer->name);
     }
@@ -142,7 +135,7 @@ sdp_peer_free_mem(void)
 
 
 
-int sdp_peer_init(char *_log_prefix, int max_peers)
+int sdp_mesh_init(char *_log_prefix, int max_peers)
 {
     int rc;
     log_prefix = _log_prefix;
@@ -167,6 +160,8 @@ int sdp_peer_init(char *_log_prefix, int max_peers)
         rc = SDP_ERR_OS_ERROR;
         goto err;
     }
+
+    sdp_peer_init(log_prefix);
 
     return 0;
 

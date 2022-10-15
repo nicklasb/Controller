@@ -3,6 +3,11 @@
 #define _SDP_DEF_H_
 
 
+#include <sys/queue.h>
+#include <stdint.h>
+
+#include "sdkconfig.h"
+
 /* The current protocol version */
 #define SDP_PROTOCOL_VERSION 0
 
@@ -111,5 +116,95 @@ typedef enum e_peer_state
     /* The peer is both known and encrypted */
     PEER_KNOWN_SECURE = 2
 } e_peer_state;
+
+
+typedef char sdp_peer_name[CONFIG_SDP_PEER_NAME_LEN];
+
+typedef struct sdp_peer
+{
+    SLIST_ENTRY(sdp_peer) next;
+
+    /* The unique handle of the peer*/
+    uint16_t peer_handle;
+     /* The name of the peer*/
+    sdp_peer_name name;   
+    /* Eight bits of the media types*/
+    uint8_t supported_media_types;
+    /* Last time heard from the peer*/
+    uint64_t last_time_in;
+    /* Last time we tried to contact the  peer*/
+    uint64_t last_time_out;    
+    /* The peer state, if unknown, it cannot be used in many situations*/
+    e_peer_state state;
+
+    /* Protocol version*/
+    uint8_t protocol_version;
+    /* Minimum supported protocol version*/
+    uint8_t min_protocol_version;
+    
+
+#ifdef CONFIG_SDP_LOAD_BLE
+    /* The connection handle of the BLE connection*/
+    int ble_conn_handle;
+#endif
+
+} sdp_peer;
+
+/**
+ * @brief This is the request queue
+ * The queue is served by worker threads in a thread-safe manner.
+ */
+typedef struct work_queue_item
+{
+    /* The type of work */
+    enum e_work_type work_type;
+
+    /* Hash of indata */
+    uint16_t crc32;
+    /* Protocol version of the request */
+    uint8_t version;
+    /* The conversation it belongs to */
+    uint16_t conversation_id;
+    /* The data */
+    char *raw_data;
+    /* The length of the data in bytes */
+    uint16_t raw_data_length;
+    /* The message parts as an array of null-terminated strings */
+    char **parts;
+    /* The number of message parts */
+    int partcount;
+    /* The underlying media type, avoid using this data to stay tech agnostic */
+    enum e_media_type media_type;
+    /* The peer */
+    struct sdp_peer *peer;
+
+    /* Queue reference */
+    STAILQ_ENTRY(work_queue_item) items;
+} work_queue_item_t;
+
+
+
+/**
+ * These callbacks are implemented to handle the different
+ * work types.
+ */
+/* Callbacks that handles incoming work items */
+typedef void(work_callback)(work_queue_item_t *work_item);
+
+/* Mandatory callback that handles incoming work items */
+work_callback *on_work_cb;
+
+/* Mandatory callback that handles incoming priority request immidiately */
+work_callback *on_priority_cb;
+
+/* Callbacks that act as filters on incoming work items */
+typedef int(filter_callback)(work_queue_item_t *work_item);
+
+/* Optional callback that intercepts before incoming request messages are added to the work queue */
+filter_callback *on_filter_request_cb;
+/* Optional callback that intercepts before incoming reply messages are added to the work queue */
+filter_callback *on_filter_reply_cb;
+/* Optional callback that intercepts before incoming data messages are added to the work queue */
+filter_callback *on_filter_data_cb;
 
 #endif

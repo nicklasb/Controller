@@ -39,7 +39,7 @@
 char* log_prefix;
 
 static int ble_handle_incoming(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt *ctxt) {
-    sdp_peer *peer = sdp_peer_find_handle(conn_handle);
+    sdp_peer *peer = sdp_mesh_find_peer_by_handle(conn_handle);
     return handle_incoming(peer, attr_handle, ctxt->om->om_data, ctxt->om->om_len, SDP_MT_BLE);
 }
 

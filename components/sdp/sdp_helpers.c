@@ -1,16 +1,13 @@
 
 
-#include <stdarg.h>
 #include "sdp_helpers.h"
+#include <stdarg.h>
+#include <string.h>
+#include <esp_heap_caps.h>
+#include <esp_log.h>
 
-#include "sdp_messaging.h"
 #include "sdp_def.h"
 
-#include "string.h"
-
-#include "esp_heap_caps.h"
-
-#include <esp_log.h>
 
 #define WHO_LENGTH 4
 

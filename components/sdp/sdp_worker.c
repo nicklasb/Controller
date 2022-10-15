@@ -19,6 +19,9 @@
 /* The log prefix for all logging */
 char *log_prefix;
 
+/* Expands to a declaration for the work queue */
+STAILQ_HEAD(work_q, work_queue_item) work_q;
+
 /* Semaphore for thread safety Must be used when changing the work queue  */
 SemaphoreHandle_t x_worker_queue_semaphore;
 

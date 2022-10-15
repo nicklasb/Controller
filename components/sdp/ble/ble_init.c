@@ -38,7 +38,6 @@
 void ble_init(char *log_prefix, bool is_controller)
 {
 
-
     ESP_LOGI(log_prefix, "Initialising BLE..");
 
     // Note: NVS is not initiated here butin the main initiation

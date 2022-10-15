@@ -39,6 +39,7 @@ struct ble_gatt_register_ctxt;
 #define GATT_SVR_CHR_ALERT_NOT_CTRL_PT       0x2A44
 
 void gatt_svr_register_cb(struct ble_gatt_register_ctxt *ctxt, void *arg);
+
 int new_gatt_svr_init(void);
 
 /* Console - from server */

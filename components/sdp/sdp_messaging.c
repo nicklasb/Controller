@@ -2,13 +2,15 @@
 #include <esp_log.h>
 #include <esp32/rom/crc.h>
 
+#include "string.h"
+
 #include <freertos/FreeRTOS.h>
 #include <freertos/semphr.h>
-#include "sdp_peer.h"
 #include "sdp_mesh.h"
+#include "sdp_peer.h"
 #include "sdp_def.h"
 #include "sdp_helpers.h"
-#include "string.h"
+
 
 #include "sdkconfig.h"
 
@@ -57,43 +59,6 @@ void *sdp_add_preamble(e_work_type work_type, uint16_t conversation_id, const vo
 
 
 
-/**
- * @brief Compile a message telling a peer about our abilities
- * 
- * @param peer The peer 
- */
-int send_me_message(work_queue_item_t *queue_item) {
-
-    int retval;
-    // TODO: Use CONFIG_SDP_NAME
-    // char *sdf_name = CONFIG_SDP_NAME;
-
-    /* Gather the configured protocol support*/
-    uint8_t supported_media_types = 0
-    #ifdef CONFIG_SDP_LOAD_BLE
-    + SDP_MT_BLE
-    #endif
-    #ifdef CONFIG_SDP_LOAD_ESP_NOW
-    + SDP_MT_ESPNOW
-    #endif
-    ;
-    uint8_t *me_msg = NULL;
-    int pv = SDP_PROTOCOL_VERSION;
-    int pvm = SDP_PROTOCOL_VERSION_MIN;
-    
-    int me_length = add_to_message(&me_msg,"ME|%i|%i|%s|%hhu", 
-        pv, pvm, log_prefix, supported_media_types);
-
-    if (me_length > 0) {
-        retval = sdp_reply(*queue_item, HANDSHAKE, me_msg, me_length);
-    } else {
-        retval = SDP_ERR_SEND_FAIL;
-    }
-    free(me_msg);
-    return retval;
-}
-
-
 void parse_message(work_queue_item_t *queue_item)
 {
 
@@ -132,40 +97,6 @@ void parse_message(work_queue_item_t *queue_item)
     }
 }
 
-static int sdp_peer_inform(work_queue_item_t *queue_item) {
-
-
-    // In this version, the part count should be 5
-    if (queue_item->partcount != 5) {
-        if (queue_item->partcount > 1) {
-            ESP_LOGE(log_prefix, "ME-message from %s didn't have the correct number of parts. Claims to use protocol version %s", 
-                queue_item->peer->name, queue_item->parts[1]);
-        } else {
-            ESP_LOGE(log_prefix, "ME-message from %s didn't have enough parts to parse. Partcount: %i", 
-                queue_item->peer->name, queue_item->partcount);
-        }
-
-        return -SDP_ERR_INVALID_PARAM;
-    }
-
-    /* Set the protocol versions*/
-    queue_item->peer->protocol_version = (uint8_t)atoi(queue_item->parts[1]);
-    queue_item->peer->min_protocol_version = (uint8_t)atoi(queue_item->parts[2]);
-    /* Set the name of the peer */
-    strcpy(queue_item->peer->name, queue_item->parts[3]);
-    /* Set supported media types*/
-    queue_item->peer->supported_media_types = (uint8_t)atoi(queue_item->parts[4]);
-    if (strcmp(queue_item->peer->name, "") == 0) {
-        queue_item->peer->state = PEER_UNKNOWN;
-    } else {
-        queue_item->peer->state = PEER_KNOWN_INSECURE;
-    }
-    // TODO: Check protocol version for highest matching protocol version.
-    
-    return 0;
-
-
-}
 
 
 int handle_incoming(sdp_peer *peer, uint16_t attr_handle, const uint8_t *data, int data_len, e_media_type media_type)
@@ -276,7 +207,7 @@ int handle_incoming(sdp_peer *peer, uint16_t attr_handle, const uint8_t *data, i
         // TODO: Are there security considerations here?
         if (strcmp(new_item->parts[0], "WHO") == 0) {
             // Reply
-            send_me_message(new_item);
+            sdp_peer_send_me_message(new_item);
             
         } else if (strcmp(new_item->parts[0], "ME") == 0) {
             sdp_peer_inform(new_item);
@@ -371,7 +302,7 @@ void report_ble_connection_error(int conn_handle, int code) {
     struct ble_peer *b_peer = ble_peer_find(conn_handle);
     
     if (b_peer != NULL) {
-        struct sdp_peer *s_peer = sdp_peer_find_handle(b_peer->sdp_handle);
+        struct sdp_peer *s_peer = sdp_mesh_find_peer_by_handle(b_peer->sdp_handle);
         if (s_peer != NULL) {
             ESP_LOGE(log_prefix, "Peer %s encountered a BLE error. Code: %i", s_peer->name, code);
         } else {
@@ -553,7 +484,7 @@ void init_messaging(char *_log_prefix)
 
     log_prefix = _log_prefix;
 
-    sdp_peer_init(_log_prefix, CONFIG_SDP_MAX_PEERS);
+    sdp_mesh_init(_log_prefix, CONFIG_SDP_MAX_PEERS);
 
     /* Create a queue semaphore to ensure thread safety */
     x_conversation_list_semaphore = xSemaphoreCreateMutex();

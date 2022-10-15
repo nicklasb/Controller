@@ -15,7 +15,7 @@
 
 #include "stdint.h"
 #include "sdp_def.h"
-#include "sdp_peer.h"
+
 
 
 int add_to_message(uint8_t **message, const char *format, ...);

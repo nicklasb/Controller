@@ -14,9 +14,8 @@
 #include <string.h>
 #include <host/ble_hs.h>
 #include "ble_spp.h"
-#include "../sdp_mesh.h"
-#include "../sdp_peer.h"
 #include "../sdp_def.h"
+#include "../sdp_mesh.h"
 
 static void *peer_svc_mem;
 static struct os_mempool peer_svc_pool;
@@ -793,11 +792,11 @@ int ble_peer_add(uint16_t conn_handle, struct ble_gap_conn_desc desc)
     // Add an SDP-peer that contains this
     sdp_peer_name tmpPeerName;
     sprintf((char *)tmpPeerName, "UNKN_BLE_%i", conn_handle);
-    int _sdp_handle = sdp_peer_add(tmpPeerName);
+    int _sdp_handle = sdp_mesh_peer_add(tmpPeerName);
 
     if (_sdp_handle > -1) {
         peer->sdp_handle = _sdp_handle;
-        sdp_peer *sdp_peer = sdp_peer_find_handle(_sdp_handle);
+        sdp_peer *sdp_peer = sdp_mesh_find_peer_by_handle(_sdp_handle);
         if (sdp_peer == NULL) {
             ESP_LOGE(log_prefix, "ble_peer_add() - Wasn't able to map back to the sdp_handle. Handle: %i", _sdp_handle);
             return BLE_ERR_HW_FAIL;
@@ -806,7 +805,7 @@ int ble_peer_add(uint16_t conn_handle, struct ble_gap_conn_desc desc)
         sdp_peer->ble_conn_handle = conn_handle;        
         
     } else if (_sdp_handle == -SDP_ERR_PEER_EXISTS) {
-        sdp_peer *sdp_peer = sdp_peer_find_name(tmpPeerName);
+        sdp_peer *sdp_peer = sdp_mesh_find_peer_by_name(tmpPeerName);
         sdp_peer->ble_conn_handle = conn_handle;  
         
         ESP_LOGI(log_prefix, "Didn't add SDP peer due to BLE reconnection, but set the ble connection handle.");

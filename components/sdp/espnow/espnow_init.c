@@ -6,6 +6,8 @@
 
 #include <esp_wifi.h>
 #include <esp_now.h>
+#include "espnow_   messaging.h"
+//#include <esp_utils.h>  
 
 #if CONFIG_ESPNOW_WIFI_MODE_STATION
 #define ESPNOW_WIFI_MODE WIFI_MODE_STA
@@ -13,6 +15,9 @@
 #else
 #define ESPNOW_WIFI_MODE WIFI_MODE_AP
 #endif
+
+/* The log prefix for all logging */
+char *log_prefix;
 
 void init_wifi() {
     ESP_ERROR_CHECK(esp_netif_init());
@@ -30,6 +35,8 @@ void init_wifi() {
 }
 
 
+
+
 /**
  * @brief Initialize ESP-NOW
  * 
@@ -37,8 +44,17 @@ void init_wifi() {
  * @param is_controller 
  */
 void espnow_init(char * _log_prefix, bool is_controller) {
+    log_prefix = _log_prefix;
     // Init ESP-NOW
     init_wifi();
+    init_espnow_messaging(_log_prefix);
+
+/*
+    espnow_config_t espnow_config = ESPNOW_INIT_CONFIG_DEFAULT();
+    espnow_init(&espnow_config);
+
+    espnow_set_type(ESPNOW_TYPE_DATA, 1, uart_write_handle);
+*/
     //esp_now_send();
 }
 

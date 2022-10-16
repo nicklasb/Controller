@@ -2,7 +2,6 @@
 #ifndef _SDP_DEF_H_
 #define _SDP_DEF_H_
 
-
 #include <sys/queue.h>
 #include <stdint.h>
 
@@ -46,7 +45,7 @@ typedef enum e_sdp_error_codes
     SDP_ERR_PEER_NOT_FOUND = 11,
     /* Peer already exists */
     SDP_ERR_PEER_EXISTS = 12,
-     /* Out of memory */
+    /* Out of memory */
     SDP_ERR_OUT_OF_MEMORY = 13,
     /* OS error.  See enum os_error in os/os_error.h for meaning of values when debugging */
     SDP_ERR_OS_ERROR = 14
@@ -56,7 +55,7 @@ typedef enum e_sdp_error_codes
 typedef enum e_sdp_warning_codes
 {
     /* No peers */
-    SDP_WARN_NO_PEERS = 1    
+    SDP_WARN_NO_PEERS = 1
 } e_sdp_warning_codes;
 
 /**
@@ -96,7 +95,7 @@ typedef enum e_work_type
 
 typedef enum e_media_type
 {
-    SDP_MT_NONE = 0, 
+    SDP_MT_NONE = 0,
     SDP_MT_BLE = 1,
     SDP_MT_ESPNOW = 2,
     SDP_MT_LoRa = 4,
@@ -117,23 +116,23 @@ typedef enum e_peer_state
     PEER_KNOWN_SECURE = 2
 } e_peer_state;
 
-
 typedef char sdp_peer_name[CONFIG_SDP_PEER_NAME_LEN];
 
 typedef struct sdp_peer
 {
-    SLIST_ENTRY(sdp_peer) next;
+    SLIST_ENTRY(sdp_peer)
+    next;
 
     /* The unique handle of the peer*/
     uint16_t peer_handle;
-     /* The name of the peer*/
-    sdp_peer_name name;   
+    /* The name of the peer*/
+    sdp_peer_name name;
     /* Eight bits of the media types*/
     uint8_t supported_media_types;
     /* Last time heard from the peer*/
     uint64_t last_time_in;
     /* Last time we tried to contact the  peer*/
-    uint64_t last_time_out;    
+    uint64_t last_time_out;
     /* The peer state, if unknown, it cannot be used in many situations*/
     e_peer_state state;
 
@@ -141,7 +140,6 @@ typedef struct sdp_peer
     uint8_t protocol_version;
     /* Minimum supported protocol version*/
     uint8_t min_protocol_version;
-    
 
 #ifdef CONFIG_SDP_LOAD_BLE
     /* The connection handle of the BLE connection*/
@@ -179,10 +177,9 @@ typedef struct work_queue_item
     struct sdp_peer *peer;
 
     /* Queue reference */
-    STAILQ_ENTRY(work_queue_item) items;
+    STAILQ_ENTRY(work_queue_item)
+    items;
 } work_queue_item_t;
-
-
 
 /**
  * These callbacks are implemented to handle the different

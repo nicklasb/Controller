@@ -169,9 +169,11 @@ void init_monitor(char *_log_prefix)
  *          * Have we duplicate, unknown or other peers
  * TODO: Add a security monitor - every 10 seconds 
  *          * Attack detection?
- *          * Lots of login attempts (lock down to specific accounts or OOB)
+ *          * Lots of login attempts (lock down to specific accounts or tell to slow down OOB)
  * TODO: Add a conversation monitor - every 2 minutes
  *          * Are requests getting replies? And how quickly? 
  *          * Unanswered conversations needs to be pruned after a timeout
  *          * Stats needs to be collected
+ * TODO: Add a mesh manager
+ *          * Periodically look for new connections and explore their connections
 */

@@ -132,13 +132,11 @@ int init_worker(work_callback work_cb, work_callback priority_cb, char *_log_pre
     return 0;
 }
 
-
-
 void cleanup_queue_task(work_queue_item_t *queue_item)
 {
     free(queue_item->parts);
     free(queue_item->raw_data);
-
     free(queue_item);
+    
     vTaskDelete(NULL);
 }

@@ -18,4 +18,12 @@ menu "SDP Configuration"
     help
         The length of the sdp peer name. 
 
+    config SDP_PEER_NAME
+    string "The name of the peer"
+    default "UNNAMEDPEER"
+    help
+        The name of the peer 
+           
+    
+
 endmenu

@@ -159,7 +159,7 @@ void init_monitor(char *_log_prefix)
 
     // TODO: Loop list of external monitors 
 
-    ESP_LOGI(log_prefix, "Launching monitor, activate every %.2f seconds, history length: %i samples.", (float)CONFIG_SDP_MONITOR_DELAY/1000000, CONFIG_SDP_MONITOR_HISTORY_LENGTH);
+    ESP_LOGI(log_prefix, "Launching monitor, activate every %.2f seconds, history length: %i samples.", (float)CONFIG_SDP_MONITOR_DELAY/500000, CONFIG_SDP_MONITOR_HISTORY_LENGTH);
     monitor_task(NULL);
 }
 

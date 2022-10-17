@@ -34,13 +34,23 @@ int sdp_peer_send_me_message(work_queue_item_t *queue_item) {
     int pv = SDP_PROTOCOL_VERSION;
     int pvm = SDP_PROTOCOL_VERSION_MIN;
     
-    int me_length = add_to_message(&me_msg,"ME|%i|%i|%s|%hhu", 
-        pv, pvm, log_prefix, supported_media_types);
+    /**
+     * @brief Construct a me-message
+     * Parameters: 
+     * pv : Protocol version
+     * pvm: Minimal supported version
+     * host name: The SDP host name 
+     * supported  media types: A byte describing the what communication technologies the peer supports.
+     * adresses: A list of addresses in the order of the bits in the media types byte.
+     */
+    int me_length = add_to_message(&me_msg,"ME|%i|%i|%s|%hhu|%b6|%b6", 
+        pv, pvm, sdp_host.sdp_host_name, supported_media_types, sdp_host.ble_mac_address, sdp_host.espnow_mac_address);
 
     if (me_length > 0) {
         retval = sdp_reply(*queue_item, HANDSHAKE, me_msg, me_length);
     } else {
-        retval = SDP_ERR_SEND_FAIL;
+        // Returning the negative of the return value as that denotes an error.
+        retval = -me_length;
     }
     free(me_msg);
     return retval;
@@ -59,9 +69,11 @@ int sdp_peer_send_who_message(sdp_peer *peer) {
 
 int sdp_peer_inform(work_queue_item_t *queue_item) {
 
+    ESP_LOGI(log_prefix, "Informing peer.");
 
-    // In this version, the part count should be 5
-    if (queue_item->partcount != 5) {
+    // TODO: Partcount doesn't work that well Can we create better checks? 
+    /*
+    if (queue_item->partcount != 7) {
         if (queue_item->partcount > 1) {
             ESP_LOGE(log_prefix, "ME-message from %s didn't have the correct number of parts. Claims to use protocol version %s", 
                 queue_item->peer->name, queue_item->parts[1]);
@@ -71,7 +83,7 @@ int sdp_peer_inform(work_queue_item_t *queue_item) {
         }
 
         return -SDP_ERR_INVALID_PARAM;
-    }
+    }*/
 
     /* Set the protocol versions*/
     queue_item->peer->protocol_version = (uint8_t)atoi(queue_item->parts[1]);
@@ -80,11 +92,22 @@ int sdp_peer_inform(work_queue_item_t *queue_item) {
     strcpy(queue_item->peer->name, queue_item->parts[3]);
     /* Set supported media types*/
     queue_item->peer->supported_media_types = (uint8_t)atoi(queue_item->parts[4]);
+
+    /* As*/
+    /* Set BLE MAC address*/
+    memcpy(&queue_item->peer->ble_mac_address, &(queue_item->raw_data[20]), SDP_MAC_ADDR_LEN);
+    /* Set ESP-NOW MAC address*/ 
+    memcpy(&queue_item->peer->espnow_mac_address, &(queue_item->raw_data[27]), SDP_MAC_ADDR_LEN);
+    
     if (strcmp(queue_item->peer->name, "") == 0) {
         queue_item->peer->state = PEER_UNKNOWN;
     } else {
         queue_item->peer->state = PEER_KNOWN_INSECURE;
     }
+
+    ESP_LOGI(log_prefix, "Peer %s now more informed ",queue_item->peer->name);
+    ESP_LOG_BUFFER_HEX(log_prefix, queue_item->peer->ble_mac_address, SDP_MAC_ADDR_LEN);
+    ESP_LOG_BUFFER_HEX(log_prefix, queue_item->peer->espnow_mac_address, SDP_MAC_ADDR_LEN);
     // TODO: Check protocol version for highest matching protocol version.
     
     return 0;

@@ -20,7 +20,7 @@ char *log_prefix;
  * However; as the result will have to be null-terminated, and we cannot put nulls in that string.
  * Instead, the pipe-symbol "|" is used to indicate the null-terminated sections.
  * Only one format is allowed per section: "%i Mhz|%s" is allowed. "%i Mhz, %i watts|%s" is not.
- * Integers can be passed as is, 
+ * Integers can be passed as is. An additional format type is %b, which denotes a
  *
  * @param message A pointer to a pointer to the message structure, memory will be allocated to it.
  * @param format A format string where "|" indicates where null-separation is wanted and creates a section.
@@ -52,7 +52,9 @@ int add_to_message(uint8_t **message, const char *format, ...)
             break_count++;
         }
     }
-
+    // Ensure null-termination (alloc is 1 longer than format len)
+    ESP_LOGI(log_prefix, "format_len %i", format_len);
+    loc_format[format_len] = 0;
     /* Now we know that our format array needs to be break_count long, allocate it */
     char **format_array = heap_caps_malloc(break_count * sizeof(char *), MALLOC_CAP_8BIT);
 
@@ -67,26 +69,43 @@ int add_to_message(uint8_t **message, const char *format, ...)
             format_count++;
         }
     }
-
     int curr_pos = 0;
     size_t new_length = 0;
-    char *value_str;    
+    char *value_str = NULL;   
     int value_length = 0;
     /* Now loop all formats, and put the message together, reallocating when enlarging */
+    char * curr_format;
     for (int k = 0; k < format_count; k++)
     {
-        
-        
-        if (strchr((char *)format_array[k], '%')) {
+        curr_format = (char *)(format_array[k]);
+        if (curr_format[0] == '%') {
             void * value = va_arg(arg, void *);
-            value_length = asprintf(&value_str, format_array[k], (void *)value);
-            new_length+= value_length + 1;
+            // Handle fixed length byte arrays "%b"
+            if (curr_format[1] == 'b') {
+                int n=2;
+                while (((int)(curr_format[n]) != 0) && (n < 10)) { n++; }
+                if (n > 9 || n < 3) {
+                    ESP_LOGE(log_prefix, "Bad byte parameter on location %i, len %i in format string: %s", k, n-2, curr_format);
+                    new_length = -SDP_ERR_PARSING_FAILED;
+                    goto cleanup;                    
+                }
+                ESP_LOGI(log_prefix, "Found null value at %i in %s", n, curr_format);
+                value_length = atoi((char *)&(curr_format[2]));
+                ESP_LOGI(log_prefix, "value_length parsed %i", value_length);
+                value_str = malloc(value_length);
+                memcpy(value_str,(void *)value, value_length);
+                
+            } else {
+                // Used sprintf formatting
+                value_length = asprintf(&value_str, curr_format, (void *)value);
+            }
         } else {
+            value_length = strlen(curr_format);
+            value_str = malloc(value_length);
+            strncpy(value_str, curr_format, value_length);
             
-            value_str = format_array[k];
-            value_length = strlen(format_array[k]);
-            new_length+= value_length + 1;
         }
+        new_length+= value_length + 1;
 
         // TODO: See if realloc has any significant performance impact, if so an allocations strategy might be useful
         
@@ -99,15 +118,21 @@ int add_to_message(uint8_t **message, const char *format, ...)
         if (*message == NULL)
         {
             ESP_LOGE(log_prefix, "(Re)alloc failed.");
-            return -1;
+            new_length = -SDP_ERR_OUT_OF_MEMORY;
+            goto cleanup;
         };
         memcpy((*message) + curr_pos, value_str, value_length);   
+
+
         (*message)[new_length - 1] = (uint8_t)0x00;
-        ESP_LOGD(log_prefix, "Message: %s, value_str: %s, new_length: %i.", (char *)*message, value_str, (int)new_length);
+        ESP_LOGI(log_prefix, "Message: %s, value_str: %s, new_length: %i.", (char *)*message, value_str, (int)new_length);
+        free(value_str);
+        value_str = NULL;
         curr_pos = new_length;
 
     }
-    ESP_LOG_BUFFER_HEXDUMP(log_prefix, (char*)*message, new_length,  ESP_LOG_DEBUG);    
+    ESP_LOG_BUFFER_HEXDUMP(log_prefix, (char*)*message, new_length,  ESP_LOG_INFO);    
+ cleanup:
     va_end(arg);
     free(value_str);   
     free(loc_format);

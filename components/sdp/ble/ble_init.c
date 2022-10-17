@@ -22,6 +22,8 @@
 #include "ble_service.h"
 #include "ble_server.h"
 
+#include "sdp_def.h"
+
 #include "ble_global.h"
 #include <nimble/nimble_port.h>
 #include <nimble/nimble_port_freertos.h>
@@ -55,6 +57,12 @@ void ble_init(char *log_prefix, bool is_controller)
     /* Initialize service */
     ble_init_service(log_prefix);
     
+    // Print out the address
+    sdp_mac_address ble_mac_addr;
+    esp_base_mac_addr_get(ble_mac_addr);
+    ESP_LOGI(log_prefix, "BLE base MAC address:");
+    ESP_LOG_BUFFER_HEX(log_prefix, ble_mac_addr, SDP_MAC_ADDR_LEN);
+    memcpy(sdp_host.ble_mac_address, ble_mac_addr, SDP_MAC_ADDR_LEN);
     /* Register custom service */
     ret = gatt_svr_register();
     assert(ret == 0);
@@ -67,6 +75,7 @@ void ble_init(char *log_prefix, bool is_controller)
     /* Initialize the NimBLE host configuration. */
 
     /* Configure the host callbacks */
+
     ble_hs_cfg.reset_cb = ble_on_reset;
     if (is_controller)
     {
@@ -86,7 +95,7 @@ void ble_init(char *log_prefix, bool is_controller)
     ESP_LOGI(log_prefix, "Init peer with %i max connections.", MYNEWT_VAL(BLE_MAX_CONNECTIONS));
     ret = ble_peer_init(log_prefix, MYNEWT_VAL(BLE_MAX_CONNECTIONS), 64, 64, 64);
     assert(ret == 0);
-
+    
     /* Generate and set the GAP device name. */
     char gapname[50] = "\0";
     strcpy(gapname, log_prefix);

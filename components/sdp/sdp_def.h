@@ -4,6 +4,11 @@
 
 #include <sys/queue.h>
 #include <stdint.h>
+#include <sdkconfig.h>
+
+#ifdef CONFIG_SDP_LOAD_ESP_NOW
+#include <esp_now.h>
+#endif
 
 #include "sdkconfig.h"
 
@@ -48,7 +53,9 @@ typedef enum e_sdp_error_codes
     /* Out of memory */
     SDP_ERR_OUT_OF_MEMORY = 13,
     /* OS error.  See enum os_error in os/os_error.h for meaning of values when debugging */
-    SDP_ERR_OS_ERROR = 14
+    SDP_ERR_OS_ERROR = 14,
+    /* Parsing error */
+    SDP_ERR_PARSING_FAILED = 15
 } e_sdp_error_codes;
 
 /* Common warning codes */
@@ -99,11 +106,18 @@ typedef enum e_media_type
     SDP_MT_BLE = 1,
     SDP_MT_ESPNOW = 2,
     SDP_MT_LoRa = 4,
-    SDP_MT_TCPIP = 8,
+    SDP_MT_TCPIP = 8, //TODO: Probably it should not be TCP but something else.
     SDP_MT_TTL = 16,
     SDP_MT_ANY = 128
 
 } e_media_type;
+
+/**
+ * @brief This is a byte representing the medias supported
+ * It is or'ed from the e_media_type enum values
+ * 
+ */
+typedef uint8_t sdp_media_types;
 
 /* SDP peer stat, broadly categorizes the credibility of the peer */
 typedef enum e_peer_state
@@ -116,7 +130,49 @@ typedef enum e_peer_state
     PEER_KNOWN_SECURE = 2
 } e_peer_state;
 
+/* The length of MAC-addresses in SDP. DO NOT CHANGE.*/
+#define SDP_MAC_ADDR_LEN 6
+
+/* MAC-addresses should always be 6-byte values regardless of tech */
+#if ESP_NOW_ETH_ALEN != 6 || SDP_MAC_ADDR_LEN != 6
+#error ESP_NOW_ETH_ALEN or SDP_MAC_ADDR_LEN has been set to something else than six bytes. \
+MAC-addresses are 6-byte values regardless of technology. \
+This library assumes this and may fail using other lengths for this setting.
+#endif
+
+
+
+/* The SD MAC-address type */
+typedef uint8_t sdp_mac_address[SDP_MAC_ADDR_LEN];
+
+/* A peer name in SDP */
 typedef char sdp_peer_name[CONFIG_SDP_PEER_NAME_LEN];
+
+/** Information about *this* host.
+ * This is used by all parts of the application.
+ * Much intersects with the peer information, but is set during initialization.
+*/
+struct sdp_host_t {
+
+    /* Protocol version*/
+    uint8_t protocol_version;
+    /* Minimum supported protocol version*/
+    uint8_t min_protocol_version;
+    /* The peer name*/
+    sdp_peer_name sdp_host_name;
+
+#ifdef CONFIG_SDP_LOAD_BLE
+    /* The connection handle of the BLE connection*/
+    sdp_mac_address ble_mac_address;
+#endif
+
+#ifdef CONFIG_SDP_LOAD_ESP_NOW
+    /* The mac adress handle of the ESP-NOW connection*/
+    sdp_mac_address espnow_mac_address;
+#endif    
+
+} sdp_host;
+
 
 typedef struct sdp_peer
 {
@@ -128,7 +184,7 @@ typedef struct sdp_peer
     /* The name of the peer*/
     sdp_peer_name name;
     /* Eight bits of the media types*/
-    uint8_t supported_media_types;
+    sdp_media_types supported_media_types;
     /* Last time heard from the peer*/
     uint64_t last_time_in;
     /* Last time we tried to contact the  peer*/
@@ -144,6 +200,12 @@ typedef struct sdp_peer
 #ifdef CONFIG_SDP_LOAD_BLE
     /* The connection handle of the BLE connection*/
     int ble_conn_handle;
+    sdp_mac_address ble_mac_address;
+#endif
+
+#ifdef CONFIG_SDP_LOAD_ESP_NOW
+    /* The mac adress handle of the ESP-NOW connection*/
+    sdp_mac_address espnow_mac_address;
 #endif
 
 } sdp_peer;

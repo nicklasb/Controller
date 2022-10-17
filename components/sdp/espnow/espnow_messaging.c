@@ -15,6 +15,7 @@
 // #include "esp_mac.h"
 #include "esp_now.h"
 #include "esp_crc.h"
+#include "sdp.h"
 // #include "espnow_example.h"
 
 #include <freertos/queue.h>
@@ -339,7 +340,7 @@ static esp_err_t espnow_init(void)
     memcpy(send_param->dest_mac, s_example_broadcast_mac, ESP_NOW_ETH_ALEN);
     example_espnow_data_prepare(send_param);
 
-    xTaskCreate(example_espnow_task, "example_espnow_task", 2048, send_param, 4, NULL);
+    //xTaskCreate(example_espnow_task, "example_espnow_task", 2048, send_param, 4, NULL);
 
     return ESP_OK;
 }
@@ -361,8 +362,15 @@ static void example_espnow_deinit(example_espnow_send_param_t *send_param)
 /**
  * @brief Sends a message through ESPNOW.
  */
-int espnow_send_message(uint16_t conn_handle, void *data, int data_length) {
-    return 0;
+int espnow_send_message(uint8_t dest_mac_address[ESP_NOW_ETH_ALEN], void *data, int data_length) {
+    int rc = esp_now_send(dest_mac_address, data, data_length); 
+    if (rc != ESP_OK) {
+        ESP_LOGE(log_prefix, "Send error");
+        return SDP_ERR_SEND_FAIL;
+        //example_espnow_deinit(send_param);
+        //vTaskDelete(NULL);
+    }
+    return rc;
 }
 
 

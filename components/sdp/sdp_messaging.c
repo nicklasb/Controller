@@ -11,7 +11,6 @@
 #include "sdp_def.h"
 #include "sdp_helpers.h"
 
-
 #include "sdkconfig.h"
 
 #ifdef CONFIG_SDP_LOAD_BLE
@@ -34,16 +33,14 @@ SemaphoreHandle_t x_conversation_list_semaphore;
 /* Forward declarations*/
 e_media_type send_message(struct sdp_peer *peer, void *data, int data_length);
 
-
-
 /**
  * @brief Add a preamble with general info in the beginning of a message
- * 
- * @param work_type 
- * @param conversation_id 
- * @param data 
- * @param data_length 
- * @return void* 
+ *
+ * @param work_type
+ * @param conversation_id
+ * @param data
+ * @param data_length
+ * @return void*
  */
 
 void *sdp_add_preamble(e_work_type work_type, uint16_t conversation_id, const void *data, int data_length)
@@ -56,8 +53,6 @@ void *sdp_add_preamble(e_work_type work_type, uint16_t conversation_id, const vo
     memcpy(&(new_data[SDP_PREAMBLE_LENGTH]), data, (size_t)data_length);
     return new_data;
 }
-
-
 
 void parse_message(work_queue_item_t *queue_item)
 {
@@ -96,8 +91,6 @@ void parse_message(work_queue_item_t *queue_item)
         }
     }
 }
-
-
 
 int handle_incoming(sdp_peer *peer, uint16_t attr_handle, const uint8_t *data, int data_len, e_media_type media_type)
 {
@@ -147,7 +140,6 @@ int handle_incoming(sdp_peer *peer, uint16_t attr_handle, const uint8_t *data, i
             {
                 // Add the request to the work queue
                 safe_add_work_queue(new_item);
-
             }
             else
             {
@@ -160,7 +152,7 @@ int handle_incoming(sdp_peer *peer, uint16_t attr_handle, const uint8_t *data, i
             safe_add_work_queue(new_item);
         }
         break;
-     case REPLY:
+    case REPLY:
         if (on_filter_reply_cb != NULL)
         {
 
@@ -168,7 +160,6 @@ int handle_incoming(sdp_peer *peer, uint16_t attr_handle, const uint8_t *data, i
             {
                 // Add the request to the work queue
                 safe_add_work_queue(new_item);
-
             }
             else
             {
@@ -180,7 +171,7 @@ int handle_incoming(sdp_peer *peer, uint16_t attr_handle, const uint8_t *data, i
         {
             safe_add_work_queue(new_item);
         }
-        break;       
+        break;
     case DATA:
         if (on_filter_data_cb != NULL)
         {
@@ -205,11 +196,13 @@ int handle_incoming(sdp_peer *peer, uint16_t attr_handle, const uint8_t *data, i
     case HANDSHAKE:
         // A peer asks us about our abilities
         // TODO: Are there security considerations here?
-        if (strcmp(new_item->parts[0], "WHO") == 0) {
+        if (strcmp(new_item->parts[0], "WHO") == 0)
+        {
             // Reply
             sdp_peer_send_me_message(new_item);
-            
-        } else if (strcmp(new_item->parts[0], "ME") == 0) {
+        }
+        else if (strcmp(new_item->parts[0], "ME") == 0)
+        {
             sdp_peer_inform(new_item);
         }
 
@@ -298,21 +291,25 @@ int broadcast_message(uint16_t conversation_id,
 }
 
 #ifdef CONFIG_SDP_LOAD_BLE
-void report_ble_connection_error(int conn_handle, int code) {
+void report_ble_connection_error(int conn_handle, int code)
+{
     struct ble_peer *b_peer = ble_peer_find(conn_handle);
-    
-    if (b_peer != NULL) {
+
+    if (b_peer != NULL)
+    {
         struct sdp_peer *s_peer = sdp_mesh_find_peer_by_handle(b_peer->sdp_handle);
-        if (s_peer != NULL) {
+        if (s_peer != NULL)
+        {
             ESP_LOGE(log_prefix, "Peer %s encountered a BLE error. Code: %i", s_peer->name, code);
-        } else {
-           ESP_LOGE(log_prefix, "Unresolved BLE peer (no or invalid SDP peer handle), conn handle %i", conn_handle);
-           ESP_LOGE(log_prefix, "encountered a BLE error. Code: %i.", code);
+        }
+        else
+        {
+            ESP_LOGE(log_prefix, "Unresolved BLE peer (no or invalid SDP peer handle), conn handle %i", conn_handle);
+            ESP_LOGE(log_prefix, "encountered a BLE error. Code: %i.", code);
         }
         b_peer->failure_count++;
     }
     ESP_LOGE(log_prefix, "Unregistered peer (!) at conn handle %i encountered a BLE error. Code: %i.", conn_handle, code);
-
 }
 #endif
 
@@ -327,7 +324,7 @@ e_media_type send_message(struct sdp_peer *peer, void *data, int data_length)
     int rc = 0;
     // Send message using BLE
     if (peer->ble_conn_handle >= 0)
-    { 
+    {
         rc = ble_send_message(peer->ble_conn_handle, data, data_length);
         if (rc == 0)
         {
@@ -338,7 +335,6 @@ e_media_type send_message(struct sdp_peer *peer, void *data, int data_length)
             report_ble_connection_error(peer->ble_conn_handle, rc);
             // TODO: Add start general QoS monitoring, stop using some technologies if they are failing
         }
-
     }
 #endif
 
@@ -348,7 +344,7 @@ e_media_type send_message(struct sdp_peer *peer, void *data, int data_length)
 int safe_add_conversation(sdp_peer *peer, const char *reason)
 {
     /* Create a conversation list item to keep track */
-    
+
     struct conversation_list_item *new_item = malloc(sizeof(struct conversation_list_item));
     new_item->peer = peer;
     new_item->reason = malloc(strlen(reason));
@@ -372,7 +368,7 @@ int safe_add_conversation(sdp_peer *peer, const char *reason)
 
 /**
  * @brief Replies to the sender in the queue item
- * Automatically adds the correct SDP preamble, data is 
+ * Automatically adds the correct SDP preamble, data is
  *
  * @param queue_item
  * @param work_type
@@ -424,14 +420,18 @@ int start_conversation(sdp_peer *peer, enum e_work_type work_type,
         }
         free(new_data);
 
-        if (retval < 0) {
-            if (retval == -SDP_WARN_NO_PEERS) {
+        if (retval < 0)
+        {
+            if (retval == -SDP_WARN_NO_PEERS)
+            {
                 ESP_LOGW(log_prefix, "Removing conversation, no peers");
-            } else {
+            }
+            else
+            {
                 ESP_LOGE(log_prefix, "Error in communication, removing conversation.");
             }
             /* The communication failed, remove the conversation*/
-            
+
             end_conversation(new_conversation_id);
         }
     }

@@ -207,7 +207,7 @@ ble_spp_client_gap_event(struct ble_gap_event *event, void *arg)
                 }
 
             }
-            MODLOG_DFLT(INFO, "Added peer, now discover sercices.");
+            MODLOG_DFLT(INFO, "Added peer, now discover services.");
             /* Perform service discovery. */
             rc = ble_peer_disc_all(event->connect.conn_handle,
                                ble_on_disc_complete, NULL);

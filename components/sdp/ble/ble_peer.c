@@ -55,6 +55,40 @@ peer_dsc_disced(uint16_t conn_handle, const struct ble_gatt_error *error,
 char *log_prefix; 
 
 
+/**
+ * @brief Check if there are any SDP peers with the same BLE address.
+ * 
+ * @param mac_address  The peer's little ended BLE mac adress (peer_ip/ota_addr)
+ * @param conn_handle  The BLE connection handle to update the SDP to if found
+ * 
+ * 
+ * @return struct ble_peer* 
+ */
+struct sdp_peer *
+ble_peer_find_sdp_peer_by_reverse_addr(sdp_mac_address *mac_address)
+{
+    /* Handle BLE:s penchant for little-endedness, and adjust for the BLE offset to the base MAC (2) */
+    uint8_t reversed_address[SDP_MAC_ADDR_LEN];
+    reversed_address[0] = (uint8_t)(*mac_address)[5];
+    reversed_address[1] = (uint8_t)(*mac_address)[4];
+    reversed_address[2] = (uint8_t)(*mac_address)[3];
+    reversed_address[3] = (uint8_t)(*mac_address)[2];
+    reversed_address[4] = (uint8_t)(*mac_address)[1];
+    reversed_address[5] = (uint8_t)(*mac_address)[0] - 2;
+
+    struct sdp_peer *peer;
+    SLIST_FOREACH(peer, &sdp_peers, next)
+    {
+        if (memcmp(&(peer->ble_mac_address),&reversed_address, SDP_MAC_ADDR_LEN) == 0)
+        {
+            return peer;
+        }
+    }
+
+    return NULL;
+}
+
+
 struct ble_peer *
 ble_peer_find(uint16_t conn_handle)
 {
@@ -62,6 +96,7 @@ ble_peer_find(uint16_t conn_handle)
 
     SLIST_FOREACH(peer, &ble_peers, next)
     {
+        ESP_LOGW(log_prefix, "In ble_peer_find loop");
         if (peer->conn_handle == conn_handle)
         {
             return peer;
@@ -70,6 +105,8 @@ ble_peer_find(uint16_t conn_handle)
 
     return NULL;
 }
+
+
 
 static void
 peer_disc_complete(struct ble_peer *peer, int rc)
@@ -760,7 +797,14 @@ int ble_peer_delete(uint16_t conn_handle)
 
     return 0;
 }
-
+/**
+ * @brief Try to add a new BLE peer
+ * This routine make several checks to mae
+ * 
+ * @param conn_handle 
+ * @param desc 
+ * @return int 
+ */
 int ble_peer_add(uint16_t conn_handle, struct ble_gap_conn_desc desc)
 {
     struct ble_peer *peer;
@@ -768,9 +812,31 @@ int ble_peer_add(uint16_t conn_handle, struct ble_gap_conn_desc desc)
     /* Make sure the connection handle is unique. */
     peer = ble_peer_find(conn_handle);
     if (peer != NULL)
-    {
-        return BLE_HS_EALREADY;
+    {       
+        return BLE_HS_EALREADY;   
+    } else {
+        ESP_LOGW(log_prefix, "Didn't find the connection, looking at the address");
+        // Might be a reboot
+        sdp_peer *sdp_peer = ble_peer_find_sdp_peer_by_reverse_addr(&(desc.peer_id_addr.val));
+        if (sdp_peer != NULL)
+        {
+            ESP_LOGW(log_prefix, "An existing peer had the same peer_id_addr, assuming reconnect and updates conn_handle. \n \
+             Might be hack though.");
+            // TODO: Could this be an easy way to steal connections?
+            // TODO: This should probably trigger some form of check or re-authentication.
+            // TODO: Add suspiciousness property
+            sdp_peer->ble_conn_handle = conn_handle;
+            return BLE_HS_EALREADY;  
+
+        }
     }
+    
+    ESP_LOGI(log_prefix, "peer_id_addr (MAC address):");
+    ESP_LOG_BUFFER_HEX(log_prefix, &(desc.peer_id_addr.val), SDP_MAC_ADDR_LEN);
+    ESP_LOG_BUFFER_HEX(log_prefix, &(desc.peer_ota_addr.val), SDP_MAC_ADDR_LEN);
+    ESP_LOG_BUFFER_HEX(log_prefix, &(desc.our_id_addr.val), SDP_MAC_ADDR_LEN);
+    ESP_LOG_BUFFER_HEX(log_prefix, &(desc.our_ota_addr.val), SDP_MAC_ADDR_LEN);
+
 
     peer = os_memblock_get(&ble_peer_pool);
     if (peer == NULL)
@@ -808,7 +874,7 @@ int ble_peer_add(uint16_t conn_handle, struct ble_gap_conn_desc desc)
         sdp_peer *sdp_peer = sdp_mesh_find_peer_by_name(tmpPeerName);
         sdp_peer->ble_conn_handle = conn_handle;  
         
-        ESP_LOGI(log_prefix, "Didn't add SDP peer due to BLE reconnection, but set the ble connection handle.");
+        ESP_LOGI(log_prefix, "Didn't add SDP peer due to BLE reconnection (same name), but set the ble connection handle.");
 
     }
     SLIST_INSERT_HEAD(&ble_peers, peer, next);

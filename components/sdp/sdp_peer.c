@@ -71,43 +71,30 @@ int sdp_peer_inform(work_queue_item_t *queue_item) {
 
     ESP_LOGI(log_prefix, "Informing peer.");
 
-    // TODO: Partcount doesn't work that well Can we create better checks? 
-    /*
-    if (queue_item->partcount != 7) {
-        if (queue_item->partcount > 1) {
-            ESP_LOGE(log_prefix, "ME-message from %s didn't have the correct number of parts. Claims to use protocol version %s", 
-                queue_item->peer->name, queue_item->parts[1]);
-        } else {
-            ESP_LOGE(log_prefix, "ME-message from %s didn't have enough parts to parse. Partcount: %i", 
-                queue_item->peer->name, queue_item->partcount);
-        }
-
-        return -SDP_ERR_INVALID_PARAM;
-    }*/
-
     /* Set the protocol versions*/
     queue_item->peer->protocol_version = (uint8_t)atoi(queue_item->parts[1]);
     queue_item->peer->min_protocol_version = (uint8_t)atoi(queue_item->parts[2]);
     /* Set the name of the peer */
     strcpy(queue_item->peer->name, queue_item->parts[3]);
+
+    if (strcmp(queue_item->peer->name, "") == 0) {
+        queue_item->peer->state = PEER_UNKNOWN;
+    } else {
+        queue_item->peer->state = PEER_KNOWN_INSECURE;
+    }   
+
     /* Set supported media types*/
     queue_item->peer->supported_media_types = (uint8_t)atoi(queue_item->parts[4]);
 
-    /* As*/
     /* Set BLE MAC address*/
     memcpy(&queue_item->peer->ble_mac_address, &(queue_item->raw_data[20]), SDP_MAC_ADDR_LEN);
     /* Set ESP-NOW MAC address*/ 
     memcpy(&queue_item->peer->espnow_mac_address, &(queue_item->raw_data[27]), SDP_MAC_ADDR_LEN);
     
-    if (strcmp(queue_item->peer->name, "") == 0) {
-        queue_item->peer->state = PEER_UNKNOWN;
-    } else {
-        queue_item->peer->state = PEER_KNOWN_INSECURE;
-    }
-
     ESP_LOGI(log_prefix, "Peer %s now more informed ",queue_item->peer->name);
     ESP_LOG_BUFFER_HEX(log_prefix, queue_item->peer->ble_mac_address, SDP_MAC_ADDR_LEN);
     ESP_LOG_BUFFER_HEX(log_prefix, queue_item->peer->espnow_mac_address, SDP_MAC_ADDR_LEN);
+
     // TODO: Check protocol version for highest matching protocol version.
     
     return 0;

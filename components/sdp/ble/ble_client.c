@@ -198,10 +198,16 @@ ble_spp_client_gap_event(struct ble_gap_event *event, void *arg)
             rc = ble_peer_add(event->connect.conn_handle, desc);
             if (rc != 0)
             {
-                MODLOG_DFLT(ERROR, "Failed to add peer; rc=%d\n", rc);
-                return 0;
+                if (rc == BLE_HS_EALREADY) {
+                    MODLOG_DFLT(INFO, "Peer was already present (conn_handle=%i).", event->connect.conn_handle);
+                    return 0;
+                } else {
+                    MODLOG_DFLT(ERROR, "Failed to add peer; rc=%d\n", rc);
+                    return 0;
+                }
+
             }
-            MODLOG_DFLT(INFO, "Added peer.");
+            MODLOG_DFLT(INFO, "Added peer, now discover sercices.");
             /* Perform service discovery. */
             rc = ble_peer_disc_all(event->connect.conn_handle,
                                ble_on_disc_complete, NULL);

@@ -138,9 +138,10 @@ ble_spp_server_gap_event(struct ble_gap_event *event, void *arg)
             rc = ble_peer_add(event->connect.conn_handle, desc);
             if (rc != 0)
             {
+                
                 MODLOG_DFLT(ERROR, "Failed to add peer; rc=%d\n", rc);
                 return 0;
-            }
+            } 
             MODLOG_DFLT(INFO, "Added peer.");
             /* Perform service discovery. */
             rc = ble_peer_disc_all(event->connect.conn_handle,

@@ -95,6 +95,7 @@ int sdp_mesh_peer_add(sdp_peer_name name)
 
     ESP_LOGI(log_prefix, "sdp_peer_add() - adding SDP peer, name: %s", name);
 
+
     /* TODO: Make sure the peer name is unique*/
     peer = sdp_mesh_find_peer_by_name(name);
     if (peer != NULL)

@@ -43,8 +43,8 @@ int sdp_peer_send_me_message(work_queue_item_t *queue_item) {
      * supported  media types: A byte describing the what communication technologies the peer supports.
      * adresses: A list of addresses in the order of the bits in the media types byte.
      */
-    int me_length = add_to_message(&me_msg,"ME|%i|%i|%s|%hhu|%b6|%b6", 
-        pv, pvm, sdp_host.sdp_host_name, supported_media_types, sdp_host.ble_mac_address, sdp_host.espnow_mac_address);
+    int me_length = add_to_message(&me_msg,"ME|%i|%i|%s|%hhu|%b6", 
+        pv, pvm, sdp_host.sdp_host_name, supported_media_types, sdp_host.base_mac_address);
 
     if (me_length > 0) {
         retval = sdp_reply(*queue_item, HANDSHAKE, me_msg, me_length);
@@ -86,19 +86,17 @@ int sdp_peer_inform(work_queue_item_t *queue_item) {
     /* Set supported media types*/
     queue_item->peer->supported_media_types = (uint8_t)atoi(queue_item->parts[4]);
 
-    /* Set BLE MAC address*/
-    memcpy(&queue_item->peer->ble_mac_address, &(queue_item->raw_data[20]), SDP_MAC_ADDR_LEN);
-    /* Set ESP-NOW MAC address*/ 
-    memcpy(&queue_item->peer->espnow_mac_address, &(queue_item->raw_data[27]), SDP_MAC_ADDR_LEN);
+
+    /* Set base MAC address*/ 
+    memcpy(&queue_item->peer->base_mac_address, &(queue_item->raw_data[20]), SDP_MAC_ADDR_LEN);
     
     ESP_LOGI(log_prefix, "Peer %s now more informed ",queue_item->peer->name);
-    ESP_LOG_BUFFER_HEX(log_prefix, queue_item->peer->ble_mac_address, SDP_MAC_ADDR_LEN);
-    ESP_LOG_BUFFER_HEX(log_prefix, queue_item->peer->espnow_mac_address, SDP_MAC_ADDR_LEN);
+    ESP_LOG_BUFFER_HEX(log_prefix, queue_item->peer->base_mac_address, SDP_MAC_ADDR_LEN);
+
 
     // TODO: Check protocol version for highest matching protocol version.
     
     return 0;
-
 
 }
 

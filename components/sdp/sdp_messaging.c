@@ -16,6 +16,10 @@
 #ifdef CONFIG_SDP_LOAD_BLE
 #include "ble/ble_global.h"
 #endif
+#ifdef CONFIG_SDP_LOAD_ESP_NOW
+#include "espnow/espnow_messaging.h"
+
+#endif
 
 #define CONFIG_SDP_MAX_PEERS 20
 
@@ -92,7 +96,7 @@ void parse_message(work_queue_item_t *queue_item)
     }
 }
 
-int handle_incoming(sdp_peer *peer, uint16_t attr_handle, const uint8_t *data, int data_len, e_media_type media_type)
+int handle_incoming(sdp_peer *peer, const uint8_t *data, int data_len, e_media_type media_type)
 {
     ESP_LOGI(log_prefix, "Payload length: %i, call count %i, CRC32: %u", data_len, callcount++,
              crc32_be(0, data, data_len));
@@ -273,19 +277,22 @@ int broadcast_message(uint16_t conversation_id,
     if (total == 0)
     {
         ESP_LOGW(log_prefix, "Broadcast had no peers to send to!");
-        return SDP_WARN_NO_PEERS;
+        return -SDP_WARN_NO_PEERS;
     }
 
     if (errors == total)
-    {
-        return SDP_ERR_SEND_FAIL;
+    {   
+        ESP_LOGW(log_prefix, "Broadcast failed all %i send attempts!", total);
+        return -SDP_ERR_SEND_FAIL;
     }
     else if (errors > 0)
     {
-        return SDP_ERR_SEND_SOME_FAIL;
+        ESP_LOGW(log_prefix, "Broadcast failed %i send attempts!", errors);
+        return -SDP_ERR_SEND_SOME_FAIL;
     }
     else
     {
+        ESP_LOGI(log_prefix, "Broadcast sent to %i peers.", total);
         return SDP_OK;
     }
 }
@@ -319,9 +326,9 @@ void report_ble_connection_error(int conn_handle, int code)
  */
 e_media_type send_message(struct sdp_peer *peer, void *data, int data_length)
 {
-
-#ifdef CONFIG_SDP_LOAD_BLE
     int rc = 0;
+#ifdef CONFIG_SDP_LOAD_BLE
+
     // Send message using BLE
     if (peer->ble_conn_handle >= 0)
     {
@@ -336,6 +343,25 @@ e_media_type send_message(struct sdp_peer *peer, void *data, int data_length)
             // TODO: Add start general QoS monitoring, stop using some technologies if they are failing
         }
     }
+#endif
+#ifdef CONFIG_SDP_LOAD_ESP_NOW
+    ESP_LOGI(log_prefix, "ESP-NOW sending to: ");
+    ESP_LOG_BUFFER_HEX(log_prefix, peer->base_mac_address, SDP_MAC_ADDR_LEN);
+    rc = espnow_send_message(peer->base_mac_address, data, data_length);
+
+    if (rc == 0)
+    {
+        return SDP_MT_ESPNOW;
+    }
+    else
+    {
+        ESP_LOGE(log_prefix, "Sending using ESPNOW failed.");
+        //report_ble_connection_error(peer->ble_conn_handle, rc);
+        // TODO: Add start general QoS monitoring, stop using some technologies if they are failing
+    }
+
+    //if (peer->base_mac_address) {}
+
 #endif
 
     return SDP_MT_NONE;
@@ -411,12 +437,12 @@ int start_conversation(sdp_peer *peer, enum e_work_type work_type,
         void *new_data = sdp_add_preamble(work_type, new_conversation_id, data, data_length);
         if (peer == NULL)
         {
-            retval = -broadcast_message(new_conversation_id, work_type,
+            retval = broadcast_message(new_conversation_id, work_type,
                                         new_data, data_length + SDP_PREAMBLE_LENGTH);
         }
         else
         {
-            retval = -send_message(peer, new_data, data_length + SDP_PREAMBLE_LENGTH);
+            retval = send_message(peer, new_data, data_length + SDP_PREAMBLE_LENGTH);
         }
         free(new_data);
 
@@ -428,11 +454,11 @@ int start_conversation(sdp_peer *peer, enum e_work_type work_type,
             }
             else
             {
-                ESP_LOGE(log_prefix, "Error in communication, removing conversation.");
+                ESP_LOGE(log_prefix, "Error %i in communication, removing conversation.", retval);
             }
             /* The communication failed, remove the conversation*/
-
             end_conversation(new_conversation_id);
+            retval = -SDP_ERR_SEND_FAIL;
         }
     }
     else

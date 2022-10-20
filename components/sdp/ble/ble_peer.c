@@ -16,6 +16,7 @@
 #include "ble_spp.h"
 #include "../sdp_def.h"
 #include "../sdp_mesh.h"
+#include "esp_log.h"
 
 static void *peer_svc_mem;
 static struct os_mempool peer_svc_pool;
@@ -79,7 +80,7 @@ ble_peer_find_sdp_peer_by_reverse_addr(sdp_mac_address *mac_address)
     struct sdp_peer *peer;
     SLIST_FOREACH(peer, &sdp_peers, next)
     {
-        if (memcmp(&(peer->ble_mac_address),&reversed_address, SDP_MAC_ADDR_LEN) == 0)
+        if (memcmp(&(peer->base_mac_address),&reversed_address, SDP_MAC_ADDR_LEN) == 0)
         {
             return peer;
         }
@@ -96,7 +97,6 @@ ble_peer_find(uint16_t conn_handle)
 
     SLIST_FOREACH(peer, &ble_peers, next)
     {
-        ESP_LOGW(log_prefix, "In ble_peer_find loop");
         if (peer->conn_handle == conn_handle)
         {
             return peer;
@@ -860,23 +860,33 @@ int ble_peer_add(uint16_t conn_handle, struct ble_gap_conn_desc desc)
     sprintf((char *)tmpPeerName, "UNKN_BLE_%i", conn_handle);
     int _sdp_handle = sdp_mesh_peer_add(tmpPeerName);
 
+    sdp_peer *_sdp_peer = NULL;
     if (_sdp_handle > -1) {
         peer->sdp_handle = _sdp_handle;
-        sdp_peer *sdp_peer = sdp_mesh_find_peer_by_handle(_sdp_handle);
-        if (sdp_peer == NULL) {
+        _sdp_peer = sdp_mesh_find_peer_by_handle(_sdp_handle);
+        if (_sdp_peer == NULL) {
             ESP_LOGE(log_prefix, "ble_peer_add() - Wasn't able to map back to the sdp_handle. Handle: %i", _sdp_handle);
             return BLE_ERR_HW_FAIL;
         } 
         
-        sdp_peer->ble_conn_handle = conn_handle;        
+        _sdp_peer->ble_conn_handle = conn_handle;        
         
     } else if (_sdp_handle == -SDP_ERR_PEER_EXISTS) {
-        sdp_peer *sdp_peer = sdp_mesh_find_peer_by_name(tmpPeerName);
-        sdp_peer->ble_conn_handle = conn_handle;  
+        _sdp_peer = sdp_mesh_find_peer_by_name(tmpPeerName);
+        _sdp_peer->ble_conn_handle = conn_handle;  
         
         ESP_LOGI(log_prefix, "Didn't add SDP peer due to BLE reconnection (same name), but set the ble connection handle.");
 
     }
+
+    if (_sdp_peer->state == PEER_UNKNOWN) {
+        // We know to little about the peer; ask for more information.
+        if (sdp_peer_send_who_message(_sdp_peer) == SDP_MT_NONE)
+        {
+            ESP_LOGE(log_prefix, "sdp_peer_add() - Failed to ask for more information: %s", _sdp_peer->name);
+        }
+    }
+
     SLIST_INSERT_HEAD(&ble_peers, peer, next);
     return 0;
 }

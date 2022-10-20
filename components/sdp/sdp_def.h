@@ -161,15 +161,8 @@ struct sdp_host_t {
     /* The peer name*/
     sdp_peer_name sdp_host_name;
 
-#ifdef CONFIG_SDP_LOAD_BLE
-    /* The connection handle of the BLE connection*/
-    sdp_mac_address ble_mac_address;
-#endif
-
-#ifdef CONFIG_SDP_LOAD_ESP_NOW
-    /* The mac adress handle of the ESP-NOW connection*/
-    sdp_mac_address espnow_mac_address;
-#endif    
+    /* The base mac adress handle of the system*/
+    sdp_mac_address base_mac_address;
 
 } sdp_host;
 
@@ -197,16 +190,19 @@ typedef struct sdp_peer
     /* Minimum supported protocol version*/
     uint8_t min_protocol_version;
 
+/**
+ * @brief Following is the the 6-byte base MAC adress of the peer.
+ * Note that the other MAC-adresses are offset, and in BLE´s case little-endian, for example. More info here: 
+ * https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/system/misc_system_api.html#mac-address
+ */
+
+    sdp_mac_address base_mac_address;
+
 #ifdef CONFIG_SDP_LOAD_BLE
-    /* The connection handle of the BLE connection*/
+    /* The connection handle of the BLE connection, NimBLE has its own peer handling.*/
     int ble_conn_handle;
-    sdp_mac_address ble_mac_address;
 #endif
 
-#ifdef CONFIG_SDP_LOAD_ESP_NOW
-    /* The mac adress handle of the ESP-NOW connection*/
-    sdp_mac_address espnow_mac_address;
-#endif
 
 } sdp_peer;
 

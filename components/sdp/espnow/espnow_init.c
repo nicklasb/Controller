@@ -10,14 +10,10 @@
 #include "sdp_def.h"
 
 #include "espnow_messaging.h"
+#include "espnow_peer.h"
 
 
-#if CONFIG_ESPNOW_WIFI_MODE_STATION
-#define ESPNOW_WIFI_MODE WIFI_MODE_STA
-#define ESPNOW_WIFI_IF   ESP_IF_WIFI_STA
-#else
-#define ESPNOW_WIFI_MODE WIFI_MODE_AP
-#endif
+
 
 /* The log prefix for all logging */
 char *log_prefix;
@@ -57,8 +53,9 @@ void espnow_init(char * _log_prefix, bool is_controller) {
     esp_wifi_get_mac(ESP_IF_WIFI_STA, wifi_mac_addr);
     ESP_LOGI(log_prefix, "WIFI base MAC address:");
     ESP_LOG_BUFFER_HEX(log_prefix, wifi_mac_addr, SDP_MAC_ADDR_LEN);  
-    memcpy(sdp_host.espnow_mac_address, wifi_mac_addr, SDP_MAC_ADDR_LEN);
-    init_espnow_messaging(_log_prefix);
+    memcpy(sdp_host.base_mac_address, wifi_mac_addr, SDP_MAC_ADDR_LEN);
+    espnow_messaging_init(_log_prefix);
+    espnow_peer_init(_log_prefix);
     ESP_LOGI(log_prefix, "ESP-NOW initialized.");
 }
 

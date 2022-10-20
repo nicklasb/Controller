@@ -9,6 +9,7 @@
 #include "sdp_def.h"
 
 
+
 #define WHO_LENGTH 4
 
 char *log_prefix;
@@ -139,6 +140,8 @@ int add_to_message(uint8_t **message, const char *format, ...)
     free(format_array);
     return new_length;
 }
+
+
 
 void sdp_helpers_init(char * _log_prefix) {
     log_prefix = _log_prefix;

@@ -5,10 +5,12 @@
 #include "sdp_task.h"
 #include "sdp_messaging.h"
 
-#include "sdp_helpers.h"
+
+#include "sdp_mesh.h"
 
 #include "esp_timer.h"
 #include "ui_builder.h"
+#include "local_settings.h"
 
 #include "esp_log.h"
 
@@ -133,8 +135,11 @@ void periodic_sensor_query(void *arg)
 
     char data[8] = "sensors\0";
     ESP_LOGI(log_prefix, "Test broadcast beginning.");
-    start_conversation(NULL, REQUEST, "sensors", &data, sizeof(data));
+    
+    sdp_peer *peer = sdp_mesh_find_peer_by_base_mac_address(local_hosts[1].base_mac_address);
+    start_conversation(peer, REQUEST, "sensors", &data, sizeof(data));
 
+    
     ESP_LOGI(log_prefix, "Test broadcast done.");
     ESP_ERROR_CHECK(esp_timer_start_once(periodic_timer, 10000000));
 }
@@ -144,6 +149,12 @@ void init_sdp_task() {
     on_filter_request_cb = &do_on_filter_request;
     on_filter_data_cb = &do_on_filter_data;  
     sdp_init(&do_on_work, &do_on_priority, "Controller\0", true);
+
+    sdp_add_init_new_peer(local_hosts[1].hostname, local_hosts[1].base_mac_address, SDP_MT_ESPNOW);
+
+
+/* Controller:  e0:e2:e6:bd:8e:58*/
+    /* Peripheral:  34:86:5d:39:b1:18 */
 
     const esp_timer_create_args_t periodic_timer_args = {
             .callback =  &periodic_sensor_query,

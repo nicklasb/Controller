@@ -19,4 +19,8 @@ int sdp_mesh_init(char *_log_prefix, int max_peers);
 struct sdp_peer *sdp_mesh_find_peer_by_name(const sdp_peer_name name);
 struct sdp_peer *sdp_mesh_find_peer_by_handle(__int16_t peer_handle);
 
+
+sdp_peer *sdp_add_init_new_peer(sdp_peer_name peer_name, sdp_mac_address mac_address, e_media_type media_type);
+struct sdp_peer *sdp_mesh_find_peer_by_base_mac_address(sdp_mac_address mac_address);
+
 #endif

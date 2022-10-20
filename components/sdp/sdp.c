@@ -59,7 +59,7 @@ int sdp_init(work_callback work_cb, work_callback priority_cb, char *_log_prefix
     init_worker(work_cb, priority_cb, _log_prefix);
     init_messaging(_log_prefix);
 
-    ESP_LOGI(_log_prefix, "SDP initiated!");
+   
 
     /* Init media types */
     #ifdef CONFIG_SDP_LOAD_BLE
@@ -70,6 +70,8 @@ int sdp_init(work_callback work_cb, work_callback priority_cb, char *_log_prefix
         ESP_LOGI(_log_prefix, "Initiating ESP-NOW..");
         espnow_init(_log_prefix, is_controller);
     #endif
+     
+    ESP_LOGI(_log_prefix, "SDP initiated!");
     return 0;
 }
 

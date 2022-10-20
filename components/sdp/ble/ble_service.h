@@ -7,8 +7,6 @@
 #define _BLE_SERVICE_H_
 #include <os/queue.h>
 
-
-
 /* This semaphore is use for blocking, so different threads doesn't accidentaly communicate at the same time */
 SemaphoreHandle_t xBLE_Comm_Semaphore;
 

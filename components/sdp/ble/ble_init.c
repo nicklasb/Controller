@@ -62,7 +62,7 @@ void ble_init(char *log_prefix, bool is_controller)
     esp_base_mac_addr_get(ble_mac_addr);
     ESP_LOGI(log_prefix, "BLE base MAC address:");
     ESP_LOG_BUFFER_HEX(log_prefix, ble_mac_addr, SDP_MAC_ADDR_LEN);
-    memcpy(sdp_host.ble_mac_address, ble_mac_addr, SDP_MAC_ADDR_LEN);
+
     /* Register custom service */
     ret = gatt_svr_register();
     assert(ret == 0);

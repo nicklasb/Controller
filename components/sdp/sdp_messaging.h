@@ -29,7 +29,7 @@ SLIST_HEAD(conversation_list, conversation_list_item) conversation_l;
 
 void parse_message(work_queue_item_t *queue_item);
 
-int handle_incoming(sdp_peer *peer, uint16_t attr_handle, const  uint8_t *data, int data_len, e_media_type media_type);
+int handle_incoming(sdp_peer *peer, const  uint8_t *data, int data_len, e_media_type media_type);
 
 int broadcast_message(uint16_t conversation_id,
                       enum e_work_type work_type, void *data, int data_length);

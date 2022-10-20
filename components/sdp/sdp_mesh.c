@@ -159,7 +159,7 @@ sdp_peer_free_mem(void)
  * @param mac_address 
  * @return sdp_peer* 
  */
-sdp_peer* sdp_add_init_new_peer(sdp_peer_name peer_name, sdp_mac_address mac_address, e_media_type media_type) {
+sdp_peer* sdp_add_init_new_peer(sdp_peer_name peer_name, const sdp_mac_address mac_address, e_media_type media_type) {
 
     int peer_handle = sdp_mesh_peer_add(peer_name);
     sdp_peer* peer = sdp_mesh_find_peer_by_handle(peer_handle);
@@ -170,16 +170,18 @@ sdp_peer* sdp_add_init_new_peer(sdp_peer_name peer_name, sdp_mac_address mac_add
         if (media_type & SDP_MT_BLE) {
         //(mac_address);       
         }
+        //TODO: We might 
 #endif
 
 #ifdef CONFIG_SDP_LOAD_ESP_NOW
         if (media_type & SDP_MT_ESPNOW) {
             ESP_LOGE(log_prefix, "Adding espnow peer at:"); 
             ESP_LOG_BUFFER_HEX(log_prefix, peer->base_mac_address, SDP_MAC_ADDR_LEN);
-            espnow_add_peer(peer->base_mac_address);  
+            int rc = espnow_add_peer(peer->base_mac_address);  
+            
         }
 #endif
-        // We know to little about the peer; ask for more information.
+        // We know too little about the peer; ask for more information.
         if (sdp_peer_send_who_message(peer) == SDP_MT_NONE)
         {
             ESP_LOGE(log_prefix, "sdp_peer_add() - Failed to ask for more information: %s", peer_name);

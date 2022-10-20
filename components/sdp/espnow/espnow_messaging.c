@@ -42,6 +42,7 @@ char *log_prefix;
 
 #define ESPNOW_MAXDELAY 512
 
+int unknown_counter = 0;
 
 static QueueHandle_t s_espnow_queue;
 
@@ -91,12 +92,28 @@ static void espnow_recv_cb(const uint8_t *mac_addr, const uint8_t *data, int len
 
     sdp_peer *peer = sdp_mesh_find_peer_by_base_mac_address( mac_addr);
     if (peer != NULL) {
-                ESP_LOGE(log_prefix, "espnow_recv_cb got a message from an unknown peer. Data:");
+                ESP_LOGI(log_prefix, "espnow_recv_cb got a message from a peer. Data:");
         ESP_LOG_BUFFER_HEX(log_prefix, data, len);
+        
+        
         handle_incoming(peer, data, len, SDP_MT_BLE);
+
     } else {
-        ESP_LOGE(log_prefix, "espnow_recv_cb got a message from an unknown peer. Data:");
+        ESP_LOGI(log_prefix, "espnow_recv_cb got a message from an unknown peer. Data:");
         ESP_LOG_BUFFER_HEX(log_prefix, data, len);
+        /* Remember peer. */
+        esp_now_peer_info_t *espnow_peer = malloc(sizeof(esp_now_peer_info_t));
+        /* TODO: These seem arbitrary, see how channel and such is handled*/
+        espnow_peer->channel = 0;
+        espnow_peer->encrypt = false;
+        espnow_peer->ifidx = ESP_IF_WIFI_STA;
+        memcpy(espnow_peer->peer_addr, mac_addr, SDP_MAC_ADDR_LEN); 
+
+        char *new_name;
+        asprintf(&new_name, "UNKNOWN_%i", unknown_counter);
+        sdp_peer *s_peer = sdp_add_init_new_peer(new_name, mac_addr, SDP_MT_ESPNOW);
+
+            
     }
 }
 #if 0

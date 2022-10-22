@@ -1,8 +1,7 @@
 /**
  * @file sleep.c
- * @author your name (you@domain.com)
+ * @author Nicklas Borjesson (nicklasb@gmail.com)
  * @brief This is about sleep management
- * @version 0.1
  * @date 2022-10-22
  * 
  * @copyright Copyright (c) 2022

@@ -19,6 +19,7 @@
 #include <nvs_flash.h>
 
 #include "monitor/monitor.h"
+#include "sleep/sleep.h"
 
 #include "sdp_worker.h"
 #include "sdp_messaging.h"
@@ -43,6 +44,9 @@ int sdp_init(work_callback work_cb, work_callback priority_cb, char *_log_prefix
 
     // Begin with initialising the monitor to capture initial memory state.
     init_monitor(_log_prefix);
+
+    // Init sleep functionality
+    sleep_init(_log_prefix); 
 
     if (work_cb == NULL || priority_cb == NULL)
     {

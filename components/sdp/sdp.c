@@ -38,6 +38,12 @@
 
 int sdp_init(work_callback work_cb, work_callback priority_cb, char *_log_prefix, bool is_controller)
 {
+     // Begin with initializing sleep functionality, it will also de
+    if (sleep_init(_log_prefix)) {
+        ESP_LOGI(_log_prefix, "Needs to consider that we returned from sleep.");
+    }       
+
+ 
     sdp_host.protocol_version = SDP_PROTOCOL_VERSION;
     sdp_host.min_protocol_version = SDP_PROTOCOL_VERSION_MIN;
     strcpy(sdp_host.sdp_host_name, CONFIG_SDP_PEER_NAME);
@@ -45,8 +51,7 @@ int sdp_init(work_callback work_cb, work_callback priority_cb, char *_log_prefix
     // Begin with initialising the monitor to capture initial memory state.
     init_monitor(_log_prefix);
 
-    // Init sleep functionality
-    sleep_init(_log_prefix); 
+
 
     if (work_cb == NULL || priority_cb == NULL)
     {

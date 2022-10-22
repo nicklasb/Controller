@@ -257,9 +257,15 @@ typedef int(filter_callback)(work_queue_item_t *work_item);
 
 /* Optional callback that intercepts before incoming request messages are added to the work queue */
 filter_callback *on_filter_request_cb;
-/* Optional callback that intercepts before incoming reply messages are added to the work queue */
+/* Optional filtering before incoming reply messages are added to the work queue */
 filter_callback *on_filter_reply_cb;
-/* Optional callback that intercepts before incoming data messages are added to the work queue */
+/* Optional filtering before incoming data messages are added to the work queue */
 filter_callback *on_filter_data_cb;
+
+/* Callbacks that are called before sleeping, return true to stop going to sleep. */
+typedef bool(before_sleep)();
+
+/* Optional callback that happen before the system is going to sleep */
+before_sleep *on_before_sleep_cb;
 
 #endif

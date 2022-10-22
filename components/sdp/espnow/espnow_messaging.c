@@ -293,7 +293,7 @@ static void espnow_task(void *pvParameter)
 
 static esp_err_t espnow_init(void)
 {
-    espnow_send_param_t *send_param;
+
 
     s_espnow_queue = xQueueCreate(ESPNOW_QUEUE_SIZE, sizeof(espnow_event_t));
     if (s_espnow_queue == NULL) {

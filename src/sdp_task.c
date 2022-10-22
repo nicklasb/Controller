@@ -4,9 +4,12 @@
 #include "sdp.h"
 #include "sdp_task.h"
 #include "sdp_messaging.h"
-
-
 #include "sdp_mesh.h"
+
+#include "sleep/sleep.h"
+
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 
 #include "esp_timer.h"
 #include "ui_builder.h"
@@ -15,6 +18,9 @@
 #include "esp_log.h"
 
 esp_timer_handle_t periodic_timer;
+
+
+#define SDP_SLEEP_TIME 5000000
 
 /**
  * @brief Takes a closer look on the incoming request queue item, does it need urgent attention?
@@ -141,11 +147,18 @@ void periodic_sensor_query(void *arg)
 
     
     ESP_LOGI(log_prefix, "Test broadcast done.");
+
     ESP_ERROR_CHECK(esp_timer_start_once(periodic_timer, 10000000));
+}
+
+
+bool before_sleep_cb() {
+    return true;
 }
 
 void init_sdp_task() {
 
+    on_before_sleep_cb = &before_sleep_cb;
     on_filter_request_cb = &do_on_filter_request;
     on_filter_data_cb = &do_on_filter_data;  
     sdp_init(&do_on_work, &do_on_priority, "Controller\0", true);
@@ -164,4 +177,9 @@ void init_sdp_task() {
 
     ESP_ERROR_CHECK(esp_timer_create(&periodic_timer_args, &periodic_timer));
     ESP_ERROR_CHECK(esp_timer_start_once(periodic_timer, 1000000));
+
+    ESP_LOGI(log_prefix, "Waiting for sleep in 5000 ms.");
+    vTaskDelay(5000/portTICK_PERIOD_MS);
+    ESP_LOGI(log_prefix, "Going to sleep for %i mikroseconds", SDP_SLEEP_TIME);   
+    goto_sleep_for_microseconds(SDP_SLEEP_TIME);
 }

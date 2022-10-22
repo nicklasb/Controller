@@ -10,6 +10,7 @@
  */
 
 #include "sleep.h"
+#include "sdp_def.h"
 #include "esp_err.h"
 #include "esp_sleep.h"
 #include "esp_log.h"
@@ -19,6 +20,13 @@ char * log_prefix;
 
 
 void goto_sleep_for_microseconds(uint64_t microsecs) {
+    if (on_before_sleep_cb) {
+        ESP_LOGI(log_prefix, "Calling before sleep callback");
+        if (!on_before_sleep_cb()) {
+            ESP_LOGW(log_prefix, "Stopped from going to sleep by callback!");
+            return;
+        }        
+    }
     ESP_LOGI(log_prefix, "---------------------------------------- S L E E P ----------------------------------------");
     ESP_LOGI(log_prefix, "Going to sleep for %llu microseconds", microsecs);
     if (esp_sleep_enable_timer_wakeup(microsecs) == ESP_OK) {

@@ -25,6 +25,7 @@ char * log_prefix;
 
 
 void goto_sleep_for_microseconds(uint64_t microsecs) {
+
     if (on_before_sleep_cb) {
         ESP_LOGI(log_prefix, "Calling before sleep callback");
         if (!on_before_sleep_cb()) {
@@ -33,12 +34,15 @@ void goto_sleep_for_microseconds(uint64_t microsecs) {
         }        
     }
     ESP_LOGI(log_prefix, "---------------------------------------- S L E E P ----------------------------------------");
-    ESP_LOGI(log_prefix, "At %lli Going to sleep for %llu microseconds", esp_timer_get_time(), microsecs);
-    
+    ESP_LOGI(log_prefix, "At %lli going to sleep for %llu microseconds", esp_timer_get_time(), microsecs);
         
     if (esp_sleep_enable_timer_wakeup(microsecs) == ESP_OK) {
-        last_sleep_time+= esp_timer_get_time();
+        /* Set the sleep time just before going to sleep. */
+        last_sleep_time = get_time_since_start();
         esp_deep_sleep_start();
+    } else {
+        ESP_LOGE(log_prefix, "Error going to sleep for %llu microseconds!", microsecs);
+    
     }
 }
 
@@ -69,7 +73,6 @@ bool sleep_init(char * _log_prefix) {
     default:
         ESP_LOGI(log_prefix, "----------------------------------------- W A K E -----------------------------------------");
         ESP_LOGI(log_prefix, "Returning from sleep mode.");
-        last_sleep_time+= SDP_CYCLE_DELAY_uS;
         return true;
         break;
     }
@@ -83,13 +86,14 @@ int get_last_sleep_time() {
     return last_sleep_time;
 }
 /**
- * @brief Get the time since first boot (not wakeup)
+ * @brief 
  * 
  * @return int 
  */
 int get_time_since_start() {
     if (last_sleep_time > 0) {
         /* Can't include the cycle delay if we haven't cycled.. */
+        /* The time we fell asleep + the time we waited + the time since waking up = Total time*/
         return last_sleep_time + SDP_CYCLE_DELAY_uS + esp_timer_get_time();
     } else {
         return esp_timer_get_time();

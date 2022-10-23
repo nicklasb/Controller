@@ -20,8 +20,18 @@ int next_time;
  * 
  */
 void update_next_availability_window() {
-    // Note that this value will roll over at certain points (79 days?)
-    next_time = get_last_sleep_time() + (SDP_CYCLE_DELAY_uS  + SDP_CYCLE_UPTIME_uS); 
+    // Note that this value will roll over at certain points (49.7 days?)
+    ESP_LOGI(log_prefix, "update_next_availability_window(): get_last_sleep_time(): %i, %i, %i, %i", 
+    get_last_sleep_time(), SDP_CYCLE_DELAY_uS, SDP_CYCLE_UPTIME_uS,
+    SDP_CYCLE_DELAY_uS  + SDP_CYCLE_UPTIME_uS + SDP_CYCLE_DELAY_uS);
+    /* Next time  = Last time we fell asleep + how long we slept + how long we should've been up + how long we will sleep */
+    if (get_last_sleep_time() == 0)
+    {
+        next_time = SDP_CYCLE_UPTIME_uS + SDP_CYCLE_DELAY_uS; 
+    } else {
+        next_time = get_last_sleep_time() + SDP_CYCLE_DELAY_uS  + SDP_CYCLE_UPTIME_uS + SDP_CYCLE_DELAY_uS; 
+    }
+    
     ESP_LOGI(log_prefix, "Next time we are available is at %i.", next_time);
 }
 
@@ -29,7 +39,7 @@ void sdp_orchestration_parse_next_message(work_queue_item_t *queue_item) {
 
     ESP_LOGI(log_prefix, "Parsing NEXT: get_last_sleep_time() : %i + esp_timer_get_time(): %lli + atoi(queue_item->parts[1]): %i",
     get_last_sleep_time(),  esp_timer_get_time(), atoi(queue_item->parts[1]));
-    queue_item->peer->next_availability = get_last_sleep_time() + esp_timer_get_time() + atoi(queue_item->parts[1]);
+    queue_item->peer->next_availability = get_time_since_start() + atoi(queue_item->parts[1]);
     ESP_LOGI(log_prefix, "Peer %s is available at %i.", queue_item->peer->name, queue_item->peer->next_availability);
 }
 
@@ -48,7 +58,6 @@ int sdp_orchestration_send_next_message(work_queue_item_t *queue_item) {
 
     uint8_t *next_msg = NULL;
 
-    
     /* TODO: Handle the 32bit loop-around after 79 days ? */
     int delta_next =  next_time - get_time_since_start(); 
     ESP_LOGI(log_prefix, "sdp_orchestration_send_next_message, next_time (%i) - get_time_since_start() (%i)  =  delta_next(%i)",
@@ -80,6 +89,9 @@ int sdp_orchestration_send_when_message(sdp_peer *peer) {
 
 void sleep_until_peer_available(sdp_peer *peer, int margin_us) {
     if (peer->next_availability > 0) {
+        ESP_LOGI(log_prefix, "sleep_until_peer_available peer->next_availability(%i) - get_time_since_start()(%i) + margin_us(%i)",
+        peer->next_availability,  get_time_since_start(), margin_us);
+
         int sleep_length = peer->next_availability - get_time_since_start() + margin_us;
         ESP_LOGI(log_prefix, "Going to sleep for %i microseconds.", sleep_length);
         goto_sleep_for_microseconds(sleep_length);
@@ -94,6 +106,33 @@ void take_control() {
     
     vTaskDelay(wait_ms/portTICK_PERIOD_MS);
     goto_sleep_for_microseconds(SDP_CYCLE_DELAY_uS);
+}
+
+void  give_control(sdp_peer * peer) {
+
+    if (peer != NULL) {
+        peer->next_availability = 0;
+        // Ask for orchestration
+        ESP_LOGI(log_prefix, "Asking for orchestration..");
+        int retries = 0;
+        while (retries < SDP_CYCLE_RETRY_COUNT) {
+            sdp_orchestration_send_when_message(peer);
+            vTaskDelay(500/portTICK_PERIOD_MS); 
+            if (peer->next_availability > 0) {
+                break;
+            }
+            retries++;
+        }
+        if (retries == SDP_CYCLE_RETRY_COUNT) {
+            ESP_LOGE(log_prefix, "Haven't gotten an availability time for peer \"%s\" ! Going to sleep for %i microseconds..",
+                peer->name, SDP_CYCLE_DELAY_uS);
+            goto_sleep_for_microseconds(SDP_CYCLE_DELAY_uS);
+        } else {
+            ESP_LOGI(log_prefix, "Waiting for sleep..");
+            vTaskDelay(5000/portTICK_PERIOD_MS); 
+            sleep_until_peer_available(peer, SDP_CYCLE_MARGIN);           
+        }
+    }
 }
 
 

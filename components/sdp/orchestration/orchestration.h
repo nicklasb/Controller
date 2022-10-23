@@ -7,6 +7,7 @@ void update_next_availability_window();
 
 
 void take_control();
+void give_control(sdp_peer * peer); 
 
 void orchestration_init(char * _log_prefix); 
 

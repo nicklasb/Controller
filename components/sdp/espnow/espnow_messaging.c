@@ -411,10 +411,11 @@ int espnow_send_message(sdp_mac_address *dest_mac_address, void *data, int data_
         } else {
             ESP_LOGE(log_prefix, "ESP-NOW unknown error: %i", rc);
         }
-        return SDP_ERR_SEND_FAIL;
+        return -SDP_ERR_SEND_FAIL;
         //espnow_deinit(send_param);
         //vTaskDelete(NULL);
     }
+
     return rc;
 }
 

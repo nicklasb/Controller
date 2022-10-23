@@ -36,7 +36,7 @@ char *log_prefix;
 SemaphoreHandle_t x_conversation_list_semaphore;
 
 /* Forward declarations*/
-e_media_type send_message(struct sdp_peer *peer, void *data, int data_length);
+int send_message(struct sdp_peer *peer, void *data, int data_length);
 
 /**
  * @brief Add a preamble with general info in the beginning of a message
@@ -270,11 +270,11 @@ int broadcast_message(uint16_t conversation_id,
 {
     struct sdp_peer *curr_peer;
     int total = 0, errors = 0;
-    e_media_type ret;
+    int ret;
     SLIST_FOREACH(curr_peer, &sdp_peers, next)
     {
         ret = send_message(curr_peer, data, data_length);
-        if (ret == SDP_MT_NONE)
+        if (ret < 0)
         {
             ESP_LOGE(log_prefix, "Error: broadcast_message: Failure sending message! Peer: %s Code: %i", curr_peer->name, ret);
             errors++;
@@ -334,10 +334,10 @@ void report_ble_connection_error(int conn_handle, int code)
 #endif
 
 /**
- * @brief Like send_message, but only sends to one specified peer using first available media type.
+ * @brief Sends to one specified peer using first available media type.
 
  */
-e_media_type send_message(struct sdp_peer *peer, void *data, int data_length)
+int send_message(struct sdp_peer *peer, void *data, int data_length)
 {
     int rc = 0;
 #ifdef CONFIG_SDP_LOAD_BLE
@@ -369,6 +369,7 @@ e_media_type send_message(struct sdp_peer *peer, void *data, int data_length)
     else
     {
         ESP_LOGE(log_prefix, "Sending using ESPNOW failed.");
+        return -SDP_ERR_SEND_FAIL;
         //report_ble_connection_error(peer->ble_conn_handle, rc);
         // TODO: Add start general QoS monitoring, stop using some technologies if they are failing
     }

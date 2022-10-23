@@ -87,8 +87,10 @@ int sdp_init(work_callback work_cb, work_callback priority_cb, char *_log_prefix
         ESP_LOGI(_log_prefix, "Initiating ESP-NOW..");
         espnow_init(_log_prefix);
     #endif
-
-    gsm_init(_log_prefix);
+    #ifdef CONFIG_SDP_LOAD_GSM
+        ESP_LOGI(_log_prefix, "Initiating GSM modem..");
+        gsm_init(_log_prefix);
+    #endif
      
     ESP_LOGI(_log_prefix, "SDP initiated!");
     return 0;

@@ -6,12 +6,15 @@ menu "SDP Configuration"
     config SDP_LOAD_BLE
     bool "Load Bluetooth libraries"
     help
-        Set this option to tell SDP to load Bluetooth libraries
+        Set this option to tell SDP to load the Bluetooth library
     config SDP_LOAD_ESP_NOW
     bool "Load ESP-Now libraries"
     help
-        Set this option to tell SDP to load ESP-Now libraries
-
+        Set this option to tell SDP to load the ESP-Now library
+    config SDP_LOAD_GSM
+        bool "Load GSM libraries"
+        help
+            Set this option to tell SDP to load the esp-modem GSM library
     config SDP_PEER_NAME_LEN
     int "Peer name length"
     default 16

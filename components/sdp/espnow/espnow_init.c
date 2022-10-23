@@ -44,7 +44,7 @@ void init_wifi() {
  * @param _log_prefix 
  * @param is_controller 
  */
-void espnow_init(char * _log_prefix, bool is_controller) {
+void espnow_init(char * _log_prefix) {
     log_prefix = _log_prefix;
     ESP_LOGI(log_prefix, "Initializing ESP-NOW.");
     init_wifi();

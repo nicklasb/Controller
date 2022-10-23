@@ -10,6 +10,7 @@
 #include "sdp_peer.h"
 #include "sdp_def.h"
 #include "sdp_helpers.h"
+#include "orchestration/orchestration.h"
 
 #include "sdkconfig.h"
 
@@ -211,6 +212,18 @@ int handle_incoming(sdp_peer *peer, const uint8_t *data, int data_len, e_media_t
         }
 
         break;
+    case ORCHESTRATION:
+        if (strcmp(new_item->parts[0], "WHEN") == 0)
+        {
+            // Reply
+            sdp_orchestration_send_next_message(new_item);
+        }
+        else if (strcmp(new_item->parts[0], "NEXT") == 0)
+        {
+            sdp_orchestration_parse_next_message(new_item);
+        }
+        break;
+
 
     case PRIORITY:
         /* This is likely to be some kind of problem report or alarm,

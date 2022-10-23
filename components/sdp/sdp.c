@@ -20,6 +20,7 @@
 
 #include "monitor/monitor.h"
 #include "sleep/sleep.h"
+#include "orchestration/orchestration.h"
 
 #include "sdp_worker.h"
 #include "sdp_messaging.h"
@@ -36,12 +37,17 @@
 
 #include <esp_log.h>
 
-int sdp_init(work_callback work_cb, work_callback priority_cb, char *_log_prefix, bool is_controller)
+int sdp_init(work_callback work_cb, work_callback priority_cb, char *_log_prefix, bool is_conductor)
 {
+
+
+
+
      // Begin with initializing sleep functionality, it will also de
     if (sleep_init(_log_prefix)) {
         ESP_LOGI(_log_prefix, "Needs to consider that we returned from sleep.");
     }       
+    orchestration_init(_log_prefix);
 
  
     sdp_host.protocol_version = SDP_PROTOCOL_VERSION;
@@ -75,11 +81,11 @@ int sdp_init(work_callback work_cb, work_callback priority_cb, char *_log_prefix
     /* Init media types */
     #ifdef CONFIG_SDP_LOAD_BLE
         ESP_LOGI(_log_prefix, "Initiating BLE..");
-        ble_init(_log_prefix, is_controller);
+        ble_init(_log_prefix, is_conductor);
     #endif
     #ifdef CONFIG_SDP_LOAD_ESP_NOW
         ESP_LOGI(_log_prefix, "Initiating ESP-NOW..");
-        espnow_init(_log_prefix, is_controller);
+        espnow_init(_log_prefix);
     #endif
      
     ESP_LOGI(_log_prefix, "SDP initiated!");

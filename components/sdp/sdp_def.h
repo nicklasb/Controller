@@ -21,6 +21,13 @@
 /* The length, in bytes of the SDP preamble. */
 #define SDP_PREAMBLE_LENGTH 4
 
+/* How long will each cycle be*/
+#define SDP_CYCLE_DELAY_uS 20000000
+/* How long will we be listening */
+#define SDP_CYCLE_UPTIME_uS 20000000
+/* Will we wait a little extra to avoid flooding? */
+#define SDP_CYCLE_MARGIN 500000
+
 /* Common error codes */
 typedef enum e_sdp_error_codes
 {
@@ -91,8 +98,10 @@ typedef enum e_work_type
     REQUEST = 1,
     REPLY = 2,
     DATA = 3,
-    PRIORITY = 4
+    PRIORITY = 4,
+    ORCHESTRATION = 5
 } e_work_type;
+
 
 /**
  * @brief Supported media types
@@ -189,6 +198,9 @@ typedef struct sdp_peer
     uint8_t protocol_version;
     /* Minimum supported protocol version*/
     uint8_t min_protocol_version;
+
+     /* Next availability (measured in mikroseconds from first boot)*/
+    int next_availability;   
 
 /**
  * @brief Following is the the 6-byte base MAC adress of the peer.

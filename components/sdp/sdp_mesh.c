@@ -134,6 +134,7 @@ int sdp_mesh_peer_add(sdp_peer_name name)
     }
     memset(peer, 0, sizeof *peer);
     peer->peer_handle = _peer_handle_incrementor_++;
+    peer->next_availability = 0;
     strcpy(peer->name, name);
 
     SLIST_INSERT_HEAD(&sdp_peers, peer, next);

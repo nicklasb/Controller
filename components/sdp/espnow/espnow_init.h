@@ -13,6 +13,6 @@
 #endif
 
 
-void espnow_init(char * _log_prefix, bool is_controller);
+void espnow_init(char * _log_prefix);
 
 #endif

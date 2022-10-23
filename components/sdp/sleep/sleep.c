@@ -14,7 +14,13 @@
 #include "esp_sleep.h"
 #include "esp_log.h"
 
+#include "freertos/FreeRTOS.h"
+#include "freertos/timers.h"
+
+RTC_DATA_ATTR int last_sleep_time;
+
 char * log_prefix;
+
 
 
 
@@ -27,11 +33,15 @@ void goto_sleep_for_microseconds(uint64_t microsecs) {
         }        
     }
     ESP_LOGI(log_prefix, "---------------------------------------- S L E E P ----------------------------------------");
-    ESP_LOGI(log_prefix, "Going to sleep for %llu microseconds", microsecs);
+    ESP_LOGI(log_prefix, "At %lli Going to sleep for %llu microseconds", esp_timer_get_time(), microsecs);
+    
+        
     if (esp_sleep_enable_timer_wakeup(microsecs) == ESP_OK) {
+        last_sleep_time+= esp_timer_get_time();
         esp_deep_sleep_start();
     }
 }
+
 /**
  * @brief Initialization of sleep management
  * 
@@ -51,16 +61,40 @@ bool sleep_init(char * _log_prefix) {
         ESP_LOGI(log_prefix, "----------------------------------------- B O O T -----------------------------------------");
         ESP_LOGI(log_prefix, "-------------------------------------------------------------------------------------------");
         ESP_LOGI(log_prefix, "Normal boot, not returning from sleep mode.");
+        // No sleep time has happened if we don't return from sleep mode.
+        last_sleep_time = 0;
         return false;
         break;
     
     default:
         ESP_LOGI(log_prefix, "----------------------------------------- W A K E -----------------------------------------");
         ESP_LOGI(log_prefix, "Returning from sleep mode.");
+        last_sleep_time+= SDP_CYCLE_DELAY_uS;
         return true;
         break;
     }
-
-
 }
+/**
+ * @brief Get the last sleep time
+ * 
+ * @return int 
+ */
+int get_last_sleep_time() {
+    return last_sleep_time;
+}
+/**
+ * @brief Get the time since first boot (not wakeup)
+ * 
+ * @return int 
+ */
+int get_time_since_start() {
+    if (last_sleep_time > 0) {
+        /* Can't include the cycle delay if we haven't cycled.. */
+        return last_sleep_time + SDP_CYCLE_DELAY_uS + esp_timer_get_time();
+    } else {
+        return esp_timer_get_time();
+    }
+    
+}
+
 

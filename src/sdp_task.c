@@ -15,6 +15,8 @@
 #include "ui_builder.h"
 #include "local_settings.h"
 
+#include "orchestration/orchestration.h"
+
 #include "esp_log.h"
 
 esp_timer_handle_t periodic_timer;
@@ -178,8 +180,6 @@ void init_sdp_task() {
     ESP_ERROR_CHECK(esp_timer_create(&periodic_timer_args, &periodic_timer));
     ESP_ERROR_CHECK(esp_timer_start_once(periodic_timer, 1000000));
 
-    ESP_LOGI(log_prefix, "Waiting for sleep in 5000 ms.");
-    vTaskDelay(5000/portTICK_PERIOD_MS);
-    ESP_LOGI(log_prefix, "Going to sleep for %i mikroseconds", SDP_SLEEP_TIME);   
-    goto_sleep_for_microseconds(SDP_SLEEP_TIME);
+    // Let the orchestrator take over. 
+    take_control();
 }

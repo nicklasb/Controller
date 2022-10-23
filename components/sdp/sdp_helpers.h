@@ -24,6 +24,5 @@ void *sdp_add_preamble(e_work_type work_type, uint16_t conversation_id, const vo
 
 void sdp_helpers_init(char * _log_prefix);
 
-int send_who_message(sdp_peer *peer);
 
 #endif

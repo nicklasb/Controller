@@ -37,7 +37,7 @@
  * @param log_prefix The prefix for logging and naming
  * @param pvTaskFunction A function containing the task to run
  */
-void ble_init(char *log_prefix, bool is_controller)
+void ble_init(char *log_prefix)
 {
 
     ESP_LOGI(log_prefix, "Initialising BLE..");

@@ -1,11 +1,11 @@
 /**
  * @file sleep.c
  * @author Nicklas Borjesson (nicklasb@gmail.com)
- * @brief This is about sleep management
+ * @brief Sleep management
  * @date 2022-10-22
- * 
+ *
  * @copyright Copyright (c) 2022
- * 
+ *
  */
 
 #include "sleep.h"
@@ -17,43 +17,47 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/timers.h"
 
+/* Store the moment we last went to sleep in persistent storage */
 RTC_DATA_ATTR int last_sleep_time;
 
-char * log_prefix;
+char *log_prefix;
 
+void goto_sleep_for_microseconds(uint64_t microsecs)
+{
 
-
-
-void goto_sleep_for_microseconds(uint64_t microsecs) {
-
-    if (on_before_sleep_cb) {
+    if (on_before_sleep_cb)
+    {
         ESP_LOGI(log_prefix, "Calling before sleep callback");
-        if (!on_before_sleep_cb()) {
+        if (!on_before_sleep_cb())
+        {
             ESP_LOGW(log_prefix, "Stopped from going to sleep by callback!");
             return;
-        }        
+        }
     }
     ESP_LOGI(log_prefix, "---------------------------------------- S L E E P ----------------------------------------");
-    ESP_LOGI(log_prefix, "At %lli going to sleep for %llu microseconds", esp_timer_get_time(), microsecs);
-        
-    if (esp_sleep_enable_timer_wakeup(microsecs) == ESP_OK) {
+    ESP_LOGI(log_prefix, "At %lli and going to sleep for %llu microseconds", esp_timer_get_time(), microsecs);
+
+    if (esp_sleep_enable_timer_wakeup(microsecs) == ESP_OK)
+    {
         /* Set the sleep time just before going to sleep. */
         last_sleep_time = get_time_since_start();
         esp_deep_sleep_start();
-    } else {
+    }
+    else
+    {
         ESP_LOGE(log_prefix, "Error going to sleep for %llu microseconds!", microsecs);
-    
     }
 }
 
 /**
  * @brief Initialization of sleep management
- * 
- * @param _log_prefix 
+ *
+ * @param _log_prefix
  * @return true Returns true if waking up from sleep
  * @return false Returns false if normal boot
  */
-bool sleep_init(char * _log_prefix) {
+bool sleep_init(char *_log_prefix)
+{
     // TODO: Do I need a wake stub like: https://github.com/espressif/esp-idf/blob/master/docs/en/api-guides/deep-sleep-stub.rst
     log_prefix = _log_prefix;
     esp_sleep_wakeup_cause_t wakeup_cause = esp_sleep_get_wakeup_cause();
@@ -69,7 +73,7 @@ bool sleep_init(char * _log_prefix) {
         last_sleep_time = 0;
         return false;
         break;
-    
+
     default:
         ESP_LOGI(log_prefix, "----------------------------------------- W A K E -----------------------------------------");
         ESP_LOGI(log_prefix, "Returning from sleep mode.");
@@ -79,26 +83,28 @@ bool sleep_init(char * _log_prefix) {
 }
 /**
  * @brief Get the last sleep time
- * 
- * @return int 
+ *
+ * @return int
  */
-int get_last_sleep_time() {
+int get_last_sleep_time()
+{
     return last_sleep_time;
 }
 /**
- * @brief 
- * 
- * @return int 
+ * @brief
+ *
+ * @return int
  */
-int get_time_since_start() {
-    if (last_sleep_time > 0) {
-        /* Can't include the cycle delay if we haven't cycled.. */
+int get_time_since_start()
+{
+    if (last_sleep_time > 0)
+    {
         /* The time we fell asleep + the time we waited + the time since waking up = Total time*/
         return last_sleep_time + SDP_CYCLE_DELAY_uS + esp_timer_get_time();
-    } else {
+    }
+    else
+    {
+        /* Can't include the cycle delay if we haven't cycled.. */
         return esp_timer_get_time();
     }
-    
 }
-
-

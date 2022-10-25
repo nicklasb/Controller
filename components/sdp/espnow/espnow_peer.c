@@ -1,5 +1,5 @@
 #include "espnow_peer.h"
-
+#include <sdkconfig.h>
 #include <esp_now.h>
 #include <esp_log.h>
 #include <string.h>

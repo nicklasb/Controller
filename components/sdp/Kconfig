@@ -3,6 +3,7 @@
 menu "SDP Configuration"
 
     rsource "espnow/Kconfig"
+    rsource "gsm/Kconfig"    
     config SDP_LOAD_BLE
     bool "Load Bluetooth libraries"
     help

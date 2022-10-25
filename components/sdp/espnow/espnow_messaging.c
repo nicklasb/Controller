@@ -3,6 +3,7 @@
 // #include <time.h>
 // #include <string.h>
 // #include <assert.h>
+#include <sdkconfig.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 // #include "freertos/timers.h"
@@ -118,7 +119,7 @@ static esp_err_t espnow_init(void)
     ESP_ERROR_CHECK(esp_now_set_wake_window(65535));
 #endif
     /* Set primary master key. */
-    ESP_ERROR_CHECK(esp_now_set_pmk((uint8_t *)CONFIG_ESPNOW_PMK));
+    ESP_ERROR_CHECK(esp_now_set_pmk((uint8_t *)(CONFIG_ESPNOW_PMK)));
 
 
     return ESP_OK;

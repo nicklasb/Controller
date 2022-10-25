@@ -4,13 +4,13 @@
 
 #include <sys/queue.h>
 #include <stdint.h>
-#include <sdkconfig.h>
+#include "sdkconfig.h"
 
 #ifdef CONFIG_SDP_LOAD_ESP_NOW
 #include <esp_now.h>
 #endif
 
-#include "sdkconfig.h"
+
 
 /* The current protocol version */
 #define SDP_PROTOCOL_VERSION 0
@@ -145,7 +145,8 @@ typedef enum e_peer_state
 #define SDP_MAC_ADDR_LEN 6
 
 /* MAC-addresses should always be 6-byte values regardless of tech */
-#if ESP_NOW_ETH_ALEN != 6 || SDP_MAC_ADDR_LEN != 6
+
+#if (ESP_NOW_ETH_ALEN && ESP_NOW_ETH_ALEN != 6) || SDP_MAC_ADDR_LEN != 6
 #error ESP_NOW_ETH_ALEN or SDP_MAC_ADDR_LEN has been set to something else than six bytes. \
 MAC-addresses are 6-byte values regardless of technology. \
 This library assumes this and may fail using other lengths for this setting.

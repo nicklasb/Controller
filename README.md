@@ -7,7 +7,7 @@ This is a central peer for managing and collecting sensor data from [peripherals
 * BLE, ESP-NOW and LoRa communication
 * GSM SMS reporting and control
 * GPS for positioning
-* Wake on GPIO, then BLE for low-power situations and alarms.   
+* Wake on GPIO, then go to wireless for low-power situations and alarms.   
 * Danger/intrusion detection (theft, camera), danger (fire, leaks)*
 
 The first evolution is hard-coded to a specific setup, the next will attempt to be more dynamic. 
@@ -19,6 +19,7 @@ The first evolution is hard-coded to a specific setup, the next will attempt to 
 * ESP-NOW communication
 * Create a project for peripherals that work in unison with the controller 
 * Create a custom BLE service that just does what is needed
+* Sleep and timed wake handling, synchronized waking with peers
 * A framework for a queue-based work item handling
 * Runtime monitor for statistics (historical memory tracking mostly, should be possible to add warnings for leaks and other sus stuff)
 * Make data from peripherals appear on the controller screen 

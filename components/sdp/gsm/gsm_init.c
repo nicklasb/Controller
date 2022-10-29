@@ -10,6 +10,9 @@
 #include "esp_netif_ppp.h"
 #include "mqtt_client.h"
 
+#include "driver/gpio.h"
+
+
 
 #include "esp_log.h"
 
@@ -132,6 +135,75 @@ static void on_ip_event(void *arg, esp_event_base_t event_base,
     }
 }
 
+void test() {
+
+ESP_LOGI(log_prefix, "-----------------------------------------------------");   
+const uart_port_t uart_num = UART_NUM_2;
+uart_config_t uart_config = {
+    .baud_rate = 9600,
+    .data_bits = UART_DATA_8_BITS,
+    .parity = UART_PARITY_DISABLE,
+    .stop_bits = UART_STOP_BITS_1,
+    .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+    .rx_flow_ctrl_thresh = 122,
+};
+// Configure UART parameters
+ESP_ERROR_CHECK(uart_param_config(uart_num, &uart_config));
+// Set UART pins(TX: IO4, RX: IO5, RTS: IO18, CTS: IO19)
+ESP_ERROR_CHECK(uart_set_pin(uart_num, 26,27, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
+ESP_LOGI(log_prefix, "1");   
+// Setup UART buffered IO with event queue
+const int uart_buffer_size = (1024 * 2);
+QueueHandle_t uart_queue;
+// Install UART driver using an event queue here
+
+   // Power on the modem.
+    ESP_LOGI(TAG, "Power on the modem.");
+    gpio_set_direction(GPIO_NUM_4, GPIO_MODE_OUTPUT);
+    gpio_set_level(GPIO_NUM_4, 1);
+    vTaskDelay(10/portTICK_PERIOD_MS); 
+    gpio_set_level(GPIO_NUM_4, 0);
+    vTaskDelay(1010/portTICK_PERIOD_MS); 
+
+ESP_ERROR_CHECK(uart_driver_install(uart_num, uart_buffer_size, \
+                                        uart_buffer_size, 10, &uart_queue, 0));
+    
+    gpio_set_level(GPIO_NUM_4, 1);
+    vTaskDelay(4510/portTICK_PERIOD_MS);                                        
+ESP_LOGI(log_prefix, "2"); 
+// Write data to UART.
+
+char* test_str = "AT+&FZE0&W\n";
+uart_write_bytes(uart_num, (const char*)test_str, 11);
+// Wait for packet to be sent
+ESP_ERROR_CHECK(uart_wait_tx_done(uart_num, 100)); // wait timeout is 100 RTOS ticks (TickType_t)
+vTaskDelay(200/portTICK_PERIOD_MS);
+char* test_str = "AT+&FZE0&W\n";
+uart_write_bytes(uart_num, (const char*)test_str, 11);
+// Wait for packet to be sent
+ESP_ERROR_CHECK(uart_wait_tx_done(uart_num, 100)); // wait timeout is 100 RTOS ticks (TickType_t)
+
+test_str = "AT+SIMCOMATI\n";
+uart_write_bytes(uart_num, (const char*)test_str, 13);
+// Wait for packet to be sent
+ESP_ERROR_CHECK(uart_wait_tx_done(uart_num, 100)); // wait timeout is 100 RTOS ticks (TickType_t)
+// Read data from UART.
+ESP_LOGI(log_prefix, "3"); 
+uint8_t data[128];
+int length = 0;
+vTaskDelay(200/portTICK_PERIOD_MS);
+ESP_ERROR_CHECK(uart_get_buffered_data_len(uart_num, (size_t*)&length));
+ESP_LOGI(log_prefix, "4"); 
+length = uart_read_bytes(uart_num, data, length, 100);
+ESP_LOGI(log_prefix, "-----%i------------------------------------------------", length);
+
+ESP_LOG_BUFFER_HEX(log_prefix, data, length);
+//+SIMCOMATI");
+
+vTaskDelay(10000/portTICK_PERIOD_MS);
+
+
+}
 
 void gsm_start()
 {
@@ -153,10 +225,12 @@ void gsm_start()
 #if defined(CONFIG_EXAMPLE_SERIAL_CONFIG_UART)
     esp_modem_dte_config_t dte_config = ESP_MODEM_DTE_DEFAULT_CONFIG();
     /* setup UART specific configuration based on kconfig options */
+    dte_config.uart_config.baud_rate = 9600;
     dte_config.uart_config.tx_io_num = CONFIG_EXAMPLE_MODEM_UART_TX_PIN;
     dte_config.uart_config.rx_io_num = CONFIG_EXAMPLE_MODEM_UART_RX_PIN;
     dte_config.uart_config.rts_io_num = CONFIG_EXAMPLE_MODEM_UART_RTS_PIN;
     dte_config.uart_config.cts_io_num = CONFIG_EXAMPLE_MODEM_UART_CTS_PIN;
+
     dte_config.uart_config.rx_buffer_size = CONFIG_EXAMPLE_MODEM_UART_RX_BUFFER_SIZE;
     dte_config.uart_config.tx_buffer_size = CONFIG_EXAMPLE_MODEM_UART_TX_BUFFER_SIZE;
     dte_config.uart_config.event_queue_size = CONFIG_EXAMPLE_MODEM_UART_EVENT_QUEUE_SIZE;
@@ -174,8 +248,15 @@ void gsm_start()
     ESP_LOGI(TAG, "Initializing esp_modem for the SIM7600 module...");
     esp_modem_dce_t *dce = esp_modem_new_dev(ESP_MODEM_DCE_SIM7600, &dte_config, &dce_config, esp_netif);
 #elif CONFIG_EXAMPLE_MODEM_DEVICE_SIM7000 == 1
+
+ 
+    test();
     ESP_LOGI(TAG, "Initializing esp_modem for the SIM7000 module...");
-    esp_modem_dce_t *dce = esp_modem_new_dev(ESP_MODEM_DCE_SIM7000, &dte_config, &dce_config, esp_netif);    
+    esp_modem_dce_t *dce = esp_modem_new_dev(ESP_MODEM_DCE_SIM7000, &dte_config, &dce_config, esp_netif);  
+
+    ESP_LOGI(TAG, "Waiting...");
+    vTaskDelay(4510/portTICK_PERIOD_MS);
+    
 #else
     ESP_LOGI(TAG, "Initializing esp_modem for a generic module...");
     esp_modem_dce_t *dce = esp_modem_new(&dte_config, &dce_config, esp_netif);
@@ -194,6 +275,7 @@ void gsm_start()
 #else
 #error Invalid serial connection to modem.
 #endif
+
     assert(dce);
     xEventGroupClearBits(event_group, CONNECT_BIT | GOT_DATA_BIT | USB_DISCONNECTED_BIT);
 
@@ -211,17 +293,19 @@ void gsm_start()
 #endif
 
     int rssi, ber;
+    ESP_LOGI(TAG, "Checking for signal quality..");
     esp_err_t err = esp_modem_get_signal_quality(dce, &rssi, &ber);
+
     if (err != ESP_OK) {
-        ESP_LOGE(TAG, "esp_modem_get_signal_quality failed with %d", err);
-        return;
+        ESP_LOGE(TAG, "esp_modem_get_signal_quality failed with error:  %i", err);
+        goto cleanup;
     }
     ESP_LOGI(TAG, "Signal quality: rssi=%d, ber=%d", rssi, ber);
 
 #if CONFIG_EXAMPLE_SEND_MSG
     if (esp_modem_sms_txt_mode(dce, true) != ESP_OK || esp_modem_sms_character_set(dce) != ESP_OK) {
         ESP_LOGE(TAG, "Setting text mode or GSM character set failed");
-        return;
+        goto cleanup;
     }
 
     err = esp_modem_send_sms(dce, CONFIG_EXAMPLE_SEND_MSG_PEER_PHONE_NUMBER, "Text message from esp-modem");
@@ -232,9 +316,10 @@ void gsm_start()
 #endif
 
     err = esp_modem_set_mode(dce, ESP_MODEM_MODE_DATA);
+    ESP_LOGI(TAG, "5");
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "esp_modem_set_mode(ESP_MODEM_MODE_DATA) failed with %d", err);
-        return;
+        goto cleanup;
     }
     /* Wait for IP address */
     ESP_LOGI(TAG, "Waiting for IP address");
@@ -262,15 +347,17 @@ void gsm_start()
     err = esp_modem_set_mode(dce, ESP_MODEM_MODE_COMMAND);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "esp_modem_set_mode(ESP_MODEM_MODE_COMMAND) failed with %d", err);
-        return;
+        goto cleanup;
     }
     char imsi[32];
     err = esp_modem_get_imsi(dce, imsi);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "esp_modem_get_imsi failed with %d", err);
-        return;
+        goto cleanup;
     }
     ESP_LOGI(TAG, "IMSI=%s", imsi);
+
+cleanup:
 
 #if defined(CONFIG_EXAMPLE_SERIAL_CONFIG_USB)
     // USB example runs in a loop to demonstrate hot-plugging and sudden disconnection features.
@@ -283,13 +370,21 @@ void gsm_start()
     esp_modem_destroy(dce);
     esp_netif_destroy(esp_netif);
 #endif
+    // Power off the modem.
+    gpio_set_direction(GPIO_NUM_4, GPIO_MODE_OUTPUT);
+    gpio_set_level(GPIO_NUM_4, 0); 
+    ESP_LOGE(TAG, "Exiting GSM main task!");
+    vTaskDelete(NULL);
 }
 
 
 void gsm_init(char * _log_prefix){
     log_prefix = _log_prefix;
+    int rc = xTaskCreatePinnedToCore(gsm_start, "GSM main task", 8192, NULL, 8, NULL, 0);
+    if (rc != pdPASS) {
+        ESP_LOGE(log_prefix, "Failed creating GSM task, returned: %i (see projdefs.h)", rc);
+    } 
+    ESP_LOGI(log_prefix, "GSM main task registered.");
 
-    gsm_start();
-// Initiate C++ code
 
 }

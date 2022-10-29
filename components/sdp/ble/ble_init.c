@@ -77,7 +77,9 @@ void ble_init(char *log_prefix)
     /* Configure the host callbacks */
 
     ble_hs_cfg.reset_cb = ble_on_reset;
-    if (is_controller)
+    ble_hs_cfg.sync_cb = ble_spp_server_on_sync;
+    /*
+        if (is_controller)
     {
         ble_hs_cfg.sync_cb = ble_spp_client_on_sync;
     }
@@ -85,7 +87,7 @@ void ble_init(char *log_prefix)
     {
         ble_hs_cfg.sync_cb = ble_spp_server_on_sync;
     }
-
+    */
     ble_hs_cfg.store_status_cb = ble_store_util_status_rr;
     ble_hs_cfg.gatts_register_cb = gatt_svr_register_cb;
     // Not secure connections

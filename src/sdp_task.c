@@ -178,7 +178,7 @@ void init_sdp_task() {
 
 
     ESP_ERROR_CHECK(esp_timer_create(&periodic_timer_args, &periodic_timer));
-    ESP_ERROR_CHECK(esp_timer_start_once(periodic_timer, 1000000));
+    ESP_ERROR_CHECK(esp_timer_start_once(periodic_timer, 000000));
 
     // Let the orchestrator take over. 
     take_control();

@@ -24,7 +24,7 @@
 /* How long will each cycle be*/
 #define SDP_CYCLE_DELAY_uS 20000000
 /* How long will we be listening */
-#define SDP_CYCLE_UPTIME_uS 20000000
+#define SDP_CYCLE_UPTIME_uS 40000000
 /* Will we wait a little extra to avoid flooding? */
 #define SDP_CYCLE_MARGIN 500000
 /* How many times should we retry to connect to get orchestration? */

@@ -12,10 +12,7 @@
 
 #include "driver/gpio.h"
 
-
-
 #include "esp_log.h"
-
 
 #define BROKER_URL "mqtt://mqtt.eclipseprojects.io"
 
@@ -25,8 +22,7 @@ static const int CONNECT_BIT = BIT0;
 static const int GOT_DATA_BIT = BIT2;
 static const int USB_DISCONNECTED_BIT = BIT3; // Used only with USB DTE but we define it unconditionally, to avoid too many #ifdefs in the code
 
-char * log_prefix;
-
+char *log_prefix;
 
 #if defined(CONFIG_EXAMPLE_SERIAL_CONFIG_USB)
 #include "esp_modem_usb_c_api.h"
@@ -34,17 +30,19 @@ char * log_prefix;
 #include "freertos/task.h"
 static void usb_terminal_error_handler(esp_modem_terminal_error_t err)
 {
-    if (err == ESP_MODEM_TERMINAL_DEVICE_GONE) {
+    if (err == ESP_MODEM_TERMINAL_DEVICE_GONE)
+    {
         ESP_LOGI(TAG, "USB modem disconnected");
         assert(event_group);
         xEventGroupSetBits(event_group, USB_DISCONNECTED_BIT);
     }
 }
-#define CHECK_USB_DISCONNECTION(event_group) \
-if ((xEventGroupGetBits(event_group) & USB_DISCONNECTED_BIT) == USB_DISCONNECTED_BIT) { \
-    esp_modem_destroy(dce); \
-    continue; \
-}
+#define CHECK_USB_DISCONNECTION(event_group)                                              \
+    if ((xEventGroupGetBits(event_group) & USB_DISCONNECTED_BIT) == USB_DISCONNECTED_BIT) \
+    {                                                                                     \
+        esp_modem_destroy(dce);                                                           \
+        continue;                                                                         \
+    }
 #else
 #define CHECK_USB_DISCONNECTION(event_group)
 #endif
@@ -55,7 +53,8 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
     esp_mqtt_event_handle_t event = event_data;
     esp_mqtt_client_handle_t client = event->client;
     int msg_id;
-    switch ((esp_mqtt_event_id_t)event_id) {
+    switch ((esp_mqtt_event_id_t)event_id)
+    {
     case MQTT_EVENT_CONNECTED:
         ESP_LOGI(TAG, "MQTT_EVENT_CONNECTED");
         msg_id = esp_mqtt_client_subscribe(client, "/topic/esp-pppos", 0);
@@ -94,19 +93,20 @@ static void on_ppp_changed(void *arg, esp_event_base_t event_base,
                            int32_t event_id, void *event_data)
 {
     ESP_LOGI(TAG, "PPP state changed event %d", event_id);
-    if (event_id == NETIF_PPP_ERRORUSER) {
+    if (event_id == NETIF_PPP_ERRORUSER)
+    {
         /* User interrupted event from esp-netif */
         esp_netif_t *netif = event_data;
         ESP_LOGI(TAG, "User interrupted event from netif:%p", netif);
     }
 }
 
-
 static void on_ip_event(void *arg, esp_event_base_t event_base,
                         int32_t event_id, void *event_data)
 {
     ESP_LOGD(TAG, "IP event! %d", event_id);
-    if (event_id == IP_EVENT_PPP_GOT_IP) {
+    if (event_id == IP_EVENT_PPP_GOT_IP)
+    {
         esp_netif_dns_info_t dns_info;
 
         ip_event_got_ip_t *event = (ip_event_got_ip_t *)event_data;
@@ -125,9 +125,13 @@ static void on_ip_event(void *arg, esp_event_base_t event_base,
         xEventGroupSetBits(event_group, CONNECT_BIT);
 
         ESP_LOGI(TAG, "GOT ip event!!!");
-    } else if (event_id == IP_EVENT_PPP_LOST_IP) {
+    }
+    else if (event_id == IP_EVENT_PPP_LOST_IP)
+    {
         ESP_LOGI(TAG, "Modem Disconnect from PPP Server");
-    } else if (event_id == IP_EVENT_GOT_IP6) {
+    }
+    else if (event_id == IP_EVENT_GOT_IP6)
+    {
         ESP_LOGI(TAG, "GOT IPv6 event!");
 
         ip_event_got_ip6_t *event = (ip_event_got_ip6_t *)event_data;
@@ -135,81 +139,11 @@ static void on_ip_event(void *arg, esp_event_base_t event_base,
     }
 }
 
-void test() {
-
-ESP_LOGI(log_prefix, "-----------------------------------------------------");   
-const uart_port_t uart_num = UART_NUM_2;
-uart_config_t uart_config = {
-    .baud_rate = 9600,
-    .data_bits = UART_DATA_8_BITS,
-    .parity = UART_PARITY_DISABLE,
-    .stop_bits = UART_STOP_BITS_1,
-    .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
-    .rx_flow_ctrl_thresh = 122,
-};
-// Configure UART parameters
-ESP_ERROR_CHECK(uart_param_config(uart_num, &uart_config));
-// Set UART pins(TX: IO4, RX: IO5, RTS: IO18, CTS: IO19)
-ESP_ERROR_CHECK(uart_set_pin(uart_num, 26,27, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
-ESP_LOGI(log_prefix, "1");   
-// Setup UART buffered IO with event queue
-const int uart_buffer_size = (1024 * 2);
-QueueHandle_t uart_queue;
-// Install UART driver using an event queue here
-
-   // Power on the modem.
-    ESP_LOGI(TAG, "Power on the modem.");
-    gpio_set_direction(GPIO_NUM_4, GPIO_MODE_OUTPUT);
-    gpio_set_level(GPIO_NUM_4, 1);
-    vTaskDelay(10/portTICK_PERIOD_MS); 
-    gpio_set_level(GPIO_NUM_4, 0);
-    vTaskDelay(1010/portTICK_PERIOD_MS); 
-
-ESP_ERROR_CHECK(uart_driver_install(uart_num, uart_buffer_size, \
-                                        uart_buffer_size, 10, &uart_queue, 0));
-    
-    gpio_set_level(GPIO_NUM_4, 1);
-    vTaskDelay(4510/portTICK_PERIOD_MS);                                        
-ESP_LOGI(log_prefix, "2"); 
-// Write data to UART.
-
-char* test_str = "AT+&FZE0&W\n";
-uart_write_bytes(uart_num, (const char*)test_str, 11);
-// Wait for packet to be sent
-ESP_ERROR_CHECK(uart_wait_tx_done(uart_num, 100)); // wait timeout is 100 RTOS ticks (TickType_t)
-vTaskDelay(200/portTICK_PERIOD_MS);
-char* test_str = "AT+&FZE0&W\n";
-uart_write_bytes(uart_num, (const char*)test_str, 11);
-// Wait for packet to be sent
-ESP_ERROR_CHECK(uart_wait_tx_done(uart_num, 100)); // wait timeout is 100 RTOS ticks (TickType_t)
-
-test_str = "AT+SIMCOMATI\n";
-uart_write_bytes(uart_num, (const char*)test_str, 13);
-// Wait for packet to be sent
-ESP_ERROR_CHECK(uart_wait_tx_done(uart_num, 100)); // wait timeout is 100 RTOS ticks (TickType_t)
-// Read data from UART.
-ESP_LOGI(log_prefix, "3"); 
-uint8_t data[128];
-int length = 0;
-vTaskDelay(200/portTICK_PERIOD_MS);
-ESP_ERROR_CHECK(uart_get_buffered_data_len(uart_num, (size_t*)&length));
-ESP_LOGI(log_prefix, "4"); 
-length = uart_read_bytes(uart_num, data, length, 100);
-ESP_LOGI(log_prefix, "-----%i------------------------------------------------", length);
-
-ESP_LOG_BUFFER_HEX(log_prefix, data, length);
-//+SIMCOMATI");
-
-vTaskDelay(10000/portTICK_PERIOD_MS);
-
-
-}
-
 void gsm_start()
 {
     /* Init and register system/core components */
     ESP_ERROR_CHECK(esp_netif_init());
-//    ESP_ERROR_CHECK(esp_event_loop_create_default());
+    //    ESP_ERROR_CHECK(esp_event_loop_create_default());
     ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, ESP_EVENT_ANY_ID, &on_ip_event, NULL));
     ESP_ERROR_CHECK(esp_event_handler_register(NETIF_PPP_STATUS, ESP_EVENT_ANY_ID, &on_ppp_changed, NULL));
 
@@ -221,6 +155,14 @@ void gsm_start()
 
     event_group = xEventGroupCreate();
 
+    ESP_LOGI(log_prefix, "Power off modem pin 4");
+    gpio_set_direction(GPIO_NUM_4, GPIO_MODE_OUTPUT);
+    gpio_set_level(GPIO_NUM_4, 0);
+    vTaskDelay(100 / portTICK_PERIOD_MS);
+    ESP_LOGI(log_prefix, "Power on modem pin 4");
+    gpio_set_direction(GPIO_NUM_4, GPIO_MODE_OUTPUT);
+    gpio_set_level(GPIO_NUM_4, 1);
+
     /* Configure the DTE */
 #if defined(CONFIG_EXAMPLE_SERIAL_CONFIG_UART)
     esp_modem_dte_config_t dte_config = ESP_MODEM_DTE_DEFAULT_CONFIG();
@@ -228,8 +170,8 @@ void gsm_start()
     dte_config.uart_config.baud_rate = 9600;
     dte_config.uart_config.tx_io_num = CONFIG_EXAMPLE_MODEM_UART_TX_PIN;
     dte_config.uart_config.rx_io_num = CONFIG_EXAMPLE_MODEM_UART_RX_PIN;
-    dte_config.uart_config.rts_io_num = CONFIG_EXAMPLE_MODEM_UART_RTS_PIN;
-    dte_config.uart_config.cts_io_num = CONFIG_EXAMPLE_MODEM_UART_CTS_PIN;
+    dte_config.uart_config.rts_io_num = -1; // CONFIG_EXAMPLE_MODEM_UART_RTS_PIN;
+    dte_config.uart_config.cts_io_num = -1; // CONFIG_EXAMPLE_MODEM_UART_CTS_PIN;
 
     dte_config.uart_config.rx_buffer_size = CONFIG_EXAMPLE_MODEM_UART_RX_BUFFER_SIZE;
     dte_config.uart_config.tx_buffer_size = CONFIG_EXAMPLE_MODEM_UART_TX_BUFFER_SIZE;
@@ -249,21 +191,31 @@ void gsm_start()
     esp_modem_dce_t *dce = esp_modem_new_dev(ESP_MODEM_DCE_SIM7600, &dte_config, &dce_config, esp_netif);
 #elif CONFIG_EXAMPLE_MODEM_DEVICE_SIM7000 == 1
 
- 
-    test();
+    // test();
     ESP_LOGI(TAG, "Initializing esp_modem for the SIM7000 module...");
-    esp_modem_dce_t *dce = esp_modem_new_dev(ESP_MODEM_DCE_SIM7000, &dte_config, &dce_config, esp_netif);  
+    esp_modem_dce_t *dce = esp_modem_new_dev(ESP_MODEM_DCE_SIM7000, &dte_config, &dce_config, esp_netif);
 
-    ESP_LOGI(TAG, "Waiting...");
-    vTaskDelay(4510/portTICK_PERIOD_MS);
-    
+    esp_err_t err = ESP_FAIL;
+    while (err != ESP_OK)
+    {
+        ESP_LOGI(TAG, "Syncing with the modem...");
+        vTaskDelay(500 / portTICK_PERIOD_MS);
+        err = esp_modem_sync(dce);
+        if (err != ESP_OK)
+        {
+            ESP_LOGE(TAG, "esp_modem_sync failed with error:  %i", err);
+        }
+    }
+    ESP_LOGE(TAG, "Modem synced.");
+
 #else
     ESP_LOGI(TAG, "Initializing esp_modem for a generic module...");
     esp_modem_dce_t *dce = esp_modem_new(&dte_config, &dce_config, esp_netif);
 #endif
 
-#elif defined(CONFIG_EXAMPLE_SERIAL_CONFIG_USB)
-    while (1) {
+#elif CONFIG_EXAMPLE_SERIAL_CONFIG_USB == 1
+    while (1)
+    {
         ESP_LOGI(TAG, "Initializing esp_modem for the BG96 module...");
         struct esp_modem_usb_term_config usb_config = ESP_MODEM_DEFAULT_USB_CONFIG(0x2C7C, 0x0296, 2); // VID, PID and interface num of BG96 modem
         const esp_modem_dte_config_t dte_usb_config = ESP_MODEM_DTE_DEFAULT_USB_CONFIG(usb_config);
@@ -283,10 +235,14 @@ void gsm_start()
 #if CONFIG_EXAMPLE_NEED_SIM_PIN == 1
     // check if PIN needed
     bool pin_ok = false;
-    if (esp_modem_read_pin(dce, &pin_ok) == ESP_OK && pin_ok == false) {
-        if (esp_modem_set_pin(dce, CONFIG_EXAMPLE_SIM_PIN) == ESP_OK) {
+    if (esp_modem_read_pin(dce, &pin_ok) == ESP_OK && pin_ok == false)
+    {
+        if (esp_modem_set_pin(dce, CONFIG_EXAMPLE_SIM_PIN) == ESP_OK)
+        {
             vTaskDelay(pdMS_TO_TICKS(1000));
-        } else {
+        }
+        else
+        {
             abort();
         }
     }
@@ -294,47 +250,100 @@ void gsm_start()
 
     int rssi, ber;
     ESP_LOGI(TAG, "Checking for signal quality..");
-    esp_err_t err = esp_modem_get_signal_quality(dce, &rssi, &ber);
+    err = esp_modem_get_signal_quality(dce, &rssi, &ber);
 
-    if (err != ESP_OK) {
+    if (err != ESP_OK)
+    {
         ESP_LOGE(TAG, "esp_modem_get_signal_quality failed with error:  %i", err);
         goto cleanup;
+    }
+    if (rssi == 99) {
+        ESP_LOGE(TAG, "esp_modem_get_signal_quality returned 99 for rssi. \n \
+         It seems we don't have a proper connection, quitting.");
+        goto cleanup;      
     }
     ESP_LOGI(TAG, "Signal quality: rssi=%d, ber=%d", rssi, ber);
 
 #if CONFIG_EXAMPLE_SEND_MSG
-    if (esp_modem_sms_txt_mode(dce, true) != ESP_OK || esp_modem_sms_character_set(dce) != ESP_OK) {
+    if (esp_modem_sms_txt_mode(dce, true) != ESP_OK || esp_modem_sms_character_set(dce) != ESP_OK)
+    {
         ESP_LOGE(TAG, "Setting text mode or GSM character set failed");
         goto cleanup;
     }
 
     err = esp_modem_send_sms(dce, CONFIG_EXAMPLE_SEND_MSG_PEER_PHONE_NUMBER, "Text message from esp-modem");
-    if (err != ESP_OK) {
+    if (err != ESP_OK)
+    {
         ESP_LOGE(TAG, "esp_modem_send_sms() failed with %d", err);
         return;
     }
 #endif
 
     err = esp_modem_set_mode(dce, ESP_MODEM_MODE_DATA);
-    ESP_LOGI(TAG, "5");
-    if (err != ESP_OK) {
+    if (err != ESP_OK)
+    {
         ESP_LOGE(TAG, "esp_modem_set_mode(ESP_MODEM_MODE_DATA) failed with %d", err);
         goto cleanup;
     }
     /* Wait for IP address */
     ESP_LOGI(TAG, "Waiting for IP address");
-    xEventGroupWaitBits(event_group, CONNECT_BIT | USB_DISCONNECTED_BIT, pdFALSE, pdFALSE, portMAX_DELAY);
-    CHECK_USB_DISCONNECTION(event_group);
+    int repeat_count = 0;
+    do {
 
-    /* Config MQTT */
+        EventBits_t uxBits = xEventGroupWaitBits(event_group, CONNECT_BIT | USB_DISCONNECTED_BIT, pdFALSE, pdFALSE, 5000/portTICK_PERIOD_MS);// portMAX_DELAY);
+        if ((uxBits & (CONNECT_BIT | USB_DISCONNECTED_BIT)) == (CONNECT_BIT | USB_DISCONNECTED_BIT))
+        {
+            ESP_LOGE(log_prefix, "Both IP connected and USB disconnected? Taking a chance on that and moving on...");
+            break;
+        }
+        else if ((uxBits & USB_DISCONNECTED_BIT) != 0)
+        {
+            ESP_LOGE(log_prefix, "USB disconnected, but no IP connection? Wierd error. Quitting.");
+            goto cleanup;
+            // xEventGroupWaitBits() returned because just BIT_0 was set.
+        }
+        else if ((uxBits & CONNECT_BIT) != 0)
+        {
+            ESP_LOGI(log_prefix, "Got an IP connection, great!");
+            break;
+        }
+        else
+        {
+            
+            repeat_count++;
+            if (repeat_count == 3) {
+                ESP_LOGE(log_prefix, "Timed out trying to get an IP after 3 retries, setting mode again.");
+                err = esp_modem_set_mode(dce, ESP_MODEM_MODE_DATA);
+                if (err != ESP_OK)
+                {
+                    ESP_LOGE(TAG, "esp_modem_set_mode(ESP_MODEM_MODE_DATA) failed with %d", err);
+                    goto cleanup;
+                }
+
+                repeat_count = 0;
+            } else {
+                ESP_LOGE(log_prefix, "Timed out. Continuing waiting for IP.");
+            }
+
+
+            /* TODO: Send SMS information? */
+        }
+    }
+    while (1);
+
+        CHECK_USB_DISCONNECTION(event_group);
+    ESP_LOGI(TAG, "Got an IP address");
+
+/* Config MQTT */
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
     esp_mqtt_client_config_t mqtt_config = {
         .broker.address.uri = BROKER_URL,
     };
 #else
-    esp_mqtt_client_config_t mqtt_config = {
-        .uri = BROKER_URL,
-    };
+        esp_mqtt_client_config_t mqtt_config = {
+            .uri = BROKER_URL,
+
+        };
 #endif
     esp_mqtt_client_handle_t mqtt_client = esp_mqtt_client_init(&mqtt_config);
     esp_mqtt_client_register_event(mqtt_client, ESP_EVENT_ANY_ID, mqtt_event_handler, NULL);
@@ -342,16 +351,18 @@ void gsm_start()
     ESP_LOGI(TAG, "Waiting for MQTT data");
     xEventGroupWaitBits(event_group, GOT_DATA_BIT | USB_DISCONNECTED_BIT, pdFALSE, pdFALSE, portMAX_DELAY);
     CHECK_USB_DISCONNECTION(event_group);
-
+    ESP_LOGI(TAG, "Has MQTT data");
     esp_mqtt_client_destroy(mqtt_client);
     err = esp_modem_set_mode(dce, ESP_MODEM_MODE_COMMAND);
-    if (err != ESP_OK) {
+    if (err != ESP_OK)
+    {
         ESP_LOGE(TAG, "esp_modem_set_mode(ESP_MODEM_MODE_COMMAND) failed with %d", err);
         goto cleanup;
     }
     char imsi[32];
     err = esp_modem_get_imsi(dce, imsi);
-    if (err != ESP_OK) {
+    if (err != ESP_OK)
+    {
         ESP_LOGE(TAG, "esp_modem_get_imsi failed with %d", err);
         goto cleanup;
     }
@@ -366,25 +377,24 @@ cleanup:
     CHECK_USB_DISCONNECTION(event_group); // dce will be destroyed here
 } // while (1)
 #else
-    // UART DTE clean-up
-    esp_modem_destroy(dce);
-    esp_netif_destroy(esp_netif);
+        // UART DTE clean-up
+        esp_modem_destroy(dce);
+        esp_netif_destroy(esp_netif);
 #endif
-    // Power off the modem.
-    gpio_set_direction(GPIO_NUM_4, GPIO_MODE_OUTPUT);
-    gpio_set_level(GPIO_NUM_4, 0); 
-    ESP_LOGE(TAG, "Exiting GSM main task!");
-    vTaskDelete(NULL);
+// Power off the modem.
+gpio_set_direction(GPIO_NUM_4, GPIO_MODE_OUTPUT);
+gpio_set_level(GPIO_NUM_4, 0);
+ESP_LOGE(TAG, "Exiting GSM main task!");
+vTaskDelete(NULL);
 }
 
-
-void gsm_init(char * _log_prefix){
+void gsm_init(char *_log_prefix)
+{
     log_prefix = _log_prefix;
-    int rc = xTaskCreatePinnedToCore(gsm_start, "GSM main task", 8192, NULL, 8, NULL, 0);
-    if (rc != pdPASS) {
+    int rc = xTaskCreatePinnedToCore(gsm_start, "GSM main task", /*8192*/ 16384, NULL, 8, NULL, 0);
+    if (rc != pdPASS)
+    {
         ESP_LOGE(log_prefix, "Failed creating GSM task, returned: %i (see projdefs.h)", rc);
-    } 
+    }
     ESP_LOGI(log_prefix, "GSM main task registered.");
-
-
 }

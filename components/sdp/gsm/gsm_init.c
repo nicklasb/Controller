@@ -16,7 +16,7 @@
 
 #define BROKER_URL "mqtt://mqtt.eclipseprojects.io"
 
-static const char *TAG = "pppos_example";
+static const char *TAG = "Controller";
 static EventGroupHandle_t event_group = NULL;
 static const int CONNECT_BIT = BIT0;
 static const int GOT_DATA_BIT = BIT2;
@@ -155,13 +155,11 @@ void gsm_start()
 
     event_group = xEventGroupCreate();
 
-    ESP_LOGI(log_prefix, "Power off modem pin 4");
+    
     gpio_set_direction(GPIO_NUM_4, GPIO_MODE_OUTPUT);
-    gpio_set_level(GPIO_NUM_4, 0);
-    vTaskDelay(100 / portTICK_PERIOD_MS);
-    ESP_LOGI(log_prefix, "Power on modem pin 4");
-    gpio_set_direction(GPIO_NUM_4, GPIO_MODE_OUTPUT);
+    ESP_LOGI(log_prefix, "Power on modem pin 4, wait 1 second");
     gpio_set_level(GPIO_NUM_4, 1);
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
 
     /* Configure the DTE */
 #if defined(CONFIG_EXAMPLE_SERIAL_CONFIG_UART)
@@ -248,7 +246,10 @@ void gsm_start()
     }
 #endif
 
+
     int rssi, ber;
+    int retries = 0;
+ signal_quality:   
     ESP_LOGI(TAG, "Checking for signal quality..");
     err = esp_modem_get_signal_quality(dce, &rssi, &ber);
 
@@ -258,39 +259,31 @@ void gsm_start()
         goto cleanup;
     }
     if (rssi == 99) {
-        ESP_LOGE(TAG, "esp_modem_get_signal_quality returned 99 for rssi. \n \
-         It seems we don't have a proper connection, quitting.");
-        goto cleanup;      
+        vTaskDelay(1000/portTICK_PERIOD_MS);
+        retries++;
+        if (retries > 3) {
+            ESP_LOGE(TAG, "esp_modem_get_signal_quality returned 99 for rssi after 3 retries. \n \
+                    It seems we don't have a proper connection, quitting (TODO: troubleshoot).");
+        } else {
+            ESP_LOGI(TAG, "esp_modem_get_signal_quality returned 99 for rssi, trying again");           
+            goto signal_quality;  
+        }
+            
     }
     ESP_LOGI(TAG, "Signal quality: rssi=%d, ber=%d", rssi, ber);
 
-#if CONFIG_EXAMPLE_SEND_MSG
-    if (esp_modem_sms_txt_mode(dce, true) != ESP_OK || esp_modem_sms_character_set(dce) != ESP_OK)
-    {
-        ESP_LOGE(TAG, "Setting text mode or GSM character set failed");
-        goto cleanup;
-    }
-
-    err = esp_modem_send_sms(dce, CONFIG_EXAMPLE_SEND_MSG_PEER_PHONE_NUMBER, "Text message from esp-modem");
-    if (err != ESP_OK)
-    {
-        ESP_LOGE(TAG, "esp_modem_send_sms() failed with %d", err);
-        return;
-    }
-#endif
-
+    
     err = esp_modem_set_mode(dce, ESP_MODEM_MODE_DATA);
     if (err != ESP_OK)
     {
-        ESP_LOGE(TAG, "esp_modem_set_mode(ESP_MODEM_MODE_DATA) failed with %d", err);
+        ESP_LOGE(TAG, "esp_modem_set_data_mode(dce) failed with %d", err);
         goto cleanup;
     }
     /* Wait for IP address */
     ESP_LOGI(TAG, "Waiting for IP address");
-    int repeat_count = 0;
     do {
 
-        EventBits_t uxBits = xEventGroupWaitBits(event_group, CONNECT_BIT | USB_DISCONNECTED_BIT, pdFALSE, pdFALSE, 5000/portTICK_PERIOD_MS);// portMAX_DELAY);
+        EventBits_t uxBits = xEventGroupWaitBits(event_group, CONNECT_BIT | USB_DISCONNECTED_BIT, pdFALSE, pdFALSE, 4000/portTICK_PERIOD_MS);// portMAX_DELAY);
         if ((uxBits & (CONNECT_BIT | USB_DISCONNECTED_BIT)) == (CONNECT_BIT | USB_DISCONNECTED_BIT))
         {
             ESP_LOGE(log_prefix, "Both IP connected and USB disconnected? Taking a chance on that and moving on...");
@@ -309,29 +302,12 @@ void gsm_start()
         }
         else
         {
-            
-            repeat_count++;
-            if (repeat_count == 3) {
-                ESP_LOGE(log_prefix, "Timed out trying to get an IP after 3 retries, setting mode again.");
-                err = esp_modem_set_mode(dce, ESP_MODEM_MODE_DATA);
-                if (err != ESP_OK)
-                {
-                    ESP_LOGE(TAG, "esp_modem_set_mode(ESP_MODEM_MODE_DATA) failed with %d", err);
-                    goto cleanup;
-                }
-
-                repeat_count = 0;
-            } else {
-                ESP_LOGE(log_prefix, "Timed out. Continuing waiting for IP.");
-            }
-
-
-            /* TODO: Send SMS information? */
+            ESP_LOGI(log_prefix, "Timed out. Continuing waiting for IP.");
         }
     }
     while (1);
 
-        CHECK_USB_DISCONNECTION(event_group);
+    CHECK_USB_DISCONNECTION(event_group);
     ESP_LOGI(TAG, "Got an IP address");
 
 /* Config MQTT */
@@ -353,6 +329,7 @@ void gsm_start()
     CHECK_USB_DISCONNECTION(event_group);
     ESP_LOGI(TAG, "Has MQTT data");
     esp_mqtt_client_destroy(mqtt_client);
+/*    ESP_LOGI(TAG, "esp_mqtt_client_destroyed, setting command mode.");
     err = esp_modem_set_mode(dce, ESP_MODEM_MODE_COMMAND);
     if (err != ESP_OK)
     {
@@ -360,6 +337,8 @@ void gsm_start()
         goto cleanup;
     }
     char imsi[32];
+    ESP_LOGI(TAG, "Getting the IMSI.");
+        
     err = esp_modem_get_imsi(dce, imsi);
     if (err != ESP_OK)
     {
@@ -367,23 +346,21 @@ void gsm_start()
         goto cleanup;
     }
     ESP_LOGI(TAG, "IMSI=%s", imsi);
+    */
 
 cleanup:
 
-#if defined(CONFIG_EXAMPLE_SERIAL_CONFIG_USB)
-    // USB example runs in a loop to demonstrate hot-plugging and sudden disconnection features.
-    ESP_LOGI(TAG, "USB demo finished. Disconnect and connect the modem to run it again");
-    xEventGroupWaitBits(event_group, USB_DISCONNECTED_BIT, pdFALSE, pdFALSE, portMAX_DELAY);
-    CHECK_USB_DISCONNECTION(event_group); // dce will be destroyed here
-} // while (1)
-#else
-        // UART DTE clean-up
-        esp_modem_destroy(dce);
-        esp_netif_destroy(esp_netif);
-#endif
+
+
+
 // Power off the modem.
-gpio_set_direction(GPIO_NUM_4, GPIO_MODE_OUTPUT);
-gpio_set_level(GPIO_NUM_4, 0);
+ESP_LOGI(TAG, "Modem Power down.");
+esp_modem_power_down(dce);
+
+// UART DTE clean-up
+vEventGroupDelete(event_group);
+esp_modem_destroy(dce);
+esp_netif_destroy(esp_netif);
 ESP_LOGE(TAG, "Exiting GSM main task!");
 vTaskDelete(NULL);
 }

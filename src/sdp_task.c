@@ -10,12 +10,15 @@
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "driver/gpio.h"
 
 #include "esp_timer.h"
 #include "ui_builder.h"
 #include "local_settings.h"
 
 #include "orchestration/orchestration.h"
+
+#include "gsm/gsm_init.h"
 
 #include "esp_log.h"
 
@@ -155,7 +158,10 @@ void periodic_sensor_query(void *arg)
 
 
 bool before_sleep_cb() {
-    return true;
+    ESP_LOGI(log_prefix, "Before sleep:");
+    int res = gsm_before_sleep_cb();
+
+    return res;
 }
 
 void init_sdp_task() {

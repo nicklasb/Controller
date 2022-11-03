@@ -21,8 +21,13 @@ static EventGroupHandle_t event_group = NULL;
 static const int CONNECT_BIT = BIT0;
 static const int GOT_DATA_BIT = BIT2;
 static const int USB_DISCONNECTED_BIT = BIT3; // Used only with USB DTE but we define it unconditionally, to avoid too many #ifdefs in the code
+static const int SHUTTING_DOWN_BIT = BIT4;
+TaskHandle_t *gsm_modem_task; 
 
 char *log_prefix;
+
+esp_modem_dce_t *dce = NULL;
+esp_netif_t *esp_netif = NULL;
 
 #if defined(CONFIG_EXAMPLE_SERIAL_CONFIG_USB)
 #include "esp_modem_usb_c_api.h"
@@ -46,6 +51,67 @@ static void usb_terminal_error_handler(esp_modem_terminal_error_t err)
 #else
 #define CHECK_USB_DISCONNECTION(event_group)
 #endif
+
+
+void cleanup() {
+    ESP_LOGI(TAG, "GSM shut down.");
+
+    // Making sure gsm_modem_task is null if gsm_before_sleep_cb
+    // happens to be called simultaneously to avoid a race condition
+    TaskHandle_t *tmpTask = gsm_modem_task;
+    gsm_modem_task = NULL;
+    // Power off the modem.
+    ESP_LOGI(TAG, "2. Informing GSM task it is shutting down.");
+    xEventGroupSetBits(event_group, SHUTTING_DOWN_BIT);
+    ESP_LOGI(TAG, "3. Deleting event group");      
+    vEventGroupDelete(event_group);   
+    event_group = NULL; 
+
+    ESP_LOGI(TAG, "4. Set command mode");
+    esp_err_t err = esp_modem_set_mode(dce, ESP_MODEM_MODE_COMMAND);
+    if (err != ESP_OK)
+    {
+        ESP_LOGE(TAG, "esp_modem_set_mode(dce, ESP_MODEM_MODE_COMMAND) failed with %d", err);
+    }    
+    ESP_LOGI(TAG, "5. Modem Power down");
+    err = esp_modem_power_down(dce);
+    if (err != ESP_OK)
+    {
+        ESP_LOGE(TAG, "esp_modem_power_down(dce) failed with %d", err);
+    }
+
+    // Freeing memory
+    esp_modem_destroy(dce);
+    dce = NULL;
+    esp_netif_destroy(esp_netif);        
+    esp_netif = NULL;
+
+
+    // Short delay before cutting power.
+    vTaskDelay(100/portTICK_PERIOD_MS);
+    ESP_LOGI(log_prefix, "7. Cutting modem power.");
+    gpio_set_direction(GPIO_NUM_4, GPIO_MODE_OUTPUT);
+    gpio_set_level(GPIO_NUM_4, 0);
+    
+    ESP_LOGI(log_prefix, "8. Deleting GSM task.");
+    vTaskDelete(tmpTask); 
+
+
+}
+
+bool gsm_before_sleep_cb() {
+    if (gsm_modem_task != NULL) {
+        ESP_LOGI(log_prefix, "1. Turning off GSM modem.");
+        cleanup();
+        
+
+        //ESP_LOGI(log_prefix, "6.");
+        //gpio_set_direction(GPIO_NUM_4, GPIO_MODE_OUTPUT);
+        //gpio_set_level(GPIO_NUM_4, 0);        
+    }
+
+    return true;
+}
 
 static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data)
 {
@@ -150,13 +216,21 @@ void gsm_start()
     /* Configure the PPP netif */
     esp_modem_dce_config_t dce_config = ESP_MODEM_DCE_DEFAULT_CONFIG(CONFIG_EXAMPLE_MODEM_PPP_APN);
     esp_netif_config_t netif_ppp_config = ESP_NETIF_DEFAULT_PPP();
-    esp_netif_t *esp_netif = esp_netif_new(&netif_ppp_config);
+    esp_netif = esp_netif_new(&netif_ppp_config);
     assert(esp_netif);
 
     event_group = xEventGroupCreate();
 
+    if (gpio_get_level(GPIO_NUM_4) ==1) {
+        ESP_LOGI(log_prefix, "Modem on, turning off,waiting!");
+        gpio_set_direction(GPIO_NUM_4, GPIO_MODE_OUTPUT);
+        gpio_set_level(GPIO_NUM_4, 0);
+        vTaskDelay(2000 / portTICK_PERIOD_MS);
+    } else {
+        gpio_set_direction(GPIO_NUM_4, GPIO_MODE_OUTPUT);
+    }
     
-    gpio_set_direction(GPIO_NUM_4, GPIO_MODE_OUTPUT);
+    
     ESP_LOGI(log_prefix, "Power on modem pin 4, wait 1 second");
     gpio_set_level(GPIO_NUM_4, 1);
     vTaskDelay(1000 / portTICK_PERIOD_MS);
@@ -191,9 +265,17 @@ void gsm_start()
 
     // test();
     ESP_LOGI(TAG, "Initializing esp_modem for the SIM7000 module...");
-    esp_modem_dce_t *dce = esp_modem_new_dev(ESP_MODEM_DCE_SIM7000, &dte_config, &dce_config, esp_netif);
+    dce = esp_modem_new_dev(ESP_MODEM_DCE_SIM7000, &dte_config, &dce_config, esp_netif);
 
-    esp_err_t err = ESP_FAIL;
+
+#else
+    ESP_LOGI(TAG, "Initializing esp_modem for a generic module...");
+    esp_modem_dce_t *dce = esp_modem_new(&dte_config, &dce_config, esp_netif);
+#endif
+
+#endif
+
+   esp_err_t err = ESP_FAIL;
     while (err != ESP_OK)
     {
         ESP_LOGI(TAG, "Syncing with the modem...");
@@ -206,28 +288,8 @@ void gsm_start()
     }
     ESP_LOGE(TAG, "Modem synced.");
 
-#else
-    ESP_LOGI(TAG, "Initializing esp_modem for a generic module...");
-    esp_modem_dce_t *dce = esp_modem_new(&dte_config, &dce_config, esp_netif);
-#endif
-
-#elif CONFIG_EXAMPLE_SERIAL_CONFIG_USB == 1
-    while (1)
-    {
-        ESP_LOGI(TAG, "Initializing esp_modem for the BG96 module...");
-        struct esp_modem_usb_term_config usb_config = ESP_MODEM_DEFAULT_USB_CONFIG(0x2C7C, 0x0296, 2); // VID, PID and interface num of BG96 modem
-        const esp_modem_dte_config_t dte_usb_config = ESP_MODEM_DTE_DEFAULT_USB_CONFIG(usb_config);
-        ESP_LOGI(TAG, "Waiting for USB device connection...");
-        esp_modem_dce_t *dce = esp_modem_new_dev_usb(ESP_MODEM_DCE_BG96, &dte_usb_config, &dce_config, esp_netif);
-        esp_modem_set_error_cb(dce, usb_terminal_error_handler);
-        vTaskDelay(pdMS_TO_TICKS(1000)); // Although the DTE should be ready after USB enumeration, sometimes it fails to respond without this delay
-
-#else
-#error Invalid serial connection to modem.
-#endif
-
     assert(dce);
-    xEventGroupClearBits(event_group, CONNECT_BIT | GOT_DATA_BIT | USB_DISCONNECTED_BIT);
+    xEventGroupClearBits(event_group, CONNECT_BIT | GOT_DATA_BIT | USB_DISCONNECTED_BIT |SHUTTING_DOWN_BIT);
 
     /* Run the modem demo app */
 #if CONFIG_EXAMPLE_NEED_SIM_PIN == 1
@@ -249,7 +311,8 @@ void gsm_start()
 
     int rssi, ber;
     int retries = 0;
- signal_quality:   
+ signal_quality: 
+
     ESP_LOGI(TAG, "Checking for signal quality..");
     err = esp_modem_get_signal_quality(dce, &rssi, &ber);
 
@@ -261,9 +324,9 @@ void gsm_start()
     if (rssi == 99) {
         vTaskDelay(1000/portTICK_PERIOD_MS);
         retries++;
-        if (retries > 3) {
-            ESP_LOGE(TAG, "esp_modem_get_signal_quality returned 99 for rssi after 3 retries. \n \
-                    It seems we don't have a proper connection, quitting (TODO: troubleshoot).");
+        if (retries > 6) {
+            ESP_LOGE(TAG, "esp_modem_get_signal_quality returned 99 for rssi after 3 retries.");
+            ESP_LOGE(TAG, "It seems we don't have a proper connection, quitting (TODO: troubleshoot).");
         } else {
             ESP_LOGI(TAG, "esp_modem_get_signal_quality returned 99 for rssi, trying again");           
             goto signal_quality;  
@@ -271,6 +334,19 @@ void gsm_start()
             
     }
     ESP_LOGI(TAG, "Signal quality: rssi=%d, ber=%d", rssi, ber);
+
+    if (retries > 0) {
+        ESP_LOGI(TAG, "Waiting a little because of retries");
+        vTaskDelay(3000/portTICK_PERIOD_MS);
+        int state;
+        
+        if (esp_modem_get_radio_state(dce, &state) == ESP_OK) {
+            ESP_LOGI(TAG, "Radio state: %i", state);
+        } else {
+            ESP_LOGE(TAG, "Could not get radio state: %i", state);
+        }
+        
+    }
 
     
     err = esp_modem_set_mode(dce, ESP_MODEM_MODE_DATA);
@@ -281,13 +357,19 @@ void gsm_start()
     }
     /* Wait for IP address */
     ESP_LOGI(TAG, "Waiting for IP address");
+    EventBits_t uxBits;
     do {
 
-        EventBits_t uxBits = xEventGroupWaitBits(event_group, CONNECT_BIT | USB_DISCONNECTED_BIT, pdFALSE, pdFALSE, 4000/portTICK_PERIOD_MS);// portMAX_DELAY);
+        uxBits = xEventGroupWaitBits(event_group, CONNECT_BIT | USB_DISCONNECTED_BIT | SHUTTING_DOWN_BIT, pdFALSE, pdFALSE, 4000/portTICK_PERIOD_MS);// portMAX_DELAY);
         if ((uxBits & (CONNECT_BIT | USB_DISCONNECTED_BIT)) == (CONNECT_BIT | USB_DISCONNECTED_BIT))
         {
             ESP_LOGE(log_prefix, "Both IP connected and USB disconnected? Taking a chance on that and moving on...");
             break;
+        }
+        else if ((uxBits & SHUTTING_DOWN_BIT) != 0)
+        {
+            ESP_LOGE(log_prefix, "Getting that we are shutting down, pausing indefinitely.");
+            vTaskDelay(portMAX_DELAY);
         }
         else if ((uxBits & USB_DISCONNECTED_BIT) != 0)
         {
@@ -325,7 +407,12 @@ void gsm_start()
     esp_mqtt_client_register_event(mqtt_client, ESP_EVENT_ANY_ID, mqtt_event_handler, NULL);
     esp_mqtt_client_start(mqtt_client);
     ESP_LOGI(TAG, "Waiting for MQTT data");
-    xEventGroupWaitBits(event_group, GOT_DATA_BIT | USB_DISCONNECTED_BIT, pdFALSE, pdFALSE, portMAX_DELAY);
+    uxBits = xEventGroupWaitBits(event_group, GOT_DATA_BIT | USB_DISCONNECTED_BIT |SHUTTING_DOWN_BIT, pdFALSE, pdFALSE, portMAX_DELAY);
+    if ((uxBits & SHUTTING_DOWN_BIT) != 0)
+    {
+        ESP_LOGE(log_prefix, "Getting that we are shutting down, pausing indefinitely.");
+        vTaskDelay(portMAX_DELAY);
+    }
     CHECK_USB_DISCONNECTION(event_group);
     ESP_LOGI(TAG, "Has MQTT data");
     esp_mqtt_client_destroy(mqtt_client);
@@ -347,28 +434,15 @@ void gsm_start()
     }
     ESP_LOGI(TAG, "IMSI=%s", imsi);
     */
-
 cleanup:
+    cleanup();
 
-
-
-
-// Power off the modem.
-ESP_LOGI(TAG, "Modem Power down.");
-esp_modem_power_down(dce);
-
-// UART DTE clean-up
-vEventGroupDelete(event_group);
-esp_modem_destroy(dce);
-esp_netif_destroy(esp_netif);
-ESP_LOGE(TAG, "Exiting GSM main task!");
-vTaskDelete(NULL);
 }
 
 void gsm_init(char *_log_prefix)
 {
     log_prefix = _log_prefix;
-    int rc = xTaskCreatePinnedToCore(gsm_start, "GSM main task", /*8192*/ 16384, NULL, 8, NULL, 0);
+    int rc = xTaskCreatePinnedToCore(gsm_start, "GSM main task", /*8192*/ 16384, NULL, 8, &gsm_modem_task, 0);
     if (rc != pdPASS)
     {
         ESP_LOGE(log_prefix, "Failed creating GSM task, returned: %i (see projdefs.h)", rc);

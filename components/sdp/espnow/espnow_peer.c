@@ -1,5 +1,10 @@
-#include "espnow_peer.h"
+
+
 #include <sdkconfig.h>
+#ifdef CONFIG_SDP_LOAD_ESP_NOW
+
+#include "espnow_peer.h"
+
 #include <esp_now.h>
 #include <esp_log.h>
 #include <string.h>
@@ -48,3 +53,5 @@ esp_now_peer_info_t* espnow_add_peer(sdp_mac_address mac_adress)
 void espnow_peer_init(char * _log_prefix) {
     log_prefix = _log_prefix;
 }
+
+#endif

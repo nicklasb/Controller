@@ -19,6 +19,9 @@
 
 /* Store the moment we last went to sleep in persistent storage */
 RTC_DATA_ATTR int last_sleep_time;
+RTC_DATA_ATTR int sleep_count;
+
+bool b_first_boot;
 
 char *log_prefix;
 
@@ -39,6 +42,7 @@ void goto_sleep_for_microseconds(uint64_t microsecs)
 
     if (esp_sleep_enable_timer_wakeup(microsecs) == ESP_OK)
     {
+        sleep_count++;
         /* Set the sleep time just before going to sleep. */
         last_sleep_time = get_time_since_start();
         esp_deep_sleep_start();
@@ -47,6 +51,15 @@ void goto_sleep_for_microseconds(uint64_t microsecs)
     {
         ESP_LOGE(log_prefix, "Error going to sleep for %llu microseconds!", microsecs);
     }
+}
+/**
+ * @brief Tells if we woke from sleeping or not
+ * 
+ * @return true If we were sleeping
+ * @return false If it was from first boot.
+ */
+bool is_first_boot() {
+    return b_first_boot;
 }
 
 /**
@@ -71,16 +84,29 @@ bool sleep_init(char *_log_prefix)
         ESP_LOGI(log_prefix, "Normal boot, not returning from sleep mode.");
         // No sleep time has happened if we don't return from sleep mode.
         last_sleep_time = 0;
+        sleep_count = 0;
+        b_first_boot = false;
         return false;
         break;
 
     default:
         ESP_LOGI(log_prefix, "----------------------------------------- W A K E -----------------------------------------");
         ESP_LOGI(log_prefix, "Returning from sleep mode.");
+        b_first_boot = false;
         return true;
         break;
     }
 }
+
+/**
+ * @brief Get the number of sleeps
+ * 
+ * @return int 
+ */
+int get_sleep_count() {
+    return sleep_count;
+}
+
 /**
  * @brief Get the last sleep time
  *

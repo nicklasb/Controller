@@ -17,6 +17,7 @@
 
 #include <nvs.h>
 #include <nvs_flash.h>
+#include <esp_event.h>
 
 #include "monitor/monitor.h"
 #include "sleep/sleep.h"
@@ -76,6 +77,9 @@ int sdp_init(work_callback work_cb, work_callback priority_cb, char *_log_prefix
  
     init_worker(work_cb, priority_cb, _log_prefix);
     init_messaging(_log_prefix);
+
+    // Create the default event loop (almost all technologies use it    )
+    ESP_ERROR_CHECK(esp_event_loop_create_default());
 
 
     /* Init media types */

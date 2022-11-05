@@ -1,42 +1,27 @@
+
+
+#include "sdkconfig.h"
+#ifdef CONFIG_SDP_LOAD_ESP_NOW
+
 #include "espnow_messaging.h"
-// #include <stdlib.h>
-// #include <time.h>
-// #include <string.h>
-// #include <assert.h>
 #include <sdkconfig.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
-// #include "freertos/timers.h"
-// #include "nvs_flash.h"
-// #include "esp_random.h"
-// #include "esp_event.h"
-// #include "esp_netif.h"
-// #include "esp_wifi.h"
+
 #include "esp_log.h"
-// #include "esp_mac.h"
+
 #include "esp_now.h"
 #include "esp_crc.h"
 
 #include "sdp_mesh.h"
 #include "sdp_messaging.h"
-// #include "espnow_example.h"
+
 
 #include <freertos/queue.h>
 
 char *log_prefix;
 
-/* ESPNOW Example
-   This example code is in the Public Domain (or CC0 licensed, at your option.)
-   Unless required by applicable law or agreed to in writing, this
-   software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-   CONDITIONS OF ANY KIND, either express or implied.
-*/
 
-/*
-   This example shows how to use ESPNOW.
-   Prepare two device, one for sending ESPNOW data and another for receiving
-   ESPNOW data.
-*/
 
 #define ESPNOW_MAXDELAY 512
 
@@ -199,3 +184,5 @@ void espnow_messaging_init(char *_log_prefix)
     log_prefix = _log_prefix;
     espnow_init();
 }
+
+#endif

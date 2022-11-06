@@ -122,7 +122,7 @@ void gsm_ip_enable_data_mode() {
 
     ESP_LOGI(log_prefix, "Got an IP address"); 
 
-    gsm_mqtt_init(log_prefix);    
+      
 }
 
 

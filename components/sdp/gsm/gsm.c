@@ -3,19 +3,18 @@
 #include <string.h>
 #include <sdkconfig.h>
 
-#include "gsm_ip.h"
-
+#include "esp_log.h"
 #include "driver/gpio.h"
 
-#include "esp_log.h"
+#include "gsm_ip.h"
+#include "gsm_worker.h"
+#include "gsm_mqtt.h"
 
 
 
 TaskHandle_t *gsm_modem_task;
 
 char *log_prefix;
-
-
 
 char *operator_name;
 
@@ -328,7 +327,8 @@ signal_quality:
 
 
     gsm_ip_enable_data_mode();
-
+    gsm_init_worker(NULL, NULL, log_prefix);
+    gsm_mqtt_init(log_prefix);  
 
 cleanup:
     cleanup();

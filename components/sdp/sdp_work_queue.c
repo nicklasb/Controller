@@ -1,7 +1,9 @@
 /**
  * @file sdp_worker.c
  * @author Nicklas Borjesson 
- * @brief The worker maintain and monitor the work queue and uses callbacks to notify the user code
+ * @brief The work_queue maintains and monitors a work queue using a worker task and uses callbacks to notify the user code
+ * This is a kind of generalization, consumers themselves initialize the queue and provide some callbacks.
+ * See sdp_worker.c for an example.
  * 
  * @copyright Copyright (c) 2022
  * 

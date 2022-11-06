@@ -18,7 +18,7 @@
 
 #include "orchestration/orchestration.h"
 
-#include "gsm/gsm_init.h"
+#include "gsm/gsm.h"
 
 #include "esp_log.h"
 

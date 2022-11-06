@@ -12,6 +12,9 @@
 #include "sdp.h"
 #include "sdp_def.h"
 
+
+#include <esp_log.h>
+
 #include "sdkconfig.h"
 #include "string.h"
 
@@ -34,15 +37,10 @@
 #include "espnow/espnow_init.h"
 #endif
 
-#include "gsm/gsm_init.h"
-
-#include <esp_log.h>
+#include "gsm/gsm.h"
 
 int sdp_init(work_callback work_cb, work_callback priority_cb, char *_log_prefix, bool is_conductor)
 {
-
-
-
 
      // Begin with initializing sleep functionality, it will also de
     if (sleep_init(_log_prefix)) {

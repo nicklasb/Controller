@@ -7,7 +7,7 @@
 #include "stdint.h"
 
 #include "sdp_def.h"
-#include "sdp_worker.h"
+
 #include "sdp_peer.h"
 
 /**
@@ -43,7 +43,7 @@ struct conversation_list_item *find_conversation(uint16_t conversation_id);
 int sdp_reply(work_queue_item_t queue_item, enum e_work_type work_type, const void *data, int data_length);
 int get_conversation_id(void);
 
-void init_messaging(char *_log_prefix);
+void sdp_init_messaging(char *_log_prefix);
 
 
 #endif

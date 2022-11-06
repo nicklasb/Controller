@@ -20,16 +20,14 @@
 
 #include "sdp_def.h"
 
-#include "stdint.h"
-#include <os/queue.h>
 
+#include "sdp_work_queue.h"
 
-int init_worker(work_callback work_cb, work_callback priority_cb, char *_log_prefix);
+// The queue context
+queue_context q_context; 
 
-int safe_add_work_queue(work_queue_item_t *new_item);
-work_queue_item_t *safe_get_head_work_item(void);
+esp_err_t sdp_init_worker(work_callback work_cb, work_callback priority_cb, char *_log_prefix);
 
-void cleanup_queue_task(work_queue_item_t *queue_item);
 
 #endif
 

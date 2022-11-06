@@ -54,7 +54,7 @@ int sdp_init(work_callback work_cb, work_callback priority_cb, char *_log_prefix
     strcpy(sdp_host.sdp_host_name, CONFIG_SDP_PEER_NAME);
 
     // Begin with initialising the monitor to capture initial memory state.
-    init_monitor(_log_prefix);
+    sdp_init_monitor(_log_prefix);
 
 
 
@@ -73,8 +73,8 @@ int sdp_init(work_callback work_cb, work_callback priority_cb, char *_log_prefix
     }
     ESP_ERROR_CHECK(ret);
  
-    init_worker(work_cb, priority_cb, _log_prefix);
-    init_messaging(_log_prefix);
+    sdp_init_worker(work_cb, priority_cb, _log_prefix);
+    sdp_init_messaging(_log_prefix);
 
     // Create the default event loop (almost all technologies use it    )
     ESP_ERROR_CHECK(esp_event_loop_create_default());

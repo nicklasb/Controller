@@ -146,7 +146,7 @@ void monitor_task(void *arg)
 }
 
 
-void init_monitor(char *_log_prefix)
+void sdp_init_monitor(char *_log_prefix)
 {   
     log_prefix = _log_prefix;
     /* Init the monitor */

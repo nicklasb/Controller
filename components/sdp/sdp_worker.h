@@ -24,7 +24,10 @@
 #include "sdp_work_queue.h"
 
 // The queue context
-queue_context q_context; 
+queue_context sdp_queue_context; 
+
+esp_err_t sdp_safe_add_work_queue(work_queue_item_t *new_item);
+void sdp_cleanup_queue_task(work_queue_item_t *queue_item);
 
 esp_err_t sdp_init_worker(work_callback work_cb, work_callback priority_cb, char *_log_prefix);
 

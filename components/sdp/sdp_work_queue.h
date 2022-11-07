@@ -51,7 +51,7 @@ typedef struct queue_context {
 
 esp_err_t safe_add_work_queue(queue_context *q_context, work_queue_item_t *new_item);
 
-work_queue_item_t *safe_get_head_work_item(struct queue_context *q_context);
+//work_queue_item_t *safe_get_head_work_item(struct queue_context *q_context);
 
 esp_err_t init_work_queue(queue_context *q_context, char *_log_prefix, const char *queue_name);
 

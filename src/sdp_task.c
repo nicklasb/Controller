@@ -18,10 +18,10 @@
 
 #include "orchestration/orchestration.h"
 
-#include "sdp_worker.h"
-#include "sdp_work_queue.h"
+#include "sdp/sdp_worker.h"
+#include "sdp/gsm/gsm_worker.h"
 
-#include "gsm/gsm.h"
+#include "sdp/gsm/gsm.h"
 
 #include "esp_log.h"
 
@@ -109,7 +109,7 @@ void do_on_data(work_queue_item_t *queue_item)
     if (strcmp(conversation->reason, "electrical") == 0)
     {      
         // TODO: Send on using MQTT
-        //mqtt_send_message(queue_item);
+        
     }
     if (strcmp(conversation->reason, "env_central") == 0)
     {      
@@ -145,7 +145,7 @@ void do_on_work(work_queue_item_t *queue_item)
     /* Note that the worker task is run on Core 1 (APP) as upposed to all the other callbacks. */
     ESP_LOGI(log_prefix, "In do_on_work task on the controller, got a message:\n%s", (char *)queue_item->raw_data);
     /* Always call the cleanup crew when done */
-    cleanup_queue_task(&q_context, queue_item);
+    sdp_cleanup_queue_task(queue_item);
 }
 
 /**

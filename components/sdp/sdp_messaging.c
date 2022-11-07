@@ -13,7 +13,6 @@
 #include "sdp_helpers.h"
 #include "orchestration/orchestration.h"
 #include "sdp_worker.h"
-#include "sdp_work_queue.h"
 
 #include "sdkconfig.h"
 
@@ -147,7 +146,7 @@ int handle_incoming(sdp_peer *peer, const uint8_t *data, int data_len, e_media_t
             if (on_filter_request_cb(new_item) == 0)
             {
                 // Add the request to the work queue
-                safe_add_work_queue(&sdp_queue_context, new_item);
+                sdp_safe_add_work_queue(new_item);
             }
             else
             {
@@ -157,7 +156,7 @@ int handle_incoming(sdp_peer *peer, const uint8_t *data, int data_len, e_media_t
         }
         else
         {
-            safe_add_work_queue(&sdp_queue_context, new_item);
+            sdp_safe_add_work_queue(new_item);
         }
         break;
     case REPLY:
@@ -167,7 +166,7 @@ int handle_incoming(sdp_peer *peer, const uint8_t *data, int data_len, e_media_t
             if (on_filter_reply_cb(new_item) == 0)
             {
                 // Add the request to the work queue
-                safe_add_work_queue(&sdp_queue_context, new_item);
+                sdp_safe_add_work_queue(new_item);
             }
             else
             {
@@ -177,7 +176,7 @@ int handle_incoming(sdp_peer *peer, const uint8_t *data, int data_len, e_media_t
         }
         else
         {
-            safe_add_work_queue(&sdp_queue_context, new_item);
+            sdp_safe_add_work_queue(new_item);
         }
         break;
     case DATA:
@@ -187,7 +186,7 @@ int handle_incoming(sdp_peer *peer, const uint8_t *data, int data_len, e_media_t
             if (on_filter_data_cb(new_item) == 0)
             {
                 // Add the request to the work queue
-                safe_add_work_queue(&sdp_queue_context, new_item);
+                sdp_safe_add_work_queue(new_item);
             }
             else
             {
@@ -197,7 +196,7 @@ int handle_incoming(sdp_peer *peer, const uint8_t *data, int data_len, e_media_t
         }
         else
         {
-            safe_add_work_queue(&sdp_queue_context, new_item);
+            sdp_safe_add_work_queue(new_item);
         }
         break;
 
@@ -246,7 +245,7 @@ int handle_incoming(sdp_peer *peer, const uint8_t *data, int data_len, e_media_t
         else
         {
             ESP_LOGE(log_prefix, "ERROR: SDP on_priority callback is not assigned, assigning to normal handling!");
-            safe_add_work_queue(&sdp_queue_context, new_item);
+            sdp_safe_add_work_queue(new_item);
         }
         break;
 

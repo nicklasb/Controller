@@ -15,7 +15,10 @@
 
 #include <esp_log.h>
 #include <string.h>
+#include "sdp_work_queue.h"
 
+// The queue context
+queue_context sdp_queue_context; 
 
 /* Expands to a declaration for the work queue */
 STAILQ_HEAD(sdp_work_q, work_queue_item) sdp_work_q;

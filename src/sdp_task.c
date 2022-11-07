@@ -109,6 +109,7 @@ void do_on_data(work_queue_item_t *queue_item)
     if (strcmp(conversation->reason, "electrical") == 0)
     {      
         // TODO: Send on using MQTT
+        gsm_safe_add_work_queue(queue_item);
         
     }
     if (strcmp(conversation->reason, "env_central") == 0)

@@ -10,12 +10,15 @@
 
 
 #include "gsm_worker.h"
+#include "sdp_work_queue.h"
 
 #include <os/queue.h>
 
 #include <esp_log.h>
 #include <string.h>
 
+// The queue context
+queue_context gsm_queue_context; 
 
 /* Expands to a declaration for the work queue */
 STAILQ_HEAD(gsm_work_q, work_queue_item) gsm_work_q;

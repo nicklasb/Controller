@@ -171,12 +171,12 @@ sdp_peer* sdp_add_init_new_peer(sdp_peer_name peer_name, const sdp_mac_address m
         if (media_type & SDP_MT_BLE) {
         //(mac_address);       
         }
-        //TODO: We might 
+        //TODO: Usually BLE sort of finds each other, however we might wan't to do something here
 #endif
 
 #ifdef CONFIG_SDP_LOAD_ESP_NOW
         if (media_type & SDP_MT_ESPNOW) {
-            ESP_LOGE(log_prefix, "Adding espnow peer at:"); 
+            ESP_LOGI(log_prefix, "Adding espnow peer at:"); 
             ESP_LOG_BUFFER_HEX(log_prefix, peer->base_mac_address, SDP_MAC_ADDR_LEN);
             int rc = espnow_add_peer(peer->base_mac_address);  
             

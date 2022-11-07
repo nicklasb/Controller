@@ -30,6 +30,7 @@
 typedef struct work_queue_item_t *(first_queueitem)();
 typedef void(remove_first_queueitem)();
 
+
 typedef void(insert_tail)(work_queue_item_t *new_item);
 
 typedef struct queue_context {
@@ -42,16 +43,18 @@ typedef struct queue_context {
     work_callback *on_work_cb;
     /* Mandatory callback that handles incoming priority request immidiately */
     work_callback *on_priority_cb;
-
-    /* Semaphore managed by the queue implementation - Do not set. */
-    SemaphoreHandle_t _x_queue_semaphore;
+    /* Max number of concurrent tasks. (0 = unlimited) */
+    uint max_task_count;
+    /* Current number of running tasks */
+    uint task_count;
+    /* Internal semaphores managed by the queue implementation - Do not set. */
+    SemaphoreHandle_t __x_queue_semaphore; // Thread-safe the queue
+    SemaphoreHandle_t __x_task_count_semaphore; // Thread-safe the tasks
 
 } queue_context;
 
 
 esp_err_t safe_add_work_queue(queue_context *q_context, work_queue_item_t *new_item);
-
-//work_queue_item_t *safe_get_head_work_item(struct queue_context *q_context);
 
 esp_err_t init_work_queue(queue_context *q_context, char *_log_prefix, const char *queue_name);
 

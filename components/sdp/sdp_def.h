@@ -222,10 +222,14 @@ typedef struct sdp_peer
 
 } sdp_peer;
 
+
+
 /**
  * @brief This is the request queue
- * The queue is served by worker threads in a thread-safe manner.
+ * The queue is served by worker tasks in a thread-safe manner.
  */
+
+
 typedef struct work_queue_item
 {
     /* The type of work */
@@ -283,5 +287,7 @@ typedef bool(before_sleep)();
 
 /* Optional callback that happen before the system is going to sleep */
 before_sleep *on_before_sleep_cb;
+
+
 
 #endif

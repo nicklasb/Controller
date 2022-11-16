@@ -10,8 +10,6 @@
 #include "gsm_worker.h"
 #include "gsm_mqtt.h"
 
-
-
 TaskHandle_t *gsm_modem_task;
 
 char *log_prefix;
@@ -103,6 +101,7 @@ void cleanup()
 
 void do_on_work_cb(work_queue_item_t *work_item) {
     ESP_LOGI(log_prefix, "In GSM work callback.");
+    publish("/topic/lurifax_test", work_item->parts[0],  strlen(work_item->parts[0]));
     gsm_cleanup_queue_task(work_item);
 }
 
@@ -298,7 +297,7 @@ signal_quality:
     if (err != ESP_OK)
     {
         ESP_LOGE(log_prefix, "esp_modem_get_signal_quality failed with error:  %i", err);
-        goto cleanup;
+        cleanup();
     }
     if (rssi == 99)
     {
@@ -328,13 +327,14 @@ signal_quality:
         ESP_LOGI(log_prefix, "Operator name : %s, act: %i", operator_name, act);
     }
 
-
+    // Connect to the GSM network
     gsm_ip_enable_data_mode();
-    
+    // Initialize MQTT
     gsm_mqtt_init(log_prefix);  
 
-cleanup:
-    cleanup();
+    // End init task
+    vTaskDelete(NULL);
+
 }
 
 void gsm_init(char *_log_prefix)

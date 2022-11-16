@@ -5,6 +5,7 @@
 #include "sleep/sleep.h"
 #include "esp_log.h"
 #include "gsm.h"
+#include "gsm_worker.h"
 
 #define BROKER_URL "mqtt://mqtt.eclipseprojects.io"
 
@@ -24,22 +25,25 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
     {
     case MQTT_EVENT_CONNECTED:
         ESP_LOGI(log_prefix, "MQTT_EVENT_CONNECTED");
-        msg_id = esp_mqtt_client_subscribe(client, "/topic/esp-pppos", 0);
-        ESP_LOGI(log_prefix, "sent subscribe successful, msg_id=%d", msg_id);
+        msg_id = esp_mqtt_client_subscribe(client, "/topic/lurifax_test", 0);
+        // All is initiated, we can now start handling the queue
+        gsm_set_queue_blocked(false);
+        //ESP_LOGI(log_prefix, "sent subscribe successful, msg_id=%d", msg_id);
         break;
     case MQTT_EVENT_DISCONNECTED:
         ESP_LOGI(log_prefix, "MQTT_EVENT_DISCONNECTED");
         break;
     case MQTT_EVENT_SUBSCRIBED:
         ESP_LOGI(log_prefix, "MQTT_EVENT_SUBSCRIBED, msg_id=%d", event->msg_id);
-        msg_id = esp_mqtt_client_publish(client, "/topic/esp-pppos", "esp32-pppos", 0, 0, 0);
-        ESP_LOGI(log_prefix, "sent publish successful, msg_id=%d", msg_id);
+        //msg_id = esp_mqtt_client_publish(client, "/topic/esp-pppos", "esp32-pppos", 0, 0, 0);
+        //ESP_LOGI(log_prefix, "sent publish successful, msg_id=%d", msg_id);
         break;
     case MQTT_EVENT_UNSUBSCRIBED:
         ESP_LOGI(log_prefix, "MQTT_EVENT_UNSUBSCRIBED, msg_id=%d", event->msg_id);
         break;
     case MQTT_EVENT_PUBLISHED:
         ESP_LOGI(log_prefix, "MQTT_EVENT_PUBLISHED, msg_id=%d", event->msg_id);
+        mqtt_count++;    
         break;
     case MQTT_EVENT_DATA:
         ESP_LOGI(log_prefix, "MQTT_EVENT_DATA");
@@ -50,6 +54,9 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
     case MQTT_EVENT_ERROR:
         ESP_LOGI(log_prefix, "MQTT_EVENT_ERROR");
         break;
+    case MQTT_EVENT_BEFORE_CONNECT:
+         ESP_LOGI(log_prefix, "MQTT_EVENT_BEFORE_CONNECT");
+        break;   
     default:
         ESP_LOGI(log_prefix, "MQTT other event id: %d", event->event_id);
         break;
@@ -72,6 +79,14 @@ void gsm_mqtt_cleanup() {
 
 }
 
+int publish(char * topic, char * payload, int payload_len) {
+    int msg_id = esp_mqtt_client_publish(mqtt_client, "/topic/lurifax_test", "test_datadata", 13, 0, 1);
+    ESP_LOGI(log_prefix, "Data published.");
+    return msg_id;
+}
+
+
+
 void gsm_mqtt_init(char * _log_prefix) {
     
     log_prefix = _log_prefix;
@@ -92,10 +107,14 @@ void gsm_mqtt_init(char * _log_prefix) {
     };
 #endif
     mqtt_client = esp_mqtt_client_init(&mqtt_config);
-    esp_mqtt_client_register_event(mqtt_client, ESP_EVENT_ANY_ID, mqtt_event_handler, NULL);
+    esp_mqtt_client_register_event(mqtt_client, ESP_EVENT_ANY_ID, mqtt_event_handler, NULL);  
+    ESP_LOGI(log_prefix, "Start MQTT client");
     esp_mqtt_client_start(mqtt_client);
+    ESP_LOGI(log_prefix, "Start subscription");
+    esp_mqtt_client_subscribe(mqtt_client, "/topic/lurifax_test", 1);
 
     //TODO:Move the following to a task
+    #if 0
     ESP_LOGI(log_prefix, "Waiting for MQTT data");
     EventBits_t uxBits = xEventGroupWaitBits(gsm_event_group, GOT_DATA_BIT | SHUTTING_DOWN_BIT, pdFALSE, pdFALSE, portMAX_DELAY);
     if ((uxBits & SHUTTING_DOWN_BIT) != 0)
@@ -105,7 +124,8 @@ void gsm_mqtt_init(char * _log_prefix) {
     }
     
     ESP_LOGI(log_prefix, "Has MQTT data");
-    gsm_mqtt_cleanup(mqtt_client);
+
 
     mqtt_count++;    
+        #endif
 }

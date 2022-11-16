@@ -28,8 +28,8 @@
 
 int callcount = 0;
 
-/* The current conversation id */
-uint16_t conversation_id = 0;
+/* The last created conversation id */
+uint16_t last_conversation_id = 0;
 
 /* The log prefix for all logging */
 char *log_prefix;
@@ -99,6 +99,46 @@ void parse_message(work_queue_item_t *queue_item)
     }
 }
 
+/**
+ * @brief Add a new conversation
+ * 
+ * @param peer The peer we are conversing with
+ * @param reason The reason for the conversation
+ * @param conversation_id if < 0, it is a new conversation we initiated locally.  
+ * @return int 
+ */
+int safe_add_conversation(sdp_peer *peer, const char *reason, int conversation_id)
+{
+    /* Create a conversation list item to keep track */
+
+    struct conversation_list_item *new_item = malloc(sizeof(struct conversation_list_item));
+    new_item->peer = peer;
+    new_item->local = (conversation_id < 0);
+    new_item->reason = malloc(strlen(reason));
+    strcpy(new_item->reason, reason);
+
+    /* Some things needs to be thread-safe */
+    if (pdTRUE == xSemaphoreTake(x_conversation_list_semaphore, portMAX_DELAY))
+    {
+        if (new_item->local) {
+            // This is a conversation we initiated
+            new_item->conversation_id = last_conversation_id++;
+        } else {
+            // Initiated by the other peer
+            new_item->conversation_id = conversation_id;
+        }
+        
+        SLIST_INSERT_HEAD(&conversation_l, new_item, items);
+        xSemaphoreGive(x_conversation_list_semaphore);
+        return new_item->conversation_id;
+    }
+    else
+    {
+        ESP_LOGE(log_prefix, "Error: Couldn't get semaphore to add to conversation queue!");
+        return -SDP_ERR_SEMAPHORE;
+    }
+}
+
 int handle_incoming(sdp_peer *peer, const uint8_t *data, int data_len, e_media_type media_type)
 {
     ESP_LOGI(log_prefix, "Payload length: %i, call count %i, CRC32: %u", data_len, callcount++,
@@ -122,6 +162,9 @@ int handle_incoming(sdp_peer *peer, const uint8_t *data, int data_len, e_media_t
         new_item->media_type = media_type;
         new_item->peer = peer;
         parse_message(new_item);
+
+        // Save the conversation
+        safe_add_conversation(peer, "external", new_item->conversation_id);
 
         ESP_LOGI(log_prefix, "Message info : Version: %u, Conv.id: %u, Work type: %u, Media type: %u,Data len: %u, Message parts: %i.",
                  new_item->version, new_item->conversation_id, new_item->work_type,
@@ -382,32 +425,6 @@ int send_message(struct sdp_peer *peer, void *data, int data_length)
 
     return SDP_MT_NONE;
 }
-
-int safe_add_conversation(sdp_peer *peer, const char *reason)
-{
-    /* Create a conversation list item to keep track */
-
-    struct conversation_list_item *new_item = malloc(sizeof(struct conversation_list_item));
-    new_item->peer = peer;
-    new_item->reason = malloc(strlen(reason));
-    strcpy(new_item->reason, reason);
-
-    /* Some things needs to be thread-safe */
-    if (pdTRUE == xSemaphoreTake(x_conversation_list_semaphore, portMAX_DELAY))
-    {
-        new_item->conversation_id = conversation_id++;
-
-        SLIST_INSERT_HEAD(&conversation_l, new_item, items);
-        xSemaphoreGive(x_conversation_list_semaphore);
-        return new_item->conversation_id;
-    }
-    else
-    {
-        ESP_LOGE(log_prefix, "Error: Couldn't get semaphore to add to conversation queue!");
-        return -SDP_ERR_SEMAPHORE;
-    }
-}
-
 /**
  * @brief Replies to the sender in the queue item
  * Automatically adds the correct SDP preamble, data is
@@ -432,12 +449,10 @@ int sdp_reply(work_queue_item_t queue_item, enum e_work_type work_type, const vo
 /**
  * @brief Start a new conversation
  *
- * @param media_type Media type
- * @param conn_handle A handle to the connection (if negative -1 loop all)
- * @param work_type
- * @param data
- * @param data_length
- * @param log_tag
+ * @param peer The peer
+ * @param work_type The type of work
+ * @param data The message data
+ * @param data_length Length of the data
  * @return int Returns the conversation id if successful.
  * NOTE: Returns negative error values on failure.
  */
@@ -446,7 +461,7 @@ int start_conversation(sdp_peer *peer, enum e_work_type work_type,
 {
     int retval = -SDP_ERR_SEND_FAIL;
     // Create and add a new conversation item and add to queue
-    int new_conversation_id = safe_add_conversation(peer, reason);
+    int new_conversation_id = safe_add_conversation(peer, reason, -1);
     if (new_conversation_id >= 0) //
     {
         // Add preamble including all SDP specifics in a new data
@@ -503,22 +518,18 @@ int end_conversation(uint16_t conversation_id)
     return SDP_ERR_CONV_QUEUE;
 }
 
-struct conversation_list_item *find_conversation(uint16_t conversation_id)
+struct conversation_list_item *find_conversation(sdp_peer *peer, uint16_t conversation_id)
 {
     struct conversation_list_item *curr_conversation;
     SLIST_FOREACH(curr_conversation, &conversation_l, items)
     {
-        if (curr_conversation->conversation_id == conversation_id)
+        if ((curr_conversation->conversation_id == conversation_id) &&
+            (curr_conversation->peer->peer_handle == peer->peer_handle))
         {
             return curr_conversation;
         }
     }
     return NULL;
-}
-
-int get_conversation_id(void)
-{
-    return conversation_id;
 }
 
 void sdp_init_messaging(char *_log_prefix)

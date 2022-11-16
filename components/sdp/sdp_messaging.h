@@ -16,13 +16,19 @@
 
 struct conversation_list_item
 {
-    uint8_t conversation_id; // The conversation it belongs to
+    /* The conversation it belongs to */
+    uint8_t conversation_id; 
+    /* The reason for the conversation */ 
     char *reason;
-
+    /* A pointer to the peer object */
+    sdp_peer *peer;         
+     /* Is it local? I.e. is this conversation*/
+    bool local;     
+           
     SLIST_ENTRY(conversation_list_item)
     items;
 
-    sdp_peer *peer;         // A handle to the underlying connection
+
 };
 
 SLIST_HEAD(conversation_list, conversation_list_item) conversation_l;
@@ -38,10 +44,9 @@ int start_conversation(sdp_peer *peer, e_work_type work_type,
                        const char *reason, const void *data, int data_length);
 int end_conversation(uint16_t conversation_id);
 
-struct conversation_list_item *find_conversation(uint16_t conversation_id);
+struct conversation_list_item *find_conversation(sdp_peer *peer, uint16_t conversation_id);
 
 int sdp_reply(work_queue_item_t queue_item, enum e_work_type work_type, const void *data, int data_length);
-int get_conversation_id(void);
 
 void sdp_init_messaging(char *_log_prefix);
 

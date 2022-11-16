@@ -79,20 +79,34 @@ void do_on_priority(work_queue_item_t *work_item)
         ESP_LOGI(log_prefix, "Got asked for status!");
     }
 }
-
-void do_on_data(work_queue_item_t *queue_item)
+/**
+ * @brief Handle incoming data messages
+ * 
+ * @param queue_item 
+ * @return true The queue item has been passed on, do not free
+ * @return false 
+ */
+bool do_on_data(work_queue_item_t *queue_item)
 {
+    ESP_LOGI(log_prefix, "In do_on_data on the controller, conversation: %i", queue_item->conversation_id);
+
     struct conversation_list_item *conversation;
-    conversation = find_conversation(queue_item->conversation_id);
-    ESP_LOGI(log_prefix, "In do_on_data on the controller, for reason: %s", conversation->reason);
-    
+    conversation = find_conversation(queue_item->peer, queue_item->conversation_id);
+    if (conversation) {
+        ESP_LOGI(log_prefix, "In do_on_data on the controller, for reason: %s", conversation->reason);
+    } else {
+        ESP_LOGI(log_prefix, "No local conversation found");
+    }
 
     if (strcmp(conversation->reason, "status") == 0)
     {
         ESP_LOGI(log_prefix, "Status is returned");
         lv_label_set_text_fmt(vberth, queue_item->parts[1]);
+
+        /* Always end the conversations if this is expeced to be the last response */
+        end_conversation(queue_item->conversation_id);
         
-    }
+    } else
     if (strcmp(conversation->reason, "sensors") == 0)
     {
         if (strcmp(queue_item->parts[0], "-2")  == 0) {
@@ -102,23 +116,27 @@ void do_on_data(work_queue_item_t *queue_item)
         } else {
             lv_label_set_text_fmt(vberth, "Temperature %s °C", queue_item->parts[0]);
         }   
+        end_conversation(queue_item->conversation_id);
         
         
-    }  
-
-    if (strcmp(conversation->reason, "electrical") == 0)
+    } else
+    if (strcmp(conversation->reason, "external") == 0)
     {      
+        ESP_LOGI(log_prefix, "Had an external message");
         // TODO: Send on using MQTT
         gsm_safe_add_work_queue(queue_item);
+        end_conversation(queue_item->conversation_id);
+        return true;
         
-    }
+        
+    } else
     if (strcmp(conversation->reason, "env_central") == 0)
     {      
         // TODO: Send on using MQTT
+        end_conversation(queue_item->conversation_id);
     }
 
-    /* Always end the conversations if this is expeced to be the last response */
-    end_conversation(queue_item->conversation_id);
+    return false;
 }
 
 /**
@@ -128,6 +146,8 @@ void do_on_data(work_queue_item_t *queue_item)
  */
 void do_on_work(work_queue_item_t *queue_item)
 {
+    bool _keep_queue_item = false;
+
     ESP_LOGI(log_prefix, "In do_on_work task on the controller, got a message:\n");
     for (int i = 0; i < queue_item->partcount; i++)
     {
@@ -137,14 +157,22 @@ void do_on_work(work_queue_item_t *queue_item)
     switch (queue_item->work_type)
     {
     case DATA:
-        do_on_data(queue_item);
+        if (do_on_data(queue_item)) {
+            // Reset this pointer so I won't be freed in the cleanup.
+            queue_item = NULL;
+        }
         break;
 
     default:
         break;
     }
     /* Note that the worker task is run on Core 1 (APP) as upposed to all the other callbacks. */
-    ESP_LOGI(log_prefix, "In do_on_work task on the controller, got a message:\n%s", (char *)queue_item->raw_data);
+    if (queue_item == NULL) {
+        ESP_LOGI(log_prefix, "End of do_on_work task on the controller, a message was passed on");
+    } else {
+        ESP_LOGI(log_prefix, "End of do_on_work task on the controller, got a message:\n%s", (char *)queue_item->raw_data);
+    }
+    
     /* Always call the cleanup crew when done */
     sdp_cleanup_queue_task(queue_item);
 }

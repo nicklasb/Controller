@@ -5,6 +5,7 @@
 #include "gsm_mqtt.h"
 
 #include "esp_event.h"
+#include "gsm_worker.h"
 
 #include "gsm.h"
 
@@ -50,6 +51,7 @@ static void on_ip_event(void *arg, esp_event_base_t event_base,
         ESP_LOGI(log_prefix, "Name Server2: " IPSTR, IP2STR(&dns_info.ip.u_addr.ip4));
         ESP_LOGI(log_prefix, "~~~~~~~~~~~~~~");
         xEventGroupSetBits(gsm_event_group, CONNECT_BIT);
+        gsm_set_queue_blocked(false);
 
         ESP_LOGI(log_prefix, "GOT ip event!!!");
     }
@@ -120,7 +122,8 @@ void gsm_ip_enable_data_mode() {
         }
     } while (1);
 
-    ESP_LOGI(log_prefix, "Got an IP address"); 
+    ESP_LOGI(log_prefix, "Got an IP address, unblocking GSM queue."); 
+    gsm_set_queue_blocked(false);
 
       
 }

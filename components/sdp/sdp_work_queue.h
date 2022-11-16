@@ -47,9 +47,11 @@ typedef struct queue_context {
     uint max_task_count;
     /* Current number of running tasks */
     uint task_count;
+     /* If set, the queue will not process any items */
+    bool blocked;   
     /* Internal semaphores managed by the queue implementation - Do not set. */
     SemaphoreHandle_t __x_queue_semaphore; // Thread-safe the queue
-    SemaphoreHandle_t __x_task_count_semaphore; // Thread-safe the tasks
+    SemaphoreHandle_t __x_task_state_semaphore; // Thread-safe the tasks
 
 } queue_context;
 
@@ -57,6 +59,8 @@ typedef struct queue_context {
 esp_err_t safe_add_work_queue(queue_context *q_context, work_queue_item_t *new_item);
 
 esp_err_t init_work_queue(queue_context *q_context, char *_log_prefix, const char *queue_name);
+
+void set_queue_blocked(queue_context *q_context, bool blocked);
 
 void cleanup_queue_task(queue_context *q_context,  work_queue_item_t *queue_item);
 

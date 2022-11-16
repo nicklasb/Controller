@@ -77,6 +77,8 @@ typedef enum e_sdp_warning_codes
 
 /**
  * The work types are:
+ * HANDSHAKE: Initial communication between two peers.
+ * 
  * REQUEST: A peer have a request.
  * Requests are put on the work queue for consumption by the worker.
  *
@@ -91,7 +93,11 @@ typedef enum e_sdp_warning_codes
  * that the message has been received before it invokes the callback.
  * In some cases it needs to know this to be able to start saving power or stop trying to send the message.
  * Emergency messages will be retried if the CRC32 doesn't match.
+ * 
+ * ORCHESTRATION: This is about handling peers and controlling the mesh.
  * TODO: Move this into readme.md
+ * 
+ * > 1000: 
  *
  */
 

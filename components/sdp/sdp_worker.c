@@ -35,14 +35,14 @@ void sdp_insert_tail(work_queue_item_t *new_item) {
 }
 
 esp_err_t sdp_safe_add_work_queue(work_queue_item_t *new_item){
-        return safe_add_work_queue(&sdp_queue_context, new_item);
+    return safe_add_work_queue(&sdp_queue_context, new_item);
 }
 
 void sdp_cleanup_queue_task(work_queue_item_t *queue_item) {
     cleanup_queue_task(&sdp_queue_context, queue_item);
 }
 
-esp_err_t sdp_init_worker(work_callback work_cb, work_callback priority_cb, char *_log_prefix)
+esp_err_t sdp_init_worker(work_callback *work_cb, work_callback *priority_cb, char *_log_prefix)
 {
     // Initialize the work queue
     STAILQ_INIT(&sdp_work_q);
@@ -50,8 +50,9 @@ esp_err_t sdp_init_worker(work_callback work_cb, work_callback priority_cb, char
     sdp_queue_context.first_queue_item_cb = &sdp_first_queueitem; 
     sdp_queue_context.remove_first_queueitem_cb = &sdp_remove_first_queue_item; 
     sdp_queue_context.insert_tail_cb = &sdp_insert_tail;
-    sdp_queue_context.on_work_cb = &work_cb, 
-    sdp_queue_context.on_priority_cb = &priority_cb;
+    sdp_queue_context.on_work_cb = work_cb, 
+    sdp_queue_context.on_priority_cb = priority_cb;
+    sdp_queue_context.max_task_count = 0;
 
     init_work_queue(&sdp_queue_context, _log_prefix, "SDP Queue");
 

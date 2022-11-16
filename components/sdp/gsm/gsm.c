@@ -101,6 +101,11 @@ void cleanup()
     vTaskDelete(tmpTask);
 }
 
+void do_on_work_cb(work_queue_item_t *work_item) {
+    ESP_LOGI(log_prefix, "In GSM work callback.");
+    gsm_cleanup_queue_task(work_item);
+}
+
 bool gsm_before_sleep_cb()
 {
     if (gsm_modem_task != NULL)
@@ -169,7 +174,6 @@ void gsm_start()
     gsm_dce = esp_modem_new_dev(ESP_MODEM_DCE_SIM7600, &dte_config, &dce_config, gsm_ip_esp_netif);
 #elif CONFIG_EXAMPLE_MODEM_DEVICE_SIM7000 == 1
 
-    // test();
     ESP_LOGI(log_prefix, "Initializing esp_modem for the SIM7000 module..gsm_ip_esp_netif assigned %p", gsm_ip_esp_netif);
     gsm_dce = esp_modem_new_dev(ESP_MODEM_DCE_SIM7000, &dte_config, &dce_config, gsm_ip_esp_netif);
     assert(gsm_dce);
@@ -199,7 +203,6 @@ void gsm_start()
         }
     }
     
-
     ESP_LOGI(log_prefix, "Getting information.");
     char res[100];   
     err = esp_modem_at(gsm_dce, "SIMCOMATI", res, 10000);
@@ -327,7 +330,7 @@ signal_quality:
 
 
     gsm_ip_enable_data_mode();
-    gsm_init_worker(NULL, NULL, log_prefix);
+    
     gsm_mqtt_init(log_prefix);  
 
 cleanup:
@@ -336,7 +339,7 @@ cleanup:
 
 void gsm_init(char *_log_prefix)
 {
-
+    gsm_init_worker(&do_on_work_cb, NULL, log_prefix);
     log_prefix = _log_prefix;
     int rc = xTaskCreatePinnedToCore(gsm_start, "GSM main task", /*8192*/ 16384, NULL, 8, gsm_modem_task, 0);
     if (rc != pdPASS)

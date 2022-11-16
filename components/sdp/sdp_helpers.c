@@ -26,7 +26,7 @@ char *log_prefix;
  * @param message A pointer to a pointer to the message structure, memory will be allocated to it.
  * @param format A format string where "|" indicates where null-separation is wanted and creates a section.
  * @param arg A list of arguments supplying data for the format.
- * @return int
+ * @return int Length of message
  *
  * @note An evolution would be to identify the number of format strings in each "|"-section to enable full support of format.
  * Unclear when that woud be needed, though, perhaps if compiling error texts.

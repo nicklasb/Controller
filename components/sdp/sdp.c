@@ -39,7 +39,7 @@
 
 #include "gsm/gsm.h"
 
-int sdp_init(work_callback work_cb, work_callback priority_cb, char *_log_prefix, bool is_conductor)
+int sdp_init(work_callback *work_cb, work_callback *priority_cb, char *_log_prefix, bool is_conductor)
 {
 
      // Begin with initializing sleep functionality, it will also de

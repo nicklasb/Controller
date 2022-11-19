@@ -81,7 +81,8 @@ int add_to_message(uint8_t **message, const char *format, ...)
     for (int k = 0; k < format_count; k++)
     {
         curr_format = (char *)(format_array[k]);
-        if (curr_format[0] == '%') {
+        // Is there any formatting at all in the format string?
+        if (strchr(curr_format, '%') != NULL) {
             // Fetch the next parameter.
             void * value = va_arg(arg, void *);
             // Handle fixed length byte arrays "%b"

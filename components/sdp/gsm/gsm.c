@@ -10,6 +10,8 @@
 #include "gsm_worker.h"
 #include "gsm_mqtt.h"
 
+#include "sleep/sleep.h"
+
 TaskHandle_t *gsm_modem_task;
 
 char *log_prefix;
@@ -101,7 +103,30 @@ void cleanup()
 
 void do_on_work_cb(work_queue_item_t *work_item) {
     ESP_LOGI(log_prefix, "In GSM work callback.");
-    publish("/topic/lurifax_test", work_item->parts[1],  strlen(work_item->parts[1]));
+    publish("/topic/lurifax/peripheral_humidity", work_item->parts[1],  strlen(work_item->parts[1]));
+    publish("/topic/lurifax/peripheral_temperature", work_item->parts[2],  strlen(work_item->parts[2]));
+    publish("/topic/lurifax/peripheral_since_wake", work_item->parts[3],  strlen(work_item->parts[3]));
+    publish("/topic/lurifax/peripheral_since_boot", work_item->parts[4],  strlen(work_item->parts[4]));
+    publish("/topic/lurifax/peripheral_free_mem", work_item->parts[5],  strlen(work_item->parts[5]));
+    publish("/topic/lurifax/peripheral_total_wake_time", work_item->parts[6],  strlen(work_item->parts[6]));
+    char * curr_time;
+    asprintf(&curr_time, "%.2f", (double)esp_timer_get_time()/(double)(1000000));
+
+    char * since_start;
+    asprintf(&since_start, "%.2f", (double)get_time_since_start()/(double)(1000000));
+
+    char * total_wake_time;
+    asprintf(&total_wake_time, "%.2f", (double)get_total_time_awake()/(double)(1000000));
+
+    char * free_mem;
+    asprintf(&free_mem, "%i", heap_caps_get_free_size(MALLOC_CAP_8BIT));
+
+
+    publish("/topic/lurifax/controller_since_wake", curr_time,  strlen(curr_time));
+    publish("/topic/lurifax/controller_since_boot", since_start,  strlen(since_start));
+    publish("/topic/lurifax/controller_total_wake_time", total_wake_time,  strlen(total_wake_time));    
+    publish("/topic/lurifax/controller_free_mem", free_mem,  strlen(free_mem));    
+    
     gsm_cleanup_queue_task(work_item);
 }
 

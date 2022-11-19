@@ -146,7 +146,6 @@ bool do_on_data(work_queue_item_t *queue_item)
  */
 void do_on_work(work_queue_item_t *queue_item)
 {
-    bool _keep_queue_item = false;
 
     ESP_LOGI(log_prefix, "In do_on_work task on the controller, got a message:\n");
     for (int i = 0; i < queue_item->partcount; i++)

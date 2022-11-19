@@ -12,7 +12,6 @@
 char *log_prefix;
 
 
-
 static void on_ppp_changed(void *arg, esp_event_base_t event_base,
                            int32_t event_id, void *event_data)
 {
@@ -121,11 +120,8 @@ void gsm_ip_enable_data_mode() {
             ESP_LOGI(log_prefix, "Timed out. Continuing waiting for IP.");
         }
     } while (1);
-
-
-      
+ 
 }
-
 
 void gsm_ip_init(char *_log_prefix)
 {

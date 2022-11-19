@@ -101,7 +101,7 @@ void cleanup()
 
 void do_on_work_cb(work_queue_item_t *work_item) {
     ESP_LOGI(log_prefix, "In GSM work callback.");
-    publish("/topic/lurifax_test", work_item->parts[0],  strlen(work_item->parts[0]));
+    publish("/topic/lurifax_test", work_item->parts[1],  strlen(work_item->parts[1]));
     gsm_cleanup_queue_task(work_item);
 }
 

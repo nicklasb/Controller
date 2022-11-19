@@ -80,7 +80,7 @@ void gsm_mqtt_cleanup() {
 }
 
 int publish(char * topic, char * payload, int payload_len) {
-    int msg_id = esp_mqtt_client_publish(mqtt_client, "/topic/lurifax_test", "test_datadata", 13, 0, 1);
+    int msg_id = esp_mqtt_client_publish(mqtt_client, topic, payload, payload_len, 0, 1);
     ESP_LOGI(log_prefix, "Data published.");
     return msg_id;
 }

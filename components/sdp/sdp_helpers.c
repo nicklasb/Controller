@@ -22,6 +22,8 @@ char *log_prefix;
  * Instead, the pipe-symbol "|" is used to indicate the null-terminated sections.
  * Only one format is allowed per section: "%i Mhz|%s" is allowed. "%i Mhz, %i watts|%s" is not.
  * Integers can be passed as is. An additional format type is %b, which denotes a
+ * IMPORTANT: Do not send floating point values, format them ahead and send them as null-terminated strings.
+ * This is because of how variadic functions promotes and handles these data types.
  *
  * @param message A pointer to a pointer to the message structure, memory will be allocated to it.
  * @param format A format string where "|" indicates where null-separation is wanted and creates a section.
@@ -80,6 +82,7 @@ int add_to_message(uint8_t **message, const char *format, ...)
     {
         curr_format = (char *)(format_array[k]);
         if (curr_format[0] == '%') {
+            // Fetch the next parameter.
             void * value = va_arg(arg, void *);
             // Handle fixed length byte arrays "%b"
             if (curr_format[1] == 'b') {
@@ -99,8 +102,15 @@ int add_to_message(uint8_t **message, const char *format, ...)
             } else {
                 // Used sprintf formatting
                 value_length = asprintf(&value_str, curr_format, (void *)value);
+
+                /*double test = 0;
+                memcpy(&test, value, 8);
+
+                ESP_LOGI(log_prefix, "Formatted value = %f with %s, into %s", test, curr_format, value_str);*/
             }
         } else {
+            // If the format string doesn't start with a %-character, just use the format for value
+            // TODO: Checking if it *contains* a %-character should be more flexible
             value_length = strlen(curr_format);
             value_str = malloc(value_length);
             strncpy(value_str, curr_format, value_length);

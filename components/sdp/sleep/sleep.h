@@ -10,6 +10,7 @@ void goto_sleep_for_microseconds(uint64_t microsecs);
 
 int get_last_sleep_time();
 int get_time_since_start();
+int get_total_time_awake();
 bool is_first_boot();
 int get_sleep_count();
 

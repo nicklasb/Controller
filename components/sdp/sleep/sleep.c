@@ -20,6 +20,7 @@
 /* Store the moment we last went to sleep in persistent storage */
 RTC_DATA_ATTR int last_sleep_time;
 RTC_DATA_ATTR int sleep_count;
+RTC_DATA_ATTR int wake_time;
 
 bool b_first_boot;
 
@@ -43,6 +44,8 @@ void goto_sleep_for_microseconds(uint64_t microsecs)
     if (esp_sleep_enable_timer_wakeup(microsecs) == ESP_OK)
     {
         sleep_count++;
+        /* Now we know how long we were awake this time */
+        wake_time+= esp_timer_get_time();
         /* Set the sleep time just before going to sleep. */
         last_sleep_time = get_time_since_start();
         esp_deep_sleep_start();
@@ -85,6 +88,7 @@ bool sleep_init(char *_log_prefix)
         // No sleep time has happened if we don't return from sleep mode.
         last_sleep_time = 0;
         sleep_count = 0;
+        wake_time = 0;
         b_first_boot = false;
         return false;
         break;
@@ -133,4 +137,8 @@ int get_time_since_start()
         /* Can't include the cycle delay if we haven't cycled.. */
         return esp_timer_get_time();
     }
+}
+
+int get_total_time_awake() {
+    return wake_time + esp_timer_get_time();
 }

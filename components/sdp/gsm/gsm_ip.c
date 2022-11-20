@@ -7,6 +7,8 @@
 #include "esp_event.h"
 #include "gsm_worker.h"
 
+#include "orchestration/orchestration.h"
+
 #include "gsm.h"
 
 char *log_prefix;
@@ -100,6 +102,7 @@ void gsm_ip_enable_data_mode() {
     }
     /* Wait for IP address */
     ESP_LOGI(log_prefix, "Waiting for IP address");
+    ask_for_time(5000000);
     EventBits_t uxBits;
     do
     {
@@ -113,6 +116,7 @@ void gsm_ip_enable_data_mode() {
         else if ((uxBits & CONNECT_BIT) != 0)
         {
             ESP_LOGI(log_prefix, "Got an IP connection, great!");
+            ask_for_time(5000000);
             break;
         }
         else

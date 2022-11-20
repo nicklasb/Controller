@@ -18,9 +18,9 @@
 #include "freertos/timers.h"
 
 /* Store the moment we last went to sleep in persistent storage */
-RTC_DATA_ATTR int last_sleep_time;
+RTC_DATA_ATTR uint64_t last_sleep_time;
 RTC_DATA_ATTR int sleep_count;
-RTC_DATA_ATTR int wake_time;
+RTC_DATA_ATTR uint64_t wake_time;
 
 bool b_first_boot;
 
@@ -116,7 +116,7 @@ int get_sleep_count() {
  *
  * @return int
  */
-int get_last_sleep_time()
+uint64_t get_last_sleep_time()
 {
     return last_sleep_time;
 }
@@ -125,12 +125,12 @@ int get_last_sleep_time()
  *
  * @return int
  */
-int get_time_since_start()
+uint64_t get_time_since_start()
 {
     if (last_sleep_time > 0)
     {
         /* The time we fell asleep + the time we waited + the time since waking up = Total time*/
-        return last_sleep_time + SDP_CYCLE_DELAY_uS + esp_timer_get_time();
+        return last_sleep_time + SDP_SLEEP_TIME_uS + esp_timer_get_time();
     }
     else
     {
@@ -139,6 +139,6 @@ int get_time_since_start()
     }
 }
 
-int get_total_time_awake() {
+uint64_t get_total_time_awake() {
     return wake_time + esp_timer_get_time();
 }

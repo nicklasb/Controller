@@ -9,6 +9,7 @@
 #include "gsm_ip.h"
 #include "gsm_worker.h"
 #include "gsm_mqtt.h"
+#include "orchestration/orchestration.h"
 
 #include "sleep/sleep.h"
 
@@ -17,6 +18,8 @@ TaskHandle_t *gsm_modem_task;
 char *log_prefix;
 
 char *operator_name;
+
+int sync_attempts = 0;
 
 
 void cleanup()
@@ -103,8 +106,11 @@ void cleanup()
 
 void do_on_work_cb(work_queue_item_t *work_item) {
     ESP_LOGI(log_prefix, "In GSM work callback.");
-    publish("/topic/lurifax/peripheral_humidity", work_item->parts[1],  strlen(work_item->parts[1]));
-    publish("/topic/lurifax/peripheral_temperature", work_item->parts[2],  strlen(work_item->parts[2]));
+
+    if ((strcmp(work_item->parts[1], "-1.00") != 0) && (strcmp(work_item->parts[1], "-2.00") != 0)) {
+        publish("/topic/lurifax/peripheral_humidity", work_item->parts[1],  strlen(work_item->parts[1]));
+        publish("/topic/lurifax/peripheral_temperature", work_item->parts[2],  strlen(work_item->parts[2]));
+    }
     publish("/topic/lurifax/peripheral_since_wake", work_item->parts[3],  strlen(work_item->parts[3]));
     publish("/topic/lurifax/peripheral_since_boot", work_item->parts[4],  strlen(work_item->parts[4]));
     publish("/topic/lurifax/peripheral_free_mem", work_item->parts[5],  strlen(work_item->parts[5]));
@@ -119,14 +125,16 @@ void do_on_work_cb(work_queue_item_t *work_item) {
     asprintf(&total_wake_time, "%.2f", (double)get_total_time_awake()/(double)(1000000));
 
     char * free_mem;
-    asprintf(&free_mem, "%i", heap_caps_get_free_size(MALLOC_CAP_8BIT));
+    asprintf(&free_mem, "%i", heap_caps_get_free_size(MALLOC_CAP_EXEC));
 
+    char * sync_att;
+    asprintf(&sync_att, "%i", sync_attempts);
 
     publish("/topic/lurifax/controller_since_wake", curr_time,  strlen(curr_time));
     publish("/topic/lurifax/controller_since_boot", since_start,  strlen(since_start));
     publish("/topic/lurifax/controller_total_wake_time", total_wake_time,  strlen(total_wake_time));    
     publish("/topic/lurifax/controller_free_mem", free_mem,  strlen(free_mem));    
-    
+    publish("/topic/lurifax/controller_sync_attempts", sync_att,  strlen(sync_att));   
     gsm_cleanup_queue_task(work_item);
 }
 
@@ -163,16 +171,17 @@ void gsm_start()
     esp_modem_dce_config_t dce_config = ESP_MODEM_DCE_DEFAULT_CONFIG(CONFIG_EXAMPLE_MODEM_PPP_APN);
 
 
-    ESP_LOGI(log_prefix, "Turning off, waiting!");
+    ESP_LOGI(log_prefix, "Powering on modem.");
     gpio_set_direction(GPIO_NUM_4, GPIO_MODE_OUTPUT);
-    gpio_set_level(GPIO_NUM_4, 0);
-    vTaskDelay(100/portTICK_PERIOD_MS);
+    gpio_set_level(GPIO_NUM_4, 1);
+    ESP_LOGI(log_prefix, "Waiting a second.");
+    vTaskDelay(1000/portTICK_PERIOD_MS);
 
     /* Configure the DTE */
 #if defined(CONFIG_EXAMPLE_SERIAL_CONFIG_UART)
     esp_modem_dte_config_t dte_config = ESP_MODEM_DTE_DEFAULT_CONFIG();
     /* setup UART specific configuration based on kconfig options */
-    dte_config.uart_config.baud_rate = 9600;
+    dte_config.uart_config.baud_rate = 115200;
     dte_config.uart_config.tx_io_num = CONFIG_EXAMPLE_MODEM_UART_TX_PIN;
     dte_config.uart_config.rx_io_num = CONFIG_EXAMPLE_MODEM_UART_RX_PIN;
     dte_config.uart_config.rts_io_num = -1; // CONFIG_EXAMPLE_MODEM_UART_RTS_PIN;
@@ -183,7 +192,7 @@ void gsm_start()
     dte_config.uart_config.event_queue_size = CONFIG_EXAMPLE_MODEM_UART_EVENT_QUEUE_SIZE;
     dte_config.task_stack_size = CONFIG_EXAMPLE_MODEM_UART_EVENT_TASK_STACK_SIZE;
     dte_config.task_priority = CONFIG_EXAMPLE_MODEM_UART_EVENT_TASK_PRIORITY;
-    dte_config.dte_buffer_size = CONFIG_EXAMPLE_MODEM_UART_RX_BUFFER_SIZE / 2;
+    dte_config.dte_buffer_size = CONFIG_EXAMPLE_MODEM_UART_RX_BUFFER_SIZE;
 
 
 
@@ -204,8 +213,9 @@ void gsm_start()
 
     ESP_LOGI(log_prefix, "Wait 1 second,power on modem pin 4, s");
     vTaskDelay(1000/portTICK_PERIOD_MS);
-    
     gpio_set_level(GPIO_NUM_4, 1);
+
+    ESP_LOGI(log_prefix, "Waiting 4 seconds before trying to sync with the modem...");
     vTaskDelay(4000/portTICK_PERIOD_MS);  
 
 #else
@@ -216,19 +226,34 @@ void gsm_start()
 #endif
 
     esp_err_t err = ESP_FAIL;
+    char res[100];   
     while (err != ESP_OK)
     {
-        ESP_LOGI(log_prefix, "Syncing with the modem...");
-        vTaskDelay(500 / portTICK_PERIOD_MS);
-        err = esp_modem_sync(gsm_dce);
+        ESP_LOGI(log_prefix, "Querying the modem using SIMCOMATI...");
+        
+        err = esp_modem_at(gsm_dce, "SIMCOMATI", res, 4000);
         if (err != ESP_OK)
         {
-            ESP_LOGE(log_prefix, "esp_modem_sync failed with error:  %i", err);
+            sync_attempts++;
+
+            if (err == ESP_ERR_TIMEOUT) {
+                ESP_LOGW(log_prefix, "SIMCOMATI, attempt %i timed out.", sync_attempts);
+            } else {
+                ESP_LOGE(log_prefix, "SIMCOMATI, attempt %i failed with error:  %i", sync_attempts, err);
+            }
         }
+        else
+        {
+            ESP_LOGI(log_prefix, "SIMCOMATI returned:  %s", res);
+            
+        }   
+        vTaskDelay(500 / portTICK_PERIOD_MS);
     }
-    
+
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
+    /*
     ESP_LOGI(log_prefix, "Getting information.");
-    char res[100];   
+    
     err = esp_modem_at(gsm_dce, "SIMCOMATI", res, 10000);
     if (err != ESP_OK)
     {
@@ -239,7 +264,11 @@ void gsm_start()
         ESP_LOGI(log_prefix, "SIMCOMATI returned:  %s", res);
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }   
-    
+    */
+
+    /* We are now much more likely to be able to connect, ask for 7.5 more seconds for the next phase */
+    ask_for_time(7500000);
+
     ESP_LOGI(log_prefix, "Preferred mode selection");
 
     err = esp_modem_at(gsm_dce, "CNMP?", res, 7000);
@@ -252,7 +281,7 @@ void gsm_start()
         ESP_LOGE(log_prefix, "CNMP? returned:  %s", res);
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }   
-
+    ask_for_time(7500000);
     ESP_LOGI(log_prefix, "Preferred selection between CAT-M and NB-IoT");
 
     err = esp_modem_at(gsm_dce, "CMNB?", res, 7000);
@@ -265,7 +294,8 @@ void gsm_start()
         ESP_LOGE(log_prefix, "CMNB? returned:  %s", res);
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }   
-    
+
+    ask_for_time(5000000);
     /*
     ESP_LOGE(log_prefix, "Checking registration.");
     char res[100];
@@ -340,7 +370,7 @@ signal_quality:
         }
     }
     ESP_LOGI(log_prefix, "Signal quality: rssi=%d, ber=%d", rssi, ber);
-
+    ask_for_time(5000000);
     int act = 0;
 
     err = esp_modem_get_operator_name(gsm_dce, operator_name, &act);
@@ -351,9 +381,10 @@ signal_quality:
     } else {
         ESP_LOGI(log_prefix, "Operator name : %s, act: %i", operator_name, act);
     }
-
+    ask_for_time(10000000);
     // Connect to the GSM network
     gsm_ip_enable_data_mode();
+    ask_for_time(5000000);
     // Initialize MQTT
     gsm_mqtt_init(log_prefix);  
 

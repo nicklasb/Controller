@@ -5,6 +5,7 @@
 
 void update_next_availability_window();
 
+bool ask_for_time(uint64_t ask);
 
 void take_control();
 void give_control(sdp_peer * peer); 

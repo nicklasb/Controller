@@ -22,6 +22,9 @@
 char *log_prefix;
 
 int next_time;
+uint64_t wait_for_sleep_started;
+uint64_t wait_time = 0;
+uint64_t requested_time = 0;
 
 RTC_DATA_ATTR int availibility_retry_count;
 
@@ -37,11 +40,11 @@ void update_next_availability_window()
     /* Next time  = Last time we fell asleep + how long we slept + how long we should've been up + how long we will sleep */
     if (get_last_sleep_time() == 0)
     {
-        next_time = SDP_CYCLE_UPTIME_uS + SDP_CYCLE_DELAY_uS;
+        next_time = SDP_AWAKE_TIME_uS + SDP_SLEEP_TIME_uS;
     }
     else
     {
-        next_time = get_last_sleep_time() + SDP_CYCLE_DELAY_uS + SDP_CYCLE_UPTIME_uS + SDP_CYCLE_DELAY_uS;
+        next_time = get_last_sleep_time() + SDP_SLEEP_TIME_uS + SDP_AWAKE_TIME_uS + SDP_SLEEP_TIME_uS;
     }
     ESP_LOGI(log_prefix, "Next time we are available is at %i.", next_time);
 }
@@ -70,7 +73,7 @@ int sdp_orchestration_send_next_message(work_queue_item_t *queue_item)
     /* TODO: Handle the 32bit loop-around after 79 days ? */
     int delta_next = next_time - get_time_since_start();
 
-    int next_length = add_to_message(&next_msg, "NEXT|%i|%i", delta_next, SDP_CYCLE_UPTIME_uS);
+    int next_length = add_to_message(&next_msg, "NEXT|%i|%i", delta_next, SDP_AWAKE_TIME_uS);
 
     if (next_length > 0)
     {
@@ -106,12 +109,53 @@ void sleep_until_peer_available(sdp_peer *peer, int margin_us)
     }
 }
 
+/**
+ * @brief Ask to wait with sleep for a specific amount of time from now 
+ * @param ask Returns false if request is denied
+ */
+bool ask_for_time(uint64_t ask) {
+    uint64_t wait_time_left = wait_time - esp_timer_get_time() + wait_for_sleep_started;
+    
+    // Only request for more time if it is more than being available and already requested
+    if ((wait_time_left < ask) && (requested_time < ask - wait_time_left)) {
+        /* Only allow for requests that fit into the awake timebox */
+        if (esp_timer_get_time() + wait_time_left + ask < SDP_AWAKE_TIMEBOX_uS) {
+            requested_time = ask - wait_time_left;
+            ESP_LOGI(log_prefix, "Orchestrator granted an extra %llu ms of awakeness.", ask/1000);
+            return true;
+        } else {
+            ESP_LOGI(log_prefix, "Orchestrator denied %llu ms of awakeness because it would violate the timebox.", ask/1000);
+            return false;      
+        }
+    } 
+    ESP_LOGI(log_prefix, "Orchestrator got an unnessary request for %llu ms of awakeness.", ask/1000);
+    return true;
+
+}
+
 void take_control()
 {
-    int wait_ms = SDP_CYCLE_UPTIME_uS / 1000;
-    ESP_LOGI(log_prefix, "Orchestrator awaiting sleep for %i ms.", wait_ms);
-    vTaskDelay(wait_ms / portTICK_PERIOD_MS);
-    goto_sleep_for_microseconds(SDP_CYCLE_DELAY_uS);
+    /* Wait for the awake period*/
+    wait_time = SDP_AWAKE_TIME_uS;
+    int wait_ms;
+    while (1) {
+        
+        wait_ms = wait_time / 1000;
+        ESP_LOGI(log_prefix, "Orchestrator awaiting sleep for %i ms.", wait_ms);
+        wait_for_sleep_started = esp_timer_get_time();
+        vTaskDelay(wait_ms / portTICK_PERIOD_MS);
+        if (requested_time > 0) {
+            wait_time = requested_time;
+            ESP_LOGW(log_prefix, "Orchestrator extending the awake phase.");
+            requested_time = 0;
+        } else {
+            ESP_LOGI(log_prefix, "Orchestrator done waiting, going to sleep. zzZzzzzZzz");
+            break;
+        }
+
+    }
+
+    goto_sleep_for_microseconds(SDP_SLEEP_TIME_uS);
 }
 /**
  * @brief Check with the peer when its available next, and goes to sleep until then.
@@ -143,9 +187,9 @@ void give_control(sdp_peer *peer)
         if (retries == 10)
         {
             ESP_LOGE(log_prefix, "Haven't gotten an availability time for peer \"%s\" ! Tried %i times. Going to sleep for %i microseconds..",
-                     peer->name, availibility_retry_count++, SDP_CYCLE_RETRY_WAIT);
+                     peer->name, availibility_retry_count++, SDP_ORCHESTRATION_RETRY_WAIT_uS);
             
-            goto_sleep_for_microseconds(SDP_CYCLE_RETRY_WAIT);
+            goto_sleep_for_microseconds(SDP_ORCHESTRATION_RETRY_WAIT_uS);
         }
         else
         {
@@ -153,7 +197,7 @@ void give_control(sdp_peer *peer)
             ESP_LOGI(log_prefix, "Waiting for sleep..");
             /* TODO: Add a sdp task concept instead and wait for a task count to reach zero (within ) */
             vTaskDelay(5000 / portTICK_PERIOD_MS);
-            sleep_until_peer_available(peer, SDP_CYCLE_MARGIN);
+            sleep_until_peer_available(peer, SDP_AWAKE_MARGIN_uS);
         }
     }
 }

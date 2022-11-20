@@ -1,3 +1,16 @@
+/**
+ * @file gsm_mqtt.c
+ * @author your name (you@domain.com)
+ * @brief Usage of the ESP-IDF MQTT client. 
+ * TODO: This should probably be separate, able to also use wifi or any other channel.
+ * @version 0.1
+ * @date 2022-11-20
+ * 
+ * @copyright Copyright (c) 2022
+ * 
+ */
+
+
 #include "gsm_mqtt.h"
 
 #include "mqtt_client.h"
@@ -6,6 +19,8 @@
 #include "esp_log.h"
 #include "gsm.h"
 #include "gsm_worker.h"
+
+#include "orchestration/orchestration.h"
 
 #define BROKER_URL "mqtt://mqtt.eclipseprojects.io"
 
@@ -107,11 +122,12 @@ void gsm_mqtt_init(char * _log_prefix) {
     };
 #endif
     mqtt_client = esp_mqtt_client_init(&mqtt_config);
-    esp_mqtt_client_register_event(mqtt_client, ESP_EVENT_ANY_ID, mqtt_event_handler, NULL);  
+    esp_mqtt_client_register_event(mqtt_client, ESP_EVENT_ANY_ID, mqtt_event_handler, NULL); 
+    ask_for_time(5000000); 
     ESP_LOGI(log_prefix, "Start MQTT client");
     esp_mqtt_client_start(mqtt_client);
     ESP_LOGI(log_prefix, "Start subscription");
-    esp_mqtt_client_subscribe(mqtt_client, "/topic/lurifax_test", 1);
+    esp_mqtt_client_subscribe(mqtt_client, "/topic/lurifax", 1);
 
     //TODO:Move the following to a task
     #if 0

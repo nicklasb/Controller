@@ -1,10 +1,10 @@
 /**
  * @file sleep.c
  * @author Nicklas Borjesson (nicklasb@gmail.com)
- * @brief Sleep management
+ * @brief Manages and tracks how a peer goes to sleep and wakes up
  * @date 2022-10-22
  *
- * @copyright Copyright (c) 2022
+ * @copyright Copyright Nicklas Borjesson(c) 2022
  *
  */
 

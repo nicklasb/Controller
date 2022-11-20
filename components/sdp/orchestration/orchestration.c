@@ -1,3 +1,14 @@
+/**
+ * @file orchestration.c
+ * @author Nicklas Borjesson (nicklasb@gmail.com)
+ * @brief Orchestration refers to process-level operations, like scheduling and timing sleep and timeboxing wake time
+ * @version 0.1
+ * @date 2022-11-20
+ * 
+ * @copyright Copyright Nicklas Borjesson(c) 2022
+ * 
+ */
+
 #include "orchestration.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/timers.h"
@@ -11,6 +22,10 @@
 char *log_prefix;
 
 int next_time;
+
+RTC_DATA_ATTR int availibility_retry_count;
+
+
 
 /**
  * @brief Save the current time into RTC memory
@@ -98,7 +113,11 @@ void take_control()
     vTaskDelay(wait_ms / portTICK_PERIOD_MS);
     goto_sleep_for_microseconds(SDP_CYCLE_DELAY_uS);
 }
-
+/**
+ * @brief Check with the peer when its available next, and goes to sleep until then.
+ * 
+ * @param peer The peer that one wants to follow
+ */
 void give_control(sdp_peer *peer)
 {
 
@@ -108,25 +127,31 @@ void give_control(sdp_peer *peer)
         // Ask for orchestration
         ESP_LOGI(log_prefix, "Asking for orchestration..");
         int retries = 0;
-        while (retries < SDP_CYCLE_RETRY_COUNT)
+        // Waiting a while for a response.
+        while (retries < 10)
         {
             sdp_orchestration_send_when_message(peer);
             vTaskDelay(500 / portTICK_PERIOD_MS);
+            
             if (peer->next_availability > 0)
             {
                 break;
             }
+
             retries++;
         }
-        if (retries == SDP_CYCLE_RETRY_COUNT)
+        if (retries == 10)
         {
-            ESP_LOGE(log_prefix, "Haven't gotten an availability time for peer \"%s\" ! Going to sleep for %i microseconds..",
-                     peer->name, SDP_CYCLE_DELAY_uS);
-            goto_sleep_for_microseconds(SDP_CYCLE_DELAY_uS);
+            ESP_LOGE(log_prefix, "Haven't gotten an availability time for peer \"%s\" ! Tried %i times. Going to sleep for %i microseconds..",
+                     peer->name, availibility_retry_count++, SDP_CYCLE_RETRY_WAIT);
+            
+            goto_sleep_for_microseconds(SDP_CYCLE_RETRY_WAIT);
         }
         else
         {
+            availibility_retry_count = 0;
             ESP_LOGI(log_prefix, "Waiting for sleep..");
+            /* TODO: Add a sdp task concept instead and wait for a task count to reach zero (within ) */
             vTaskDelay(5000 / portTICK_PERIOD_MS);
             sleep_until_peer_available(peer, SDP_CYCLE_MARGIN);
         }

@@ -23,14 +23,15 @@
 #define SDP_PREAMBLE_LENGTH 4
 
 /* How long will each cycle be*/
-#define SDP_CYCLE_DELAY_uS 40000000
+#define SDP_CYCLE_DELAY_uS 120000000
 /* How long will we be listening */
 #define SDP_CYCLE_UPTIME_uS 40000000
 /* Will we wait a little extra to avoid flooding? */
 #define SDP_CYCLE_MARGIN 500000
-/* How many times should we retry to connect to get orchestration? */
-#define SDP_CYCLE_RETRY_COUNT 5
-
+/* How long should we sleep until next retry (in us) */
+#define SDP_CYCLE_RETRY_WAIT 30000000
+/* The most amount of time the peer gives itself until it goes to sleep */
+#define SDP_WAKE_TIMEBOX 10000000
 /* Common error codes */
 typedef enum e_sdp_error_codes
 {

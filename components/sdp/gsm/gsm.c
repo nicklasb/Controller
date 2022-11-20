@@ -20,6 +20,9 @@ char *log_prefix;
 char *operator_name;
 
 int sync_attempts = 0;
+bool successful_data = false;
+
+RTC_DATA_ATTR uint connection_failues = 0;
 
 
 void cleanup()
@@ -130,16 +133,26 @@ void do_on_work_cb(work_queue_item_t *work_item) {
     char * sync_att;
     asprintf(&sync_att, "%i", sync_attempts);
 
+    char * c_connection_failues;
+    asprintf(&c_connection_failues, "%i", connection_failues);
+
     publish("/topic/lurifax/controller_since_wake", curr_time,  strlen(curr_time));
     publish("/topic/lurifax/controller_since_boot", since_start,  strlen(since_start));
     publish("/topic/lurifax/controller_total_wake_time", total_wake_time,  strlen(total_wake_time));    
     publish("/topic/lurifax/controller_free_mem", free_mem,  strlen(free_mem));    
     publish("/topic/lurifax/controller_sync_attempts", sync_att,  strlen(sync_att));   
+    publish("/topic/lurifax/controller_connection_failures", c_connection_failues,  strlen(c_connection_failues));   
+    successful_data = true;
     gsm_cleanup_queue_task(work_item);
+
 }
 
 bool gsm_before_sleep_cb()
 {
+    if (!successful_data) {
+        connection_failues++;
+    }
+
     if (gsm_modem_task != NULL)
     {
         ESP_LOGI(log_prefix, "----- Before sleep: Turning off GSM modem -----");

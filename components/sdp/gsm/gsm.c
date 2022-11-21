@@ -150,8 +150,9 @@ void do_on_work_cb(work_queue_item_t *work_item) {
     publish("/topic/lurifax/controller_connection_failures", c_connection_failues,  strlen(c_connection_failues)); 
     
     // Lets deem this a success.
+    connection_successes++;
     char * c_connection_successes;
-    asprintf(&c_connection_successes, "%i", connection_successes++);
+    asprintf(&c_connection_successes, "%i", connection_successes);
     publish("/topic/lurifax/controller_connection_successes", c_connection_successes,  strlen(c_connection_successes)); 
 
     successful_data = true;

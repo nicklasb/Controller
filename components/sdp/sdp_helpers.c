@@ -7,6 +7,7 @@
 #include <esp_log.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
+#include <driver/adc.h>
 
 
 #include "sdp_def.h"
@@ -155,7 +156,7 @@ int add_to_message(uint8_t **message, const char *format, ...)
     return new_length;
 }
 
-void blink_led(gpio_num_t gpio_num, uint16_t time_on, uint16_t time_off, uint16_t times) {
+void sdp_blink_led(gpio_num_t gpio_num, uint16_t time_on, uint16_t time_off, uint16_t times) {
 
     int count = 0;
     int pre_level = gpio_get_level(gpio_num);
@@ -171,6 +172,16 @@ void blink_led(gpio_num_t gpio_num, uint16_t time_on, uint16_t time_off, uint16_
     gpio_set_level(gpio_num, pre_level);
 
 
+}
+
+float sdp_read_battery()
+{
+
+    int volt;
+
+    adc2_get_raw(ADC2_CHANNEL_7, ADC_WIDTH_BIT_12, &volt);
+    float battery_voltage = ((float)volt / 4095.0) * 2.0 * 3.3 ;
+    return battery_voltage;
 }
 
 void sdp_helpers_init(char * _log_prefix) {

@@ -71,7 +71,8 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         ESP_LOGI(log_prefix, "MQTT_EVENT_ERROR");
         break;
     case MQTT_EVENT_BEFORE_CONNECT:
-         ESP_LOGI(log_prefix, "MQTT_EVENT_BEFORE_CONNECT");
+        ESP_LOGI(log_prefix, "MQTT_EVENT_BEFORE_CONNECT");
+        ask_for_time(6000000); 
         break;   
     default:
         ESP_LOGI(log_prefix, "MQTT other event id: %d", event->event_id);
@@ -86,8 +87,6 @@ void gsm_mqtt_cleanup() {
         ESP_LOGI(log_prefix, " - Success in %i of %i of sleep cycles.", mqtt_count, get_sleep_count());
         ESP_LOGI(log_prefix, " - Unsubscribing the client from the %s topic.", TOPIC);
         esp_mqtt_client_unsubscribe(mqtt_client, TOPIC);
-        ESP_LOGI(log_prefix, " - Stopping the client.");
-        esp_mqtt_client_stop(mqtt_client);
         ESP_LOGI(log_prefix, " - Destroying the client.");
         esp_mqtt_client_destroy(mqtt_client);
         mqtt_client = NULL;

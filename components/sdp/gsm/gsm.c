@@ -12,6 +12,7 @@
 #include "gsm_worker.h"
 #include "gsm_mqtt.h"
 #include "orchestration/orchestration.h"
+#include "sdp_helpers.h"
 
 #include "sleep/sleep.h"
 
@@ -26,92 +27,6 @@ bool successful_data = false;
 
 RTC_DATA_ATTR uint connection_failures = 0;
 RTC_DATA_ATTR uint connection_successes = 0;
-
-void cut_modem_power() {
-    // Short delay before cutting power.
-
-    ESP_LOGI(log_prefix, "* Cutting modem power.");
-    gpio_set_direction(GPIO_NUM_4, GPIO_MODE_OUTPUT);
-    gpio_set_level(GPIO_NUM_4, 0);
-
-    blink_led(GPIO_NUM_12, 100, 100, 10);
-}
-
-
-void cleanup()
-{
-    /* As we clear gsm_event_group in the end of this function, we'll use it to know if it's been run. */
-    if (!gsm_event_group) {
-        ESP_LOGW(log_prefix, "GSM cleanup called when no cleanup is necessary. Exiting.");
-        return;
-    }
-
-    ESP_LOGW(log_prefix, "GSM shutting down.");
-
-    ESP_LOGI(log_prefix, " - Informing everyone that the GSM task it is shutting down.");
-    xEventGroupSetBits(gsm_event_group, SHUTTING_DOWN_BIT);
-
-    gsm_ip_cleanup();
-
-    // Making sure gsm_modem_setup_task is null and use a temporary variable instead. 
-    // This to avoid a race condition, as gsm_before_sleep_cb may be called simultaneously  
-
-    if (gsm_modem_setup_task) {
-        ESP_LOGI(log_prefix, " - Deleting GSM setup task.");
-        vTaskDelete(gsm_modem_setup_task);
-    }
-
-    if (gsm_dce) {
-        /*
-        ESP_LOGI(log_prefix, " - Set command mode");
-        esp_err_t err = esp_modem_set_mode(gsm_dce, ESP_MODEM_MODE_COMMAND);
-        if (err != ESP_OK)
-        {
-            ESP_LOGE(log_prefix, "esp_modem_set_mode(gsm_dce, ESP_MODEM_MODE_COMMAND) failed with %d", err);
-        }
-        */
-        /*
-        ESP_LOGI(log_prefix, "* Sending SMS report after MQTT");
-        err = esp_modem_send_sms(gsm_dce, "0733600343", "Going to sleep, all successful.");
-        if (err != ESP_OK)
-        {
-            ESP_LOGE(log_prefix, "esp_modem_send_sms(); failed with error:  %i", err);
-        } else {
-
-            vTaskDelay(4000/portTICK_PERIOD_MS);
-        }
-        */
-        /*
-        ESP_LOGI(log_prefix, " - De-register from GSM/UMTS network.");
-         err = esp_modem_set_operator(gsm_dce,  3, 1, operator_name);
-        if (err != ESP_OK)
-        {
-            ESP_LOGE(log_prefix, "esp_modem_set_operator(gsm_dce,  3, 1, %s) failed with %d",operator_name, err);
-        }   
-        */
-        // Power off the modem AT command.   
-        ESP_LOGI(log_prefix, " - Tell modem to power down");
-        esp_err_t err = esp_modem_power_down(gsm_dce);
-        if (err == ESP_ERR_TIMEOUT)
-        {
-            ESP_LOGW(log_prefix, "esp_modem_power_down(gsm_dce) timed out");
-        } else  
-        {
-            ESP_LOGE(log_prefix, "esp_modem_power_down(gsm_dce) failed with %d", err);
-        }
-        
-    }
-    if (gsm_event_group) {
-        ESP_LOGI(log_prefix, " - Delete the event group");
-        vEventGroupDelete(gsm_event_group);
-        gsm_event_group = NULL;
-    }
-    
-    vTaskDelay(100 / portTICK_PERIOD_MS);
-    cut_modem_power();
-
-
-}
 
 void do_on_work_cb(work_queue_item_t *work_item) {
     ESP_LOGI(log_prefix, "In GSM work callback.");
@@ -154,21 +69,118 @@ void do_on_work_cb(work_queue_item_t *work_item) {
     char * c_connection_successes;
     asprintf(&c_connection_successes, "%i", connection_successes);
     publish("/topic/lurifax/controller_connection_successes", c_connection_successes,  strlen(c_connection_successes)); 
-
+/*TODO: Fix this? 
+    char * c_battery_voltage;
+    asprintf(&c_battery_voltage, "%.2f", sdp_read_battery());
+    publish("/topic/lurifax/controller_battery_voltage", c_battery_voltage,  strlen(c_battery_voltage)); 
+*/
     successful_data = true;
 
     gsm_cleanup_queue_task(work_item);
 
 }
 
+
+void cut_modem_power() {
+    // Short delay before cutting power.
+
+    ESP_LOGI(log_prefix, "* Cutting modem power.");
+    gpio_set_direction(GPIO_NUM_4, GPIO_MODE_OUTPUT);
+    gpio_set_level(GPIO_NUM_4, 0);
+
+    // sdp_blink_led(GPIO_NUM_12, 100, 100, 10);
+}
+
+
+void cleanup()
+{
+    /* As we clear gsm_event_group in the end of this function, we'll use it to know if it's been run. */
+    if (!gsm_event_group) {
+        ESP_LOGW(log_prefix, "GSM cleanup called when no cleanup is necessary. Exiting.");
+        return;
+    }
+
+    
+
+    ESP_LOGI(log_prefix, " - Informing everyone that the GSM task it is shutting down.");
+    xEventGroupSetBits(gsm_event_group, SHUTTING_DOWN_BIT);
+
+    gsm_ip_cleanup();
+
+    // Making sure gsm_modem_setup_task is null and use a temporary variable instead. 
+    // This to avoid a race condition, as gsm_before_sleep_cb may be called simultaneously  
+
+    if (gsm_modem_setup_task) {
+        ESP_LOGI(log_prefix, " - Deleting GSM setup task.");
+        vTaskDelete(gsm_modem_setup_task);
+    }
+
+    if (gsm_dce) {
+        /*
+        ESP_LOGI(log_prefix, " - Set command mode");
+        esp_err_t err = esp_modem_set_mode(gsm_dce, ESP_MODEM_MODE_COMMAND);
+        if (err != ESP_OK)
+        {
+            ESP_LOGE(log_prefix, "esp_modem_set_mode(gsm_dce, ESP_MODEM_MODE_COMMAND) failed with %d", err);
+        }
+        */
+        /*
+        ESP_LOGI(log_prefix, "* Sending SMS report after MQTT");
+        err = esp_modem_send_sms(gsm_dce, "0733600343", "Going to sleep, all successful.");
+        if (err != ESP_OK)
+        {
+            ESP_LOGE(log_prefix, "esp_modem_send_sms(); failed with error:  %i", err);
+        } else {
+
+            vTaskDelay(4000/portTICK_PERIOD_MS);
+        }
+        */
+        /*
+        ESP_LOGI(log_prefix, " - De-register from GSM/UMTS network.");
+         err = esp_modem_set_operator(gsm_dce,  3, 1, operator_name);
+        if (err != ESP_OK)
+        {
+            ESP_LOGE(log_prefix, "esp_modem_set_operator(gsm_dce,  3, 1, %s) failed with %d",operator_name, err);
+        }   
+      
+        // Power off the modem AT command.   
+        ESP_LOGI(log_prefix, " - Tell modem to power down");
+        esp_err_t err = esp_modem_power_down(gsm_dce);
+        if (err == ESP_ERR_TIMEOUT)
+        {
+            ESP_LOGW(log_prefix, "esp_modem_power_down(gsm_dce) timed out");
+        } else  
+        {
+            ESP_LOGE(log_prefix, "esp_modem_power_down(gsm_dce) failed with %d", err);
+        }
+         */ 
+        free(gsm_dce);
+        gsm_dce = NULL;
+    }
+    /*
+    if (gsm_event_group) {
+        ESP_LOGI(log_prefix, " - Delete the event group");
+        vEventGroupDelete(gsm_event_group);
+        gsm_event_group = NULL;
+    }
+    */
+    vTaskDelay(100 / portTICK_PERIOD_MS);
+    cut_modem_power();
+
+}
+
+
 bool gsm_before_sleep_cb()
 {
     if (!successful_data) {
         connection_failures++;
     }
-
-
     ESP_LOGI(log_prefix, "----- Before sleep: Turning off all GSM/UMTS stuff -----");
+
+    ESP_LOGW(log_prefix, "GSM shutting down.");
+    cut_modem_power();
+
+
     cleanup();
 
 
@@ -192,9 +204,7 @@ void gsm_start()
 {
     operator_name = malloc(40);
 
-    /* Create the event group, this is used for all event handling */
-    gsm_event_group = xEventGroupCreate();
-    xEventGroupClearBits(gsm_event_group, CONNECT_BIT | GOT_DATA_BIT | SHUTTING_DOWN_BIT);
+
     // We need to init the PPP netif as that is a parameter to the modem setup
     gsm_ip_init(log_prefix);
 
@@ -204,9 +214,16 @@ void gsm_start()
     ESP_LOGI(log_prefix, "Powering on modem.");
     gpio_set_direction(GPIO_NUM_4, GPIO_MODE_OUTPUT);
     gpio_set_level(GPIO_NUM_4, 1);
-    ESP_LOGI(log_prefix, "Waiting a second.");
-    vTaskDelay(1000/portTICK_PERIOD_MS);
-
+    ESP_LOGI(log_prefix, "Waiting 3 seconds.");
+    vTaskDelay(3000/portTICK_PERIOD_MS);
+    ESP_LOGI(log_prefix, "Setting DTR to high.");
+    gpio_set_direction(GPIO_NUM_25, GPIO_MODE_OUTPUT);
+    gpio_set_level(GPIO_NUM_25, 1);
+    vTaskDelay(2000/portTICK_PERIOD_MS);
+     ESP_LOGI(log_prefix, "Setting DTR to low.");
+    gpio_set_level(GPIO_NUM_25, 0);   
+    ESP_LOGI(log_prefix, "Waiting 2 seconds.");
+    vTaskDelay(2000/portTICK_PERIOD_MS);
     /* Configure the DTE */
 #if defined(CONFIG_EXAMPLE_SERIAL_CONFIG_UART)
     esp_modem_dte_config_t dte_config = ESP_MODEM_DTE_DEFAULT_CONFIG();
@@ -241,12 +258,6 @@ void gsm_start()
     gsm_dce = esp_modem_new_dev(ESP_MODEM_DCE_SIM7000, &dte_config, &dce_config, gsm_ip_esp_netif);
     assert(gsm_dce);
 
-    ESP_LOGI(log_prefix, "Wait 1 second,power on modem pin 4, s");
-    vTaskDelay(1000/portTICK_PERIOD_MS);
-    gpio_set_level(GPIO_NUM_4, 1);
-
-    ESP_LOGI(log_prefix, "Waiting 4 seconds before trying to sync with the modem...");
-    vTaskDelay(4000/portTICK_PERIOD_MS);  
 
 #else
     ESP_LOGI(log_prefix, "Initializing esp_modem for a generic module...");
@@ -254,9 +265,11 @@ void gsm_start()
 #endif
 
 #endif
+    /*For some reason the initial startup may take long */
+    ask_for_time(5000000);
 
-    esp_err_t err = ESP_FAIL;
     char res[100];   
+    esp_err_t err = ESP_FAIL;
     while (err != ESP_OK)
     {
         ESP_LOGI(log_prefix, "Querying the modem using SIMCOMATI...");
@@ -272,6 +285,8 @@ void gsm_start()
                 ESP_LOGE(log_prefix, "SIMCOMATI, attempt %i failed with error:  %i", sync_attempts, err);
             }
             abort_if_shutting_down();
+            // We want to try until we either connect or hit the timebox limit
+            ask_for_time(5000000);
 
         }
         else
@@ -292,11 +307,11 @@ void gsm_start()
     err = esp_modem_at(gsm_dce, "CNMP?", res, 7000);
     if (err != ESP_OK)
     {
-        ESP_LOGE(log_prefix, "esp_modem_at CNMP? failed with error:  %i", err);
+        ESP_LOGW(log_prefix, "esp_modem_at CNMP? failed with error:  %i", err);
     }
     else
     {
-        ESP_LOGE(log_prefix, "CNMP? returned:  %s", res);
+        ESP_LOGI(log_prefix, "CNMP? returned:  %s", res);
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }   
     abort_if_shutting_down();
@@ -306,11 +321,11 @@ void gsm_start()
     err = esp_modem_at(gsm_dce, "CMNB?", res, 7000);
     if (err != ESP_OK)
     {
-        ESP_LOGE(log_prefix, "esp_modem_at CMNB? failed with error:  %i", err);
+        ESP_LOGW(log_prefix, "esp_modem_at CMNB? failed with error:  %i", err);
     }
     else
     {
-        ESP_LOGE(log_prefix, "CMNB? returned:  %s", res);
+        ESP_LOGI(log_prefix, "CMNB? returned:  %s", res);
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }   
     abort_if_shutting_down();
@@ -370,7 +385,7 @@ signal_quality:
 
     if (err != ESP_OK)
     {
-        ESP_LOGE(log_prefix, "esp_modem_get_signal_quality failed with error:  %i", err);
+        ESP_LOGW(log_prefix, "esp_modem_get_signal_quality failed with error:  %i", err);
         cleanup();
     }
     if (rssi == 99)
@@ -391,7 +406,7 @@ signal_quality:
     ESP_LOGI(log_prefix, "Signal quality: rssi=%d, ber=%d", rssi, ber);
     ask_for_time(5000000);
     int act = 0;
-
+    abort_if_shutting_down();
     err = esp_modem_get_operator_name(gsm_dce, operator_name, &act);
     if (err != ESP_OK)
     {
@@ -416,7 +431,12 @@ void gsm_init(char *_log_prefix)
 {
     gsm_init_worker(&do_on_work_cb, NULL, log_prefix);
     log_prefix = _log_prefix;
-    int rc = xTaskCreatePinnedToCore(gsm_start, "GSM main task", /*8192*/ 16384, NULL, 8, gsm_modem_setup_task, 0);
+
+    /* Create the event group, this is used for all event handling, initiate in main thread */
+    gsm_event_group = xEventGroupCreate();
+    xEventGroupClearBits(gsm_event_group, CONNECT_BIT | GOT_DATA_BIT | SHUTTING_DOWN_BIT);
+
+    int rc = xTaskCreatePinnedToCore(gsm_start, "GSM main task", /*8192*/ 16384, NULL, 5, gsm_modem_setup_task, 0);
     if (rc != pdPASS)
     {
         ESP_LOGE(log_prefix, "Failed creating GSM task, returned: %i (see projdefs.h)", rc);

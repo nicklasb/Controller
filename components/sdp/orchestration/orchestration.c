@@ -24,7 +24,9 @@ char *log_prefix;
 
 uint64_t next_time;
 uint64_t wait_for_sleep_started;
+/* How long we need to wait for sleep */
 uint64_t wait_time = 0;
+/* */
 uint64_t requested_time = 0;
 
 RTC_DATA_ATTR int availibility_retry_count;
@@ -121,7 +123,8 @@ void sleep_until_peer_available(sdp_peer *peer, uint64_t margin_us)
  * @param ask Returns false if request is denied
  */
 bool ask_for_time(uint64_t ask) {
-    uint64_t wait_time_left = wait_time - esp_timer_get_time() + wait_for_sleep_started;
+    // How long will we wait?  = The time (since boot) we started waiting + how long we are waiting -  time since (boot)
+    uint64_t wait_time_left = + wait_for_sleep_started + wait_time - esp_timer_get_time() ;
     
     // Only request for more time if it is more than being available and already requested
     if ((wait_time_left < ask) && (requested_time < ask - wait_time_left)) {
@@ -131,7 +134,7 @@ bool ask_for_time(uint64_t ask) {
             ESP_LOGI(log_prefix, "Orchestrator granted an extra %"PRIu64" ms of awakeness.", ask/1000);
             return true;
         } else {
-            ESP_LOGI(log_prefix, "Orchestrator denied %"PRIu64" ms of awakeness because it would violate the timebox.", ask/1000);
+            ESP_LOGE(log_prefix, "Orchestrator denied %"PRIu64" ms of awakeness because it would violate the timebox.", ask/1000);
             return false;      
         }
     } 

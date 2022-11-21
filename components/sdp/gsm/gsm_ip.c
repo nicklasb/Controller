@@ -81,8 +81,9 @@ void gsm_ip_cleanup() {
         ESP_LOGI(log_prefix, "- Unregistering IP/Netif events.");
         esp_event_handler_unregister(IP_EVENT, ESP_EVENT_ANY_ID, &on_ip_event);
         esp_event_handler_unregister(NETIF_PPP_STATUS, ESP_EVENT_ANY_ID, &on_ppp_changed);        
-        ESP_LOGI(log_prefix, "- Shutting down netif at %p.", gsm_ip_esp_netif);
+        ESP_LOGI(log_prefix, "- Destroying netif at %p.", gsm_ip_esp_netif);
         esp_netif_destroy(gsm_ip_esp_netif);
+        ESP_LOGI(log_prefix, "- netif destroyed");
         gsm_ip_esp_netif = NULL;
     } else {
         ESP_LOGW(log_prefix, "GSM IP cleanup was told to cleanup while not initialized or already cleaned up.");
@@ -111,8 +112,8 @@ void gsm_ip_enable_data_mode() {
         uxBits = xEventGroupWaitBits(gsm_event_group, CONNECT_BIT | SHUTTING_DOWN_BIT, pdFALSE, pdFALSE, 4000 / portTICK_PERIOD_MS); 
         if ((uxBits & SHUTTING_DOWN_BIT) != 0)
         {
-            ESP_LOGE(log_prefix, "Getting that we are shutting down, pausing indefinitely.");
-            vTaskDelay(portMAX_DELAY);
+            ESP_LOGW(log_prefix, "Getting that we are shutting down, pausing indefinitely.");
+            abort_if_shutting_down();
         }
         else if ((uxBits & CONNECT_BIT) != 0)
         {
@@ -123,6 +124,7 @@ void gsm_ip_enable_data_mode() {
         else
         {
             ESP_LOGI(log_prefix, "Timed out. Continuing waiting for IP.");
+            ask_for_time(5000000);
         }
     } while (1);
  

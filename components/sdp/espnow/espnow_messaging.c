@@ -45,7 +45,7 @@ static void espnow_send_cb(const uint8_t *mac_addr, esp_now_send_status_t status
     }
     if (status == ESP_NOW_SEND_FAIL)
     {
-        ESP_LOGE(log_prefix, "In espnow_send_cb, send failure, mac address:");
+        ESP_LOGW(log_prefix, "In espnow_send_cb, send failure, mac address:");
         ESP_LOG_BUFFER_HEX(log_prefix, mac_addr, SDP_MAC_ADDR_LEN);
     }
 }

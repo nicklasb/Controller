@@ -17,7 +17,7 @@
 #include "sdp_def.h"
 #include "driver/gpio.h"
 
-void blink_led(gpio_num_t gpio_num, uint16_t time_on, uint16_t time_off, uint16_t times);
+void sdp_blink_led(gpio_num_t gpio_num, uint16_t time_on, uint16_t time_off, uint16_t times);
 
 int add_to_message(uint8_t **message, const char *format, ...);
 
@@ -25,5 +25,6 @@ void *sdp_add_preamble(e_work_type work_type, uint16_t conversation_id, const vo
 
 void sdp_helpers_init(char * _log_prefix);
 
+float sdp_read_battery();
 
 #endif

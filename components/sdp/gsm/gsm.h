@@ -17,4 +17,6 @@ void gsm_init(char * _log_prefix);
 
 bool gsm_before_sleep_cb();
 
+void abort_if_shutting_down();
+
 #endif

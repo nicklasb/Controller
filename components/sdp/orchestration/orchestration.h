@@ -12,7 +12,7 @@ void give_control(sdp_peer * peer);
 
 void orchestration_init(char * _log_prefix); 
 
-void sleep_until_peer_available(sdp_peer *peer, int margin_us);
+void sleep_until_peer_available(sdp_peer *peer, uint64_t margin_us);
 
 //  When/Next messaging
 

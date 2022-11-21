@@ -24,6 +24,7 @@
 
 #define BROKER_URL "mqtt://mqtt.eclipseprojects.io"
 
+#define TOPIC "/topic/lurifax"
 
 char *log_prefix;
 esp_mqtt_client_handle_t mqtt_client = NULL;
@@ -83,12 +84,15 @@ void gsm_mqtt_cleanup() {
 
         ESP_LOGI(log_prefix, "* MQTT shutting down.");
         ESP_LOGI(log_prefix, " - Success in %i of %i of sleep cycles.", mqtt_count, get_sleep_count());
-
+        ESP_LOGI(log_prefix, " - Unsubscribing the client from the %s topic.", TOPIC);
+        esp_mqtt_client_unsubscribe(mqtt_client, TOPIC);
+        ESP_LOGI(log_prefix, " - Stopping the client.");
+        esp_mqtt_client_stop(mqtt_client);
         ESP_LOGI(log_prefix, " - Destroying the client.");
         esp_mqtt_client_destroy(mqtt_client);
         mqtt_client = NULL;
     } else {
-        ESP_LOGI(log_prefix, "* MQTT already shut down and cleaned up, doing nothing.");
+        ESP_LOGI(log_prefix, "* MQTT already shut down and cleaned up or not started, doing nothing.");
     }
 
 
@@ -121,13 +125,15 @@ void gsm_mqtt_init(char * _log_prefix) {
 
     };
 #endif
+    ESP_LOGI(log_prefix, "Start MQTT client:");
     mqtt_client = esp_mqtt_client_init(&mqtt_config);
+    ESP_LOGI(log_prefix, " - Register callbacks");
     esp_mqtt_client_register_event(mqtt_client, ESP_EVENT_ANY_ID, mqtt_event_handler, NULL); 
     ask_for_time(5000000); 
-    ESP_LOGI(log_prefix, "Start MQTT client");
+    ESP_LOGI(log_prefix, " - Start the client");
     esp_mqtt_client_start(mqtt_client);
-    ESP_LOGI(log_prefix, "Start subscription");
-    esp_mqtt_client_subscribe(mqtt_client, "/topic/lurifax", 1);
+    ESP_LOGI(log_prefix, " - Subscribe to the the client from the %s topic.", TOPIC);
+    esp_mqtt_client_subscribe(mqtt_client, TOPIC, 1);
 
     //TODO:Move the following to a task
     #if 0

@@ -14,6 +14,8 @@
 #include "esp_sleep.h"
 #include "esp_log.h"
 
+#include "inttypes.h"
+
 #include "freertos/FreeRTOS.h"
 #include "freertos/timers.h"
 
@@ -52,7 +54,7 @@ void goto_sleep_for_microseconds(uint64_t microsecs)
     }
     else
     {
-        ESP_LOGE(log_prefix, "Error going to sleep for %llu microseconds!", microsecs);
+        ESP_LOGE(log_prefix, "Error going to sleep for %"PRIu64" microseconds!", microsecs);
     }
 }
 /**

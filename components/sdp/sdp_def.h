@@ -11,8 +11,6 @@
 #include <esp_now.h>
 #endif
 
-
-
 /* The current protocol version */
 #define SDP_PROTOCOL_VERSION 0
 
@@ -33,7 +31,7 @@
 #error "SDP_AWAKE_TIMEBOX - SDP_SLEEP_TIME_uS  cannot be longer than the SDP_SLEEP_TIME_uS"
 #endif
 /* Will we wait a little extra to avoid flooding? */
-#define SDP_AWAKE_MARGIN_uS 500000
+#define SDP_AWAKE_MARGIN_uS 2000000
 
 /* How long should we sleep until next retry (in us) */
 #define SDP_ORCHESTRATION_RETRY_WAIT_uS 30000000
@@ -85,7 +83,7 @@ typedef enum e_sdp_warning_codes
 /**
  * The work types are:
  * HANDSHAKE: Initial communication between two peers.
- * 
+ *
  * REQUEST: A peer have a request.
  * Requests are put on the work queue for consumption by the worker.
  *
@@ -100,11 +98,11 @@ typedef enum e_sdp_warning_codes
  * that the message has been received before it invokes the callback.
  * In some cases it needs to know this to be able to start saving power or stop trying to send the message.
  * Emergency messages will be retried if the CRC32 doesn't match.
- * 
+ *
  * ORCHESTRATION: This is about handling peers and controlling the mesh.
  * TODO: Move this into readme.md
- * 
- * > 1000: 
+ *
+ * > 1000:
  *
  */
 
@@ -118,7 +116,6 @@ typedef enum e_work_type
     ORCHESTRATION = 5
 } e_work_type;
 
-
 /**
  * @brief Supported media types
  * These are the media types, "ALL" is used as a way to broadcast over all types
@@ -131,7 +128,7 @@ typedef enum e_media_type
     SDP_MT_BLE = 1,
     SDP_MT_ESPNOW = 2,
     SDP_MT_LoRa = 4,
-    SDP_MT_TCPIP = 8, //TODO: Probably it should not be TCP but something else.
+    SDP_MT_TCPIP = 8, // TODO: Probably it should not be TCP but something else.
     SDP_MT_TTL = 16,
     SDP_MT_ANY = 128
 
@@ -140,7 +137,7 @@ typedef enum e_media_type
 /**
  * @brief This is a byte representing the medias supported
  * It is or'ed from the e_media_type enum values
- * 
+ *
  */
 typedef uint8_t sdp_media_types;
 
@@ -166,8 +163,6 @@ MAC-addresses are 6-byte values regardless of technology. \
 This library assumes this and may fail using other lengths for this setting.
 #endif
 
-
-
 /* The SD MAC-address type */
 typedef uint8_t sdp_mac_address[SDP_MAC_ADDR_LEN];
 
@@ -177,8 +172,9 @@ typedef char sdp_peer_name[CONFIG_SDP_PEER_NAME_LEN];
 /** Information about *this* host.
  * This is used by all parts of the application.
  * Much intersects with the peer information, but is set during initialization.
-*/
-struct sdp_host_t {
+ */
+struct sdp_host_t
+{
 
     /* Protocol version*/
     uint8_t protocol_version;
@@ -191,7 +187,6 @@ struct sdp_host_t {
     sdp_mac_address base_mac_address;
 
 } sdp_host;
-
 
 typedef struct sdp_peer
 {
@@ -216,14 +211,14 @@ typedef struct sdp_peer
     /* Minimum supported protocol version*/
     uint8_t min_protocol_version;
 
-     /* Next availability (measured in mikroseconds from first boot)*/
-    int next_availability;   
+    /* Next availability (measured in mikroseconds from first boot)*/
+    uint64_t next_availability;
 
-/**
- * @brief Following is the the 6-byte base MAC adress of the peer.
- * Note that the other MAC-adresses are offset, and in BLE´s case little-endian, for example. More info here: 
- * https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/system/misc_system_api.html#mac-address
- */
+    /**
+     * @brief Following is the the 6-byte base MAC adress of the peer.
+     * Note that the other MAC-adresses are offset, and in BLE´s case little-endian, for example. More info here:
+     * https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/system/misc_system_api.html#mac-address
+     */
 
     sdp_mac_address base_mac_address;
 
@@ -232,16 +227,12 @@ typedef struct sdp_peer
     int ble_conn_handle;
 #endif
 
-
 } sdp_peer;
-
-
 
 /**
  * @brief This is the request queue
  * The queue is served by worker tasks in a thread-safe manner.
  */
-
 
 typedef struct work_queue_item
 {
@@ -300,7 +291,5 @@ typedef bool(before_sleep)();
 
 /* Optional callback that happen before the system is going to sleep */
 before_sleep *on_before_sleep_cb;
-
-
 
 #endif

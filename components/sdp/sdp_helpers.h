@@ -15,8 +15,9 @@
 
 #include "stdint.h"
 #include "sdp_def.h"
+#include "driver/gpio.h"
 
-
+void blink_led(gpio_num_t gpio_num, uint16_t time_on, uint16_t time_off, uint16_t times);
 
 int add_to_message(uint8_t **message, const char *format, ...);
 

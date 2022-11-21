@@ -5,6 +5,9 @@
 #include <string.h>
 #include <esp_heap_caps.h>
 #include <esp_log.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+
 
 #include "sdp_def.h"
 
@@ -152,7 +155,23 @@ int add_to_message(uint8_t **message, const char *format, ...)
     return new_length;
 }
 
+void blink_led(gpio_num_t gpio_num, uint16_t time_on, uint16_t time_off, uint16_t times) {
 
+    int count = 0;
+    int pre_level = gpio_get_level(gpio_num);
+    gpio_set_direction(gpio_num, GPIO_MODE_OUTPUT);
+    while (count < times)
+    {
+        gpio_set_level(gpio_num, 1); 
+        vTaskDelay(time_on / portTICK_PERIOD_MS);
+        gpio_set_level(gpio_num, 0); 
+        vTaskDelay(time_off / portTICK_PERIOD_MS);    
+        count++;    
+    }
+    gpio_set_level(gpio_num, pre_level);
+
+
+}
 
 void sdp_helpers_init(char * _log_prefix) {
     log_prefix = _log_prefix;

@@ -16,12 +16,13 @@
 #include "sdp_messaging.h"
 #include "esp_log.h"
 #include "sdp_def.h"
+#include "inttypes.h"
 
 #include "sleep/sleep.h"
 
 char *log_prefix;
 
-int next_time;
+uint64_t next_time;
 uint64_t wait_for_sleep_started;
 uint64_t wait_time = 0;
 uint64_t requested_time = 0;
@@ -46,13 +47,13 @@ void update_next_availability_window()
     {
         next_time = get_last_sleep_time() + SDP_SLEEP_TIME_uS + SDP_AWAKE_TIME_uS + SDP_SLEEP_TIME_uS;
     }
-    ESP_LOGI(log_prefix, "Next time we are available is at %i.", next_time);
+    ESP_LOGI(log_prefix, "Next time we are available is at %"PRIu64".", next_time);
 }
 
 void sdp_orchestration_parse_next_message(work_queue_item_t *queue_item)
 {
-    queue_item->peer->next_availability = get_time_since_start() + atoi(queue_item->parts[1]);
-    ESP_LOGI(log_prefix, "Peer %s is available at %i.", queue_item->peer->name, queue_item->peer->next_availability);
+    queue_item->peer->next_availability = get_time_since_start() + atoll(queue_item->parts[1]);
+    ESP_LOGI(log_prefix, "Peer %s is available at %"PRIu64".", queue_item->peer->name, queue_item->peer->next_availability);
 }
 
 /**
@@ -70,10 +71,16 @@ int sdp_orchestration_send_next_message(work_queue_item_t *queue_item)
 
     uint8_t *next_msg = NULL;
 
-    /* TODO: Handle the 32bit loop-around after 79 days ? */
-    int delta_next = next_time - get_time_since_start();
+    ESP_LOGI(log_prefix, "BEFORE NEXT get_time_since_start() = %"PRIu64, get_time_since_start());
+    /* TODO: Handle the 64bit loop-around after 79 days ? */
+    uint64_t delta_next = next_time - get_time_since_start();
+    ESP_LOGI(log_prefix, "BEFORE NEXT delta_next = %"PRIu64, delta_next);
 
-    int next_length = add_to_message(&next_msg, "NEXT|%i|%i", delta_next, SDP_AWAKE_TIME_uS);
+    /*  Cannot send uint64_t into va_args in add_to_message */
+    char * c_delta_next;
+    asprintf(&c_delta_next, "%"PRIu64, delta_next);
+
+    int next_length = add_to_message(&next_msg, "NEXT|%s|%i", c_delta_next, SDP_AWAKE_TIME_uS);
 
     if (next_length > 0)
     {
@@ -99,12 +106,12 @@ int sdp_orchestration_send_when_message(sdp_peer *peer)
     return start_conversation(peer, ORCHESTRATION, "Orchestration", &when_msg, 5);
 }
 
-void sleep_until_peer_available(sdp_peer *peer, int margin_us)
+void sleep_until_peer_available(sdp_peer *peer, uint64_t margin_us)
 {
     if (peer->next_availability > 0)
     {
-        int sleep_length = peer->next_availability - get_time_since_start() + margin_us;
-        ESP_LOGI(log_prefix, "Going to sleep for %i microseconds.", sleep_length);
+        uint64_t sleep_length = peer->next_availability - get_time_since_start() + margin_us;
+        ESP_LOGI(log_prefix, "Going to sleep for %"PRIu64" microseconds.", sleep_length);
         goto_sleep_for_microseconds(sleep_length);
     }
 }
@@ -121,14 +128,14 @@ bool ask_for_time(uint64_t ask) {
         /* Only allow for requests that fit into the awake timebox */
         if (esp_timer_get_time() + wait_time_left + ask < SDP_AWAKE_TIMEBOX_uS) {
             requested_time = ask - wait_time_left;
-            ESP_LOGI(log_prefix, "Orchestrator granted an extra %llu ms of awakeness.", ask/1000);
+            ESP_LOGI(log_prefix, "Orchestrator granted an extra %"PRIu64" ms of awakeness.", ask/1000);
             return true;
         } else {
-            ESP_LOGI(log_prefix, "Orchestrator denied %llu ms of awakeness because it would violate the timebox.", ask/1000);
+            ESP_LOGI(log_prefix, "Orchestrator denied %"PRIu64" ms of awakeness because it would violate the timebox.", ask/1000);
             return false;      
         }
     } 
-    ESP_LOGI(log_prefix, "Orchestrator got an unnessary request for %llu ms of awakeness.", ask/1000);
+    ESP_LOGI(log_prefix, "Orchestrator got an unnessary request for %"PRIu64" ms of awakeness.", ask/1000);
     return true;
 
 }
@@ -137,11 +144,11 @@ void take_control()
 {
     /* Wait for the awake period*/
     wait_time = SDP_AWAKE_TIME_uS;
-    int wait_ms;
+    int64_t wait_ms;
     while (1) {
         
         wait_ms = wait_time / 1000;
-        ESP_LOGI(log_prefix, "Orchestrator awaiting sleep for %i ms.", wait_ms);
+        ESP_LOGI(log_prefix, "Orchestrator awaiting sleep for %"PRIu64" ms.", wait_ms);
         wait_for_sleep_started = esp_timer_get_time();
         vTaskDelay(wait_ms / portTICK_PERIOD_MS);
         if (requested_time > 0) {

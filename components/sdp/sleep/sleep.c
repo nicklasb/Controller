@@ -31,25 +31,19 @@ char *log_prefix;
 void goto_sleep_for_microseconds(uint64_t microsecs)
 {
 
-    if (on_before_sleep_cb)
-    {
-        ESP_LOGI(log_prefix, "Calling before sleep callback");
-        if (!on_before_sleep_cb())
-        {
-            ESP_LOGW(log_prefix, "Stopped from going to sleep by callback!");
-            return;
-        }
-    }
+
     ESP_LOGI(log_prefix, "---------------------------------------- S L E E P ----------------------------------------");
     ESP_LOGI(log_prefix, "At %lli and going to sleep for %llu microseconds", esp_timer_get_time(), microsecs);
 
+
+    sleep_count++;
+    /* Now we know how long we were awake this time */
+    wake_time+= esp_timer_get_time();
+    /* Set the sleep time just before going to sleep. */
+    last_sleep_time = get_time_since_start();
     if (esp_sleep_enable_timer_wakeup(microsecs) == ESP_OK)
     {
-        sleep_count++;
-        /* Now we know how long we were awake this time */
-        wake_time+= esp_timer_get_time();
-        /* Set the sleep time just before going to sleep. */
-        last_sleep_time = get_time_since_start();
+
         esp_deep_sleep_start();
     }
     else

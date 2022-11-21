@@ -161,8 +161,17 @@ void take_control()
         }
 
     }
-
-    goto_sleep_for_microseconds(SDP_SLEEP_TIME_uS);
+    // TODO: Add this on other side as well
+    if (on_before_sleep_cb)
+    {
+        ESP_LOGI(log_prefix, "Calling before sleep callback");
+        if (!on_before_sleep_cb())
+        {
+            ESP_LOGW(log_prefix, "Stopped from going to sleep by callback!");
+            return;
+        }
+    }
+    goto_sleep_for_microseconds(SDP_SLEEP_TIME_uS - (esp_timer_get_time() - SDP_AWAKE_TIME_uS));
 }
 /**
  * @brief Check with the peer when its available next, and goes to sleep until then.

@@ -42,6 +42,10 @@ void sdp_cleanup_queue_task(work_queue_item_t *queue_item) {
     cleanup_queue_task(&sdp_queue_context, queue_item);
 }
 
+void sdp_set_queue_blocked(bool blocked) {
+    set_queue_blocked(&sdp_queue_context,blocked);
+}
+
 esp_err_t sdp_init_worker(work_callback *work_cb, work_callback *priority_cb, char *_log_prefix)
 {
     // Initialize the work queue

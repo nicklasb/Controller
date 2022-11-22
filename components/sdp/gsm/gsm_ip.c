@@ -36,6 +36,7 @@ static void on_ip_event(void *arg, esp_event_base_t event_base,
     ESP_LOGD(log_prefix, "IP event! %d", event_id);
     if (event_id == IP_EVENT_PPP_GOT_IP)
     {
+        ESP_LOGI(log_prefix, "* GOT ip event!!!");
         esp_netif_dns_info_t dns_info;
 
         ip_event_got_ip_t *event = (ip_event_got_ip_t *)event_data;
@@ -54,7 +55,7 @@ static void on_ip_event(void *arg, esp_event_base_t event_base,
         xEventGroupSetBits(gsm_event_group, CONNECT_BIT);
 
 
-        ESP_LOGI(log_prefix, "GOT ip event!!!");
+        
     }
     else if (event_id == IP_EVENT_PPP_LOST_IP)
     {
@@ -62,14 +63,14 @@ static void on_ip_event(void *arg, esp_event_base_t event_base,
     }
     else if (event_id == IP_EVENT_GOT_IP6)
     {
-        ESP_LOGI(log_prefix, "GOT IPv6 event!");
+        ESP_LOGI(log_prefix, "Got IPv6 event!");
 
         ip_event_got_ip6_t *event = (ip_event_got_ip6_t *)event_data;
         ESP_LOGI(log_prefix, "Got IPv6 address " IPV6STR, IPV62STR(event->ip6_info.ip));
     }
     else
     {
-        ESP_LOGW(log_prefix, "GOT Uncategorized IP event! %i", event_id);
+        ESP_LOGW(log_prefix, "Got Uncategorized IP event! %i", event_id);
     }
 }
 
@@ -113,7 +114,7 @@ void gsm_ip_enable_data_mode() {
         if ((uxBits & SHUTTING_DOWN_BIT) != 0)
         {
             ESP_LOGW(log_prefix, "Getting that we are shutting down, pausing indefinitely.");
-            abort_if_shutting_down();
+            gsm_abort_if_shutting_down();
         }
         else if ((uxBits & CONNECT_BIT) != 0)
         {
@@ -134,7 +135,7 @@ void gsm_ip_init(char *_log_prefix)
 {
     
     log_prefix = _log_prefix;
-    ESP_LOGI(log_prefix, "In gsm_ip_init.");
+    ESP_LOGI(log_prefix, "* Initiating gsm_ip");
 
     // Initialize the underlying TCP/IP stack  
     ESP_ERROR_CHECK(esp_netif_init());
@@ -142,11 +143,13 @@ void gsm_ip_init(char *_log_prefix)
     // Keeping this here to inform that the event loop is created in sdp_init, not here
     //    ESP_ERROR_CHECK(esp_event_loop_create_default());
 
+    ESP_LOGI(log_prefix, " + Register IP event handlers.");
     ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, ESP_EVENT_ANY_ID, &on_ip_event, NULL));
     ESP_ERROR_CHECK(esp_event_handler_register(NETIF_PPP_STATUS, ESP_EVENT_ANY_ID, &on_ppp_changed, NULL));
     esp_netif_config_t netif_ppp_config = ESP_NETIF_DEFAULT_PPP(); 
+    ESP_LOGI(log_prefix, " + Create netif object");
     gsm_ip_esp_netif = esp_netif_new(&netif_ppp_config);
     assert(gsm_ip_esp_netif); 
-    ESP_LOGI(log_prefix, "gsm_ip_esp_netif assigned %p", gsm_ip_esp_netif);
+    ESP_LOGI(log_prefix, "* gsm_ip_esp_netif assigned %p", gsm_ip_esp_netif);
 
 }

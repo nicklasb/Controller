@@ -129,7 +129,7 @@ static void sdp_worker(queue_context *q_context)
             }
         }
         // TODO: Use event loop to wait instead?
-        vTaskDelay(1000/portTICK_PERIOD_MS);
+        vTaskDelay(100/portTICK_PERIOD_MS);
     }
     vTaskDelete(NULL);
 }

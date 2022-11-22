@@ -100,10 +100,11 @@ void cleanup()
         return;
     }
 
-    
 
     ESP_LOGI(log_prefix, " - Informing everyone that the GSM task it is shutting down.");
     xEventGroupSetBits(gsm_event_group, SHUTTING_DOWN_BIT);
+    // Wait for the event to propagate
+    vTaskDelay(400/portTICK_PERIOD_MS);
 
     gsm_ip_cleanup();
 
@@ -178,12 +179,9 @@ bool gsm_before_sleep_cb()
     ESP_LOGI(log_prefix, "----- Before sleep: Turning off all GSM/UMTS stuff -----");
 
     ESP_LOGW(log_prefix, "GSM shutting down.");
-    cut_modem_power();
-
 
     cleanup();
-
-
+    
     // TODO: gsm_modem_setup_task may also be null because it is shutting down, check for that case
     // There might be valid reason to wait with freeing the event group to the end be able to use it here instead.
     // Then, the event group may be the condition, and be used to wait for, if existing.
@@ -191,7 +189,7 @@ bool gsm_before_sleep_cb()
     return true;
 }
 
-void abort_if_shutting_down() {
+void gsm_abort_if_shutting_down() {
     if ((gsm_event_group == NULL) || (xEventGroupGetBits(gsm_event_group) & SHUTTING_DOWN_BIT)) {
         ESP_LOGW(log_prefix, "GSM start: Told that we are shutting down; exiting. ");
         gsm_modem_setup_task = NULL;
@@ -284,7 +282,7 @@ void gsm_start()
             } else {
                 ESP_LOGE(log_prefix, "SIMCOMATI, attempt %i failed with error:  %i", sync_attempts, err);
             }
-            abort_if_shutting_down();
+            gsm_abort_if_shutting_down();
             // We want to try until we either connect or hit the timebox limit
             ask_for_time(5000000);
 
@@ -296,7 +294,7 @@ void gsm_start()
         }   
         vTaskDelay(500 / portTICK_PERIOD_MS);
     }
-    abort_if_shutting_down();
+    gsm_abort_if_shutting_down();
     vTaskDelay(1000 / portTICK_PERIOD_MS);
 
     /* We are now much more likely to be able to connect, ask for 7.5 more seconds for the next phase */
@@ -314,7 +312,7 @@ void gsm_start()
         ESP_LOGI(log_prefix, "CNMP? returned:  %s", res);
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }   
-    abort_if_shutting_down();
+    gsm_abort_if_shutting_down();
     ask_for_time(7500000);
     ESP_LOGI(log_prefix, "Preferred selection between CAT-M and NB-IoT");
 
@@ -328,7 +326,7 @@ void gsm_start()
         ESP_LOGI(log_prefix, "CMNB? returned:  %s", res);
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }   
-    abort_if_shutting_down();
+    gsm_abort_if_shutting_down();
     ask_for_time(5000000);
     /*
     ESP_LOGE(log_prefix, "Checking registration.");
@@ -406,7 +404,7 @@ signal_quality:
     ESP_LOGI(log_prefix, "Signal quality: rssi=%d, ber=%d", rssi, ber);
     ask_for_time(5000000);
     int act = 0;
-    abort_if_shutting_down();
+    gsm_abort_if_shutting_down();
     err = esp_modem_get_operator_name(gsm_dce, operator_name, &act);
     if (err != ESP_OK)
     {

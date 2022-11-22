@@ -51,6 +51,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         break;
     case MQTT_EVENT_SUBSCRIBED:
         ESP_LOGI(log_prefix, "MQTT_EVENT_SUBSCRIBED, msg_id=%d", event->msg_id);
+        ask_for_time(5000000); 
         //msg_id = esp_mqtt_client_publish(client, "/topic/esp-pppos", "esp32-pppos", 0, 0, 0);
         //ESP_LOGI(log_prefix, "sent publish successful, msg_id=%d", msg_id);
         break;
@@ -124,16 +125,18 @@ void gsm_mqtt_init(char * _log_prefix) {
 
     };
 #endif
-    ESP_LOGI(log_prefix, "Start MQTT client:");
+    ESP_LOGI(log_prefix, "* Start MQTT client:");
     mqtt_client = esp_mqtt_client_init(&mqtt_config);
-    ESP_LOGI(log_prefix, " - Register callbacks");
+    ESP_LOGI(log_prefix, " + Register callbacks");
     esp_mqtt_client_register_event(mqtt_client, ESP_EVENT_ANY_ID, mqtt_event_handler, NULL); 
+    abort_if_shutting_down();
     ask_for_time(5000000); 
-    ESP_LOGI(log_prefix, " - Start the client");
+    ESP_LOGI(log_prefix, " + Start the client");
     esp_mqtt_client_start(mqtt_client);
-    ESP_LOGI(log_prefix, " - Subscribe to the the client from the %s topic.", TOPIC);
+    abort_if_shutting_down();
+    ESP_LOGI(log_prefix, " + Subscribe to the the client from the %s topic.", TOPIC);
     esp_mqtt_client_subscribe(mqtt_client, TOPIC, 1);
-
+    ESP_LOGI(log_prefix, "* MQTT Running.");
     //TODO:Move the following to a task
     #if 0
     ESP_LOGI(log_prefix, "Waiting for MQTT data");
@@ -148,5 +151,5 @@ void gsm_mqtt_init(char * _log_prefix) {
 
 
     mqtt_count++;    
-        #endif
+    #endif
 }

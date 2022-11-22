@@ -23,6 +23,8 @@
 
 #include "sdp/gsm/gsm.h"
 
+#include "sdp/sdp_worker.h"
+
 #include "esp_log.h"
 
 esp_timer_handle_t periodic_timer;
@@ -184,7 +186,7 @@ void periodic_sensor_query(void *arg)
 {
     /* Note that the worker task is run on Core 1 (APP) as upposed to all the other callbacks. */
     ESP_LOGI(log_prefix, "In prediodic_sensor_query task on the controller.");
-
+    gsm_abort_if_shutting_down();
     char data[8] = "sensors\0";
     ESP_LOGI(log_prefix, "Test broadcast beginning.");
     
@@ -193,6 +195,7 @@ void periodic_sensor_query(void *arg)
 
     
     ESP_LOGI(log_prefix, "Test broadcast done.");
+    gsm_abort_if_shutting_down();
 
     ESP_ERROR_CHECK(esp_timer_start_once(periodic_timer, 10000000));
 }
@@ -200,6 +203,9 @@ void periodic_sensor_query(void *arg)
 
 bool before_sleep_cb() {
     ESP_LOGI(log_prefix, "Before sleep:");
+    sdp_set_queue_blocked(true);
+    gsm_set_queue_blocked(true);
+
     int res = gsm_before_sleep_cb();
 
     return res;

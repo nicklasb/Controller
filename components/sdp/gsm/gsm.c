@@ -86,7 +86,30 @@ void cut_modem_power() {
 
     ESP_LOGI(log_prefix, "* Cutting modem power.");
     gpio_set_direction(GPIO_NUM_4, GPIO_MODE_OUTPUT);
+    ESP_LOGI(log_prefix, "- Setting pulldown mode. (float might be over 0.4 v)");
+    gpio_set_pull_mode(GPIO_NUM_4, GPIO_PULLDOWN_ONLY);
+    ESP_LOGI(log_prefix, "- Setting pin 4 to high.");
+    vTaskDelay(1000/portTICK_PERIOD_MS);
+    gpio_set_level(GPIO_NUM_4, 1);
+    ESP_LOGI(log_prefix, "- Setting pin 4 to low, wait 1000 ms.");
     gpio_set_level(GPIO_NUM_4, 0);
+    vTaskDelay(1000/portTICK_PERIOD_MS);
+    ESP_LOGI(log_prefix, "- Setting pin 4 to high again (shutdown may take up to 6.2 s).");
+    gpio_set_level(GPIO_NUM_4, 1);
+    vTaskDelay(6200/portTICK_PERIOD_MS);
+    ESP_LOGI(log_prefix, "- Setting pin 4 to low again.");
+    gpio_set_level(GPIO_NUM_4, 0);   
+    /*
+    ESP_LOGI(log_prefix, "* Waiting...");
+    vTaskDelay(1000/portTICK_PERIOD_MS);   
+    ESP_LOGI(log_prefix, "* Cutting modem power again.");
+    vTaskDelay(1000/portTICK_PERIOD_MS);  
+    gpio_set_level(GPIO_NUM_4, 0);
+    vTaskDelay(1000/portTICK_PERIOD_MS);
+    */
+    ESP_LOGI(log_prefix, "* Power cut.");
+
+    
 
     // sdp_blink_led(GPIO_NUM_12, 100, 100, 10);
 }
@@ -100,6 +123,7 @@ void cleanup()
         return;
     }
 
+    gsm_shutdown_worker();
 
     ESP_LOGI(log_prefix, " - Informing everyone that the GSM task it is shutting down.");
     xEventGroupSetBits(gsm_event_group, SHUTTING_DOWN_BIT);
@@ -155,8 +179,6 @@ void cleanup()
             ESP_LOGE(log_prefix, "esp_modem_power_down(gsm_dce) failed with %d", err);
         }
          */ 
-        free(gsm_dce);
-        gsm_dce = NULL;
     }
     /*
     if (gsm_event_group) {
@@ -194,7 +216,6 @@ void gsm_abort_if_shutting_down() {
         ESP_LOGW(log_prefix, "GSM start: Told that we are shutting down; exiting. ");
         gsm_modem_setup_task = NULL;
         vTaskDelete(NULL);
-        
     }
 }
 
@@ -211,16 +232,23 @@ void gsm_start()
 
     ESP_LOGI(log_prefix, "Powering on modem.");
     gpio_set_direction(GPIO_NUM_4, GPIO_MODE_OUTPUT);
+    ESP_LOGI(log_prefix, " - Setting pulldown mode. (float might be over 0.4 v)");
+    gpio_set_pull_mode(GPIO_NUM_4, GPIO_PULLDOWN_ONLY);
+    ESP_LOGI(log_prefix, " - Setting PWRKEY high");
     gpio_set_level(GPIO_NUM_4, 1);
-    ESP_LOGI(log_prefix, "Waiting 3 seconds.");
-    vTaskDelay(3000/portTICK_PERIOD_MS);
-    ESP_LOGI(log_prefix, "Setting DTR to high.");
+        ESP_LOGI(log_prefix, " - Setting PWRKEY low");
+    gpio_set_level(GPIO_NUM_4, 0);   
+    ESP_LOGI(log_prefix, " - Waiting 1 second.");
+    vTaskDelay(1000/portTICK_PERIOD_MS);
+     ESP_LOGI(log_prefix, "- Setting PWRKEY high");
+    gpio_set_level(GPIO_NUM_4, 1);    
+    ESP_LOGI(log_prefix, " - Setting DTR to high.");
     gpio_set_direction(GPIO_NUM_25, GPIO_MODE_OUTPUT);
     gpio_set_level(GPIO_NUM_25, 1);
     vTaskDelay(2000/portTICK_PERIOD_MS);
-     ESP_LOGI(log_prefix, "Setting DTR to low.");
+     ESP_LOGI(log_prefix, " - Setting DTR to low.");
     gpio_set_level(GPIO_NUM_25, 0);   
-    ESP_LOGI(log_prefix, "Waiting 2 seconds.");
+    ESP_LOGI(log_prefix, "- Waiting 2 seconds.");
     vTaskDelay(2000/portTICK_PERIOD_MS);
     /* Configure the DTE */
 #if defined(CONFIG_EXAMPLE_SERIAL_CONFIG_UART)
@@ -270,7 +298,7 @@ void gsm_start()
     esp_err_t err = ESP_FAIL;
     while (err != ESP_OK)
     {
-        ESP_LOGI(log_prefix, "Querying the modem using SIMCOMATI...");
+        ESP_LOGI(log_prefix, " - Querying the modem using SIMCOMATI...");
         
         err = esp_modem_at(gsm_dce, "SIMCOMATI", res, 4000);
         if (err != ESP_OK)
@@ -278,7 +306,7 @@ void gsm_start()
             sync_attempts++;
 
             if (err == ESP_ERR_TIMEOUT) {
-                ESP_LOGW(log_prefix, "SIMCOMATI, attempt %i timed out.", sync_attempts);
+                ESP_LOGI(log_prefix, "SIMCOMATI, attempt %i timed out.", sync_attempts);
             } else {
                 ESP_LOGE(log_prefix, "SIMCOMATI, attempt %i failed with error:  %i", sync_attempts, err);
             }
@@ -300,7 +328,7 @@ void gsm_start()
     /* We are now much more likely to be able to connect, ask for 7.5 more seconds for the next phase */
     ask_for_time(7500000);
 
-    ESP_LOGI(log_prefix, "Preferred mode selection");
+    ESP_LOGI(log_prefix, "* Preferred mode selection");
 
     err = esp_modem_at(gsm_dce, "CNMP?", res, 7000);
     if (err != ESP_OK)
@@ -314,7 +342,7 @@ void gsm_start()
     }   
     gsm_abort_if_shutting_down();
     ask_for_time(7500000);
-    ESP_LOGI(log_prefix, "Preferred selection between CAT-M and NB-IoT");
+    ESP_LOGI(log_prefix, "* Preferred selection between CAT-M and NB-IoT");
 
     err = esp_modem_at(gsm_dce, "CMNB?", res, 7000);
     if (err != ESP_OK)
@@ -323,7 +351,7 @@ void gsm_start()
     }
     else
     {
-        ESP_LOGI(log_prefix, "CMNB? returned:  %s", res);
+        ESP_LOGI(log_prefix, " CMNB? returned:  %s", res);
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }   
     gsm_abort_if_shutting_down();
@@ -378,7 +406,7 @@ void gsm_start()
     int retries = 0;
 signal_quality:
 
-    ESP_LOGI(log_prefix, "Checking for signal quality..");
+    ESP_LOGI(log_prefix, "* Checking for signal quality..");
     err = esp_modem_get_signal_quality(gsm_dce, &rssi, &ber);
 
     if (err != ESP_OK)
@@ -397,11 +425,11 @@ signal_quality:
         }
         else
         {
-            ESP_LOGI(log_prefix, "esp_modem_get_signal_quality returned 99 for rssi, trying again");
+            ESP_LOGI(log_prefix, " esp_modem_get_signal_quality returned 99 for rssi, trying again");
             goto signal_quality;
         }
     }
-    ESP_LOGI(log_prefix, "Signal quality: rssi=%d, ber=%d", rssi, ber);
+    ESP_LOGI(log_prefix, "* Signal quality: rssi=%d, ber=%d", rssi, ber);
     ask_for_time(5000000);
     int act = 0;
     gsm_abort_if_shutting_down();
@@ -411,7 +439,7 @@ signal_quality:
         ESP_LOGE(log_prefix, "esp_modem_get_operator_name(gsm_dce) failed with %d", err);
 
     } else {
-        ESP_LOGI(log_prefix, "Operator name : %s, act: %i", operator_name, act);
+        ESP_LOGI(log_prefix, " - Operator name : %s, act: %i", operator_name, act);
     }
     ask_for_time(10000000);
     // Connect to the GSM network
@@ -439,5 +467,5 @@ void gsm_init(char *_log_prefix)
     {
         ESP_LOGE(log_prefix, "Failed creating GSM task, returned: %i (see projdefs.h)", rc);
     }
-    ESP_LOGI(log_prefix, "GSM main task registered.");
+    ESP_LOGI(log_prefix, "* GSM main task registered.");
 }

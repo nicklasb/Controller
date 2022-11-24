@@ -30,6 +30,17 @@
 
 #include <esp_log.h>
 
+char *log_prefix;
+
+void ble_shutdown() {
+    ESP_LOGI(log_prefix, "Shutting down BLE:");
+    ESP_LOGI(log_prefix, " - freertos deinit");
+    nimble_port_freertos_deinit();
+    ESP_LOGI(log_prefix, " - port deinit");
+    nimble_port_deinit();
+    ESP_LOGI(log_prefix, "BLE shut down.");
+}
+
 
 /**
  * @brief Initialize the  BLE server
@@ -37,9 +48,9 @@
  * @param log_prefix The prefix for logging and naming
  * @param pvTaskFunction A function containing the task to run
  */
-void ble_init(char *log_prefix)
+void ble_init(char *_log_prefix)
 {
-
+    log_prefix = _log_prefix;
     ESP_LOGI(log_prefix, "Initialising BLE..");
 
     // Note: NVS is not initiated here butin the main initiation

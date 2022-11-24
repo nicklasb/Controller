@@ -12,7 +12,7 @@
 #include <esp_log.h>
 
 #include <freertos/FreeRTOS.h>
-
+#include <freertos/semphr.h>
 /* How often should we look */
 #define CONFIG_SDP_MONITOR_DELAY 10000000
 
@@ -54,6 +54,8 @@ int first_average_memory_available = 0;
 
 /* The log prefix for all logging */
 char *log_prefix;
+
+bool shutdown = false;
 
 struct history_item
 {
@@ -145,15 +147,24 @@ void memory_monitoring() {
 
 void monitor_task(void *arg)
 {
-    // Call different monitors
-    memory_monitoring();
+    if (!shutdown) {
+        // Call different monitors
+        memory_monitoring();
 
-    // TODO: Add an SLIST of external monitors
-    // TODO: Add problem and warning callbacks to make it possible to raise the alarm if .
-    sample_count++;
-    ESP_ERROR_CHECK(esp_timer_start_once(monitor_timer, CONFIG_SDP_MONITOR_DELAY));
+        // TODO: Add an SLIST of external monitors
+        // TODO: Add problem and warning callbacks to make it possible to raise the alarm if .
+        sample_count++;
+        ESP_ERROR_CHECK(esp_timer_start_once(monitor_timer, CONFIG_SDP_MONITOR_DELAY));
+    } else {
+        vTaskDelete(NULL);
+    }
+
 }
 
+void sdp_shutdown_monitor() {
+     ESP_LOGI(log_prefix, "Telling monitor to shut down.");
+     shutdown = true;
+}
 
 void sdp_init_monitor(char *_log_prefix)
 {   

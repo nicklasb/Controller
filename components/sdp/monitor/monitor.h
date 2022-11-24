@@ -10,4 +10,6 @@
 
 void sdp_init_monitor(char *_log_prefix);
 
+void sdp_shutdown_monitor();
+
 #endif

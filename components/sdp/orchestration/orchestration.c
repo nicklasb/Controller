@@ -156,10 +156,10 @@ void take_control()
         vTaskDelay(wait_ms / portTICK_PERIOD_MS);
         if (requested_time > 0) {
             wait_time = requested_time;
-            ESP_LOGW(log_prefix, "Orchestrator extending the awake phase.");
+            ESP_LOGI(log_prefix, "Orchestrator extending the awake phase.");
             requested_time = 0;
         } else {
-            ESP_LOGI(log_prefix, "Orchestrator done waiting, going to sleep. zzZzzzzZzz");
+            ESP_LOGI(log_prefix, "------------Orchestrator done waiting, going to sleep! -----------");
             break;
         }
 
@@ -167,10 +167,10 @@ void take_control()
     // TODO: Add this on other side as well
     if (on_before_sleep_cb)
     {
-        ESP_LOGI(log_prefix, "Calling before sleep callback");
+        ESP_LOGI(log_prefix, "----------------- Calling before sleep callback ------------------");
         if (!on_before_sleep_cb())
         {
-            ESP_LOGW(log_prefix, "Stopped from going to sleep by callback!");
+            ESP_LOGW(log_prefix, "----------Stopped from going to sleep by callback!! -----------------");
             return;
         }
     }

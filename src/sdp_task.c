@@ -203,8 +203,8 @@ void periodic_sensor_query(void *arg)
 
 bool before_sleep_cb() {
     ESP_LOGI(log_prefix, "Before sleep:");
-    sdp_set_queue_blocked(true);
-    gsm_set_queue_blocked(true);
+    sdp_shutdown();
+    gsm_shutdown_worker();
 
     int res = gsm_before_sleep_cb();
 
@@ -217,11 +217,11 @@ void init_sdp_task() {
     on_filter_request_cb = &do_on_filter_request;
     on_filter_data_cb = &do_on_filter_data;  
     sdp_init(&do_on_work, &do_on_priority, "Controller\0", true);
-
+#if 0
     sdp_add_init_new_peer(local_hosts[1].hostname, local_hosts[1].base_mac_address, SDP_MT_ESPNOW);
 
 
-/* Controller:  e0:e2:e6:bd:8e:58*/
+    /* Controller:  e0:e2:e6:bd:8e:58*/
     /* Peripheral:  34:86:5d:39:b1:18 */
 
     const esp_timer_create_args_t periodic_timer_args = {
@@ -232,7 +232,7 @@ void init_sdp_task() {
 
     ESP_ERROR_CHECK(esp_timer_create(&periodic_timer_args, &periodic_timer));
     ESP_ERROR_CHECK(esp_timer_start_once(periodic_timer, 000000));
-
+#endif
     // Let the orchestrator take over. 
     take_control();
 }

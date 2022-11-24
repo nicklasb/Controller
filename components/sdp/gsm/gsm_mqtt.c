@@ -129,11 +129,11 @@ void gsm_mqtt_init(char * _log_prefix) {
     mqtt_client = esp_mqtt_client_init(&mqtt_config);
     ESP_LOGI(log_prefix, " + Register callbacks");
     esp_mqtt_client_register_event(mqtt_client, ESP_EVENT_ANY_ID, mqtt_event_handler, NULL); 
-    abort_if_shutting_down();
+    gsm_abort_if_shutting_down();
     ask_for_time(5000000); 
     ESP_LOGI(log_prefix, " + Start the client");
     esp_mqtt_client_start(mqtt_client);
-    abort_if_shutting_down();
+    gsm_abort_if_shutting_down();
     ESP_LOGI(log_prefix, " + Subscribe to the the client from the %s topic.", TOPIC);
     esp_mqtt_client_subscribe(mqtt_client, TOPIC, 1);
     ESP_LOGI(log_prefix, "* MQTT Running.");

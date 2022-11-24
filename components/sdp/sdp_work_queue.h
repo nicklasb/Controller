@@ -47,8 +47,16 @@ typedef struct queue_context {
     uint max_task_count;
     /* Current number of running tasks */
     uint task_count;
+
+    /* Worker task */
+    TaskHandle_t worker_task_handle;
+    /* Worker task name*/
+    char worker_task_name[50];
+    
      /* If set, the queue will not process any items */
     bool blocked;   
+      /* If set, worker will shut down */
+    bool shutdown;      
     /* Internal semaphores managed by the queue implementation - Do not set. */
     SemaphoreHandle_t __x_queue_semaphore; // Thread-safe the queue
     SemaphoreHandle_t __x_task_state_semaphore; // Thread-safe the tasks

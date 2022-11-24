@@ -14,6 +14,7 @@
      * GLOBAL PROTOTYPES
      **********************/
     void ble_init(char *log_prefix);
+    void ble_shutdown();
     /**********************
      *      MACROS
      **********************/

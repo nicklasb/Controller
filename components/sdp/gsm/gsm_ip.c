@@ -4,6 +4,7 @@
 #include "esp_netif_ppp.h"
 #include "gsm_mqtt.h"
 
+
 #include "esp_event.h"
 #include "gsm_worker.h"
 
@@ -54,7 +55,6 @@ static void on_ip_event(void *arg, esp_event_base_t event_base,
         ESP_LOGI(log_prefix, "~~~~~~~~~~~~~~");
         xEventGroupSetBits(gsm_event_group, CONNECT_BIT);
 
-
         
     }
     else if (event_id == IP_EVENT_PPP_LOST_IP)
@@ -79,13 +79,21 @@ void gsm_ip_cleanup() {
     if (gsm_ip_esp_netif) {
         gsm_mqtt_cleanup();
         ESP_LOGI(log_prefix, "Cleaning up GSM IP");
+
+        
+        ESP_LOGI(log_prefix, "- Destroying esp-modem");
+        esp_modem_destroy(gsm_dce);
         ESP_LOGI(log_prefix, "- Unregistering IP/Netif events.");
         esp_event_handler_unregister(IP_EVENT, ESP_EVENT_ANY_ID, &on_ip_event);
         esp_event_handler_unregister(NETIF_PPP_STATUS, ESP_EVENT_ANY_ID, &on_ppp_changed);        
         ESP_LOGI(log_prefix, "- Destroying netif at %p.", gsm_ip_esp_netif);
+      
         esp_netif_destroy(gsm_ip_esp_netif);
-        ESP_LOGI(log_prefix, "- netif destroyed");
+        ESP_LOGI(log_prefix, "- Deinit netif");
+        esp_netif_deinit();
+        
         gsm_ip_esp_netif = NULL;
+        ESP_LOGI(log_prefix, "GSM IP cleaned up.");
     } else {
         ESP_LOGW(log_prefix, "GSM IP cleanup was told to cleanup while not initialized or already cleaned up.");
     }

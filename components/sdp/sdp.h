@@ -39,6 +39,8 @@ extern "C"
      */
     int sdp_init(work_callback *work_cb, work_callback *priority_cb, char *_log_prefix, bool is_conductor);
 
+    void sdp_shutdown();
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

@@ -15,4 +15,6 @@
 
 void espnow_init(char * _log_prefix);
 
+void espnow_shutdown();
+
 #endif

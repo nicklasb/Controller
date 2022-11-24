@@ -20,6 +20,8 @@
 // The queue context
 queue_context sdp_queue_context; 
 
+char *log_prefix;
+
 /* Expands to a declaration for the work queue */
 STAILQ_HEAD(sdp_work_q, work_queue_item) sdp_work_q;
 
@@ -42,12 +44,18 @@ void sdp_cleanup_queue_task(work_queue_item_t *queue_item) {
     cleanup_queue_task(&sdp_queue_context, queue_item);
 }
 
+void sdp_shutdown_worker() {
+    ESP_LOGI(log_prefix, "Telling main sdp worker to shut down.");
+    sdp_queue_context.shutdown = true;
+}
+
 void sdp_set_queue_blocked(bool blocked) {
     set_queue_blocked(&sdp_queue_context,blocked);
 }
 
 esp_err_t sdp_init_worker(work_callback *work_cb, work_callback *priority_cb, char *_log_prefix)
 {
+    log_prefix = _log_prefix;
     // Initialize the work queue
     STAILQ_INIT(&sdp_work_q);
 

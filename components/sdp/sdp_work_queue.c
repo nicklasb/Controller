@@ -83,7 +83,7 @@ void set_queue_blocked(queue_context *q_context, bool blocked)
 
 static void sdp_worker(queue_context *q_context)
 {
-    ESP_LOGI(log_prefix, "Worker task running, context: ");
+    ESP_LOGI(log_prefix, "Worker task %s now running, context: ", q_context->worker_task_name);
     ESP_LOGI(log_prefix, "on_work_cb: %p", q_context->on_work_cb);
     ESP_LOGI(log_prefix, "on_priority_cb: %p", q_context->on_priority_cb);   
     ESP_LOGI(log_prefix, "max_task_count: %i", q_context->max_task_count);
@@ -95,7 +95,10 @@ static void sdp_worker(queue_context *q_context)
 
     for (;;)
     {
-        
+        // Are we shutting down?
+        if (q_context->shutdown) {
+            break;
+        }
         if (
             // First check so that the queue isn't blocked
             (!q_context->blocked) &&
@@ -131,6 +134,8 @@ static void sdp_worker(queue_context *q_context)
         // TODO: Use event loop to wait instead?
         vTaskDelay(100/portTICK_PERIOD_MS);
     }
+    
+    ESP_LOGI(log_prefix, "Worker task %s shut down, deleting task.", q_context->worker_task_name);
     vTaskDelete(NULL);
 }
 
@@ -145,9 +150,9 @@ esp_err_t init_work_queue(queue_context *q_context, char *_log_prefix, const cha
     q_context->task_count = 0;
 
     /* Create the xTask name. */
-    char x_task_name[50] = "\0";
-    strcpy(x_task_name, queue_name);
-    strcat(x_task_name, " worker task");
+    strcpy(q_context->worker_task_name, "\0");
+    strcpy(q_context->worker_task_name, queue_name);
+    strcat(q_context->worker_task_name, " worker task");
 
     /** Register the worker task.
      *
@@ -157,8 +162,8 @@ esp_err_t init_work_queue(queue_context *q_context, char *_log_prefix, const cha
      * applications on 1, traditionally called APP
      */
 
-    ESP_LOGI(log_prefix, "Register the worker task. Name: %s", x_task_name);
-    int rc = xTaskCreatePinnedToCore((TaskFunction_t)sdp_worker, x_task_name, 8192, (void *)(q_context), 8, NULL, 0);
+    ESP_LOGI(log_prefix, "Register the worker task. Name: %s", q_context->worker_task_name);
+    int rc = xTaskCreatePinnedToCore((TaskFunction_t)sdp_worker, q_context->worker_task_name, 8192, (void *)(q_context), 8, q_context->worker_task_handle, 0);
     if (rc != pdPASS)
     {
         ESP_LOGE(log_prefix, "Failed creating worker task, returned: %i (see projdefs.h)", rc);

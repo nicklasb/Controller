@@ -60,7 +60,7 @@ int add_to_message(uint8_t **message, const char *format, ...)
         }
     }
     // Ensure null-termination (alloc is 1 longer than format len)
-    ESP_LOGI(log_prefix, "format_len %i", format_len);
+    ESP_LOGD(log_prefix, "format_len %i", format_len);
     loc_format[format_len] = 0;
     /* Now we know that our format array needs to be break_count long, allocate it */
     char **format_array = heap_caps_malloc(break_count * sizeof(char *), MALLOC_CAP_8BIT);
@@ -100,7 +100,7 @@ int add_to_message(uint8_t **message, const char *format, ...)
                 }
                 ESP_LOGI(log_prefix, "Found null value at %i in %s", n, curr_format);
                 value_length = atoi((char *)&(curr_format[2]));
-                ESP_LOGI(log_prefix, "value_length parsed %i", value_length);
+                ESP_LOGD(log_prefix, "value_length parsed %i", value_length);
                 value_str = malloc(value_length);
                 memcpy(value_str,(void *)value, value_length);
                 
@@ -141,7 +141,7 @@ int add_to_message(uint8_t **message, const char *format, ...)
 
 
         (*message)[new_length - 1] = (uint8_t)0x00;
-        ESP_LOGI(log_prefix, "Message: %s, value_str: %s, new_length: %i.", (char *)*message, value_str, (int)new_length);
+        ESP_LOGD(log_prefix, "Message: %s, value_str: %s, new_length: %i.", (char *)*message, value_str, (int)new_length);
         free(value_str);
         value_str = NULL;
         curr_pos = new_length;

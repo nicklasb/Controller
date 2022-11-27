@@ -21,11 +21,11 @@
 #define SDP_PREAMBLE_LENGTH 4
 
 /* How long will each cycle be*/
-#define SDP_SLEEP_TIME_uS 240000000
+#define SDP_SLEEP_TIME_uS 80000000
 /* How long will we be running if no one extends our session */
 #define SDP_AWAKE_TIME_uS 40000000
 /* The most amount of time the peer gives itself until it goes to sleep */
-#define SDP_AWAKE_TIMEBOX_uS 120000000
+#define SDP_AWAKE_TIMEBOX_uS 80000000
 
 #if SDP_AWAKE_TIMEBOX_uS - SDP_SLEEP_TIME_uS > SDP_SLEEP_TIME_uS
 #error "SDP_AWAKE_TIMEBOX - SDP_SLEEP_TIME_uS  cannot be longer than the SDP_SLEEP_TIME_uS"

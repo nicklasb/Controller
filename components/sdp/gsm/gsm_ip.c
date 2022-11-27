@@ -81,8 +81,7 @@ void gsm_ip_cleanup() {
         ESP_LOGI(log_prefix, "Cleaning up GSM IP");
 
         
-        ESP_LOGI(log_prefix, "- Destroying esp-modem");
-        esp_modem_destroy(gsm_dce);
+
         ESP_LOGI(log_prefix, "- Unregistering IP/Netif events.");
         esp_event_handler_unregister(IP_EVENT, ESP_EVENT_ANY_ID, &on_ip_event);
         esp_event_handler_unregister(NETIF_PPP_STATUS, ESP_EVENT_ANY_ID, &on_ppp_changed);        
@@ -103,7 +102,7 @@ void gsm_ip_cleanup() {
 void gsm_ip_enable_data_mode() {
 
     // Setting data mode.
-    ESP_LOGE(log_prefix, "esp_modem_set_data_mode(gsm_dce).%p ", gsm_dce);
+    ESP_LOGI(log_prefix, "esp_modem_set_data_mode(gsm_dce).%p ", gsm_dce);
     esp_err_t err = esp_modem_set_mode(gsm_dce, ESP_MODEM_MODE_DATA);
     if (err != ESP_OK)
     {
@@ -111,6 +110,7 @@ void gsm_ip_enable_data_mode() {
         gsm_ip_cleanup();
         return;
     }
+    ESP_LOGI(log_prefix, "Data mode set");
     /* Wait for IP address */
     ESP_LOGI(log_prefix, "Waiting for IP address");
     ask_for_time(5000000);

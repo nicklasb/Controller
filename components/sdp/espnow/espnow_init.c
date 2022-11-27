@@ -40,6 +40,8 @@ void espnow_shutdown() {
     ESP_LOGI(log_prefix, "Shutting down ESP-NOW:");
     ESP_LOGI(log_prefix, " - wifi stop");
     esp_wifi_stop();
+    ESP_LOGI(log_prefix, " - wifi disconnect");
+    esp_wifi_disconnect();    
     ESP_LOGI(log_prefix, " - wifi deinit");   
     esp_wifi_deinit();
     ESP_LOGI(log_prefix, "ESP-NOW shut down.");

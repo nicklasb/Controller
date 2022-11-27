@@ -26,12 +26,10 @@ uint64_t next_time;
 uint64_t wait_for_sleep_started;
 /* How long we need to wait for sleep */
 uint64_t wait_time = 0;
-/* */
+/* Latest requested time so far */
 uint64_t requested_time = 0;
 
 RTC_DATA_ATTR int availibility_retry_count;
-
-
 
 /**
  * @brief Save the current time into RTC memory
@@ -138,7 +136,7 @@ bool ask_for_time(uint64_t ask) {
             return false;      
         }
     } 
-    ESP_LOGI(log_prefix, "Orchestrator got an unnessary request for %"PRIu64" ms of awakeness.", ask/1000);
+    ESP_LOGD(log_prefix, "Orchestrator got an unnessary request for %"PRIu64" ms of awakeness.", ask/1000);
     return true;
 
 }

@@ -47,6 +47,7 @@ void sdp_cleanup_queue_task(work_queue_item_t *queue_item) {
 void sdp_shutdown_worker() {
     ESP_LOGI(log_prefix, "Telling main sdp worker to shut down.");
     sdp_queue_context.shutdown = true;
+
 }
 
 void sdp_set_queue_blocked(bool blocked) {

@@ -19,6 +19,10 @@ char *log_prefix;
 
 esp_err_t safe_add_work_queue(queue_context *q_context, work_queue_item_t *new_item)
 {
+    if (q_context->shutdown) {
+        ESP_LOGE(log_prefix, "The queue is shut down.");
+        return SDP_ERR_SEMAPHORE;
+    } else
     if (pdTRUE == xSemaphoreTake(q_context->__x_queue_semaphore, portMAX_DELAY))
     {
         /* As the worker takes the queue from the head, and we want a LIFO, add the item to the tail */
@@ -136,6 +140,11 @@ static void sdp_worker(queue_context *q_context)
     }
     
     ESP_LOGI(log_prefix, "Worker task %s shut down, deleting task.", q_context->worker_task_name);
+    free(q_context->__x_queue_semaphore);
+        
+    q_context->__x_queue_semaphore = NULL;
+    q_context->__x_task_state_semaphore = NULL;
+    
     vTaskDelete(NULL);
 }
 

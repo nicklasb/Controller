@@ -11,6 +11,7 @@
 
 #include "espnow_messaging.h"
 #include "espnow_peer.h"
+#include "driver/adc.h"
 
 
 
@@ -41,9 +42,12 @@ void espnow_shutdown() {
     ESP_LOGI(log_prefix, " - wifi stop");
     esp_wifi_stop();
     ESP_LOGI(log_prefix, " - wifi disconnect");
-    esp_wifi_disconnect();    
+    esp_wifi_disconnect(); 
+    esp_wifi_set_mode(WIFI_MODE_NULL);   
     ESP_LOGI(log_prefix, " - wifi deinit");   
     esp_wifi_deinit();
+    ESP_LOGI(log_prefix, " - power of adc");   
+    adc_power_off();
     ESP_LOGI(log_prefix, "ESP-NOW shut down.");
 }
 

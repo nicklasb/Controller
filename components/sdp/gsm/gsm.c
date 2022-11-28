@@ -104,10 +104,10 @@ void cut_modem_power() {
     gpio_set_level(GPIO_NUM_4, 1);
     vTaskDelay(6200/portTICK_PERIOD_MS);
 
-    /*
     ESP_LOGI(log_prefix, "* Waiting...");
-    vTaskDelay(1000/portTICK_PERIOD_MS);   
-    ESP_LOGI(log_prefix, "* Cutting modem power again.");
+    vTaskDelay(1000/portTICK_PERIOD_MS);  
+/*
+    ESP_LOGI(log_prefix, "* Setting pin 4 to low again.");
     vTaskDelay(1000/portTICK_PERIOD_MS);  
     gpio_set_level(GPIO_NUM_4, 0);
     vTaskDelay(1000/portTICK_PERIOD_MS);
@@ -127,7 +127,18 @@ void cleanup()
         ESP_LOGW(log_prefix, "GSM cleanup called when no cleanup is necessary. Exiting.");
         return;
     }
-
+    if (gsm_dce) {
+         ESP_LOGI(log_prefix, "* Disconnecting the modem using ATH");
+        char res[100];  
+        esp_err_t err = esp_modem_at(gsm_dce, "AT+ATH", res, 10000);
+        if (err != ESP_OK)
+        {
+            ESP_LOGI(log_prefix, "Disconnecting the modem ATH succeeded, response: %s .", res);
+        } else  
+        {
+            ESP_LOGE(log_prefix, "Disconnecting the modem ATH failed with %d", err);
+        } 
+    }     
     gsm_shutdown_worker();
 
     ESP_LOGI(log_prefix, " - Informing everyone that the GSM task it is shutting down.");
@@ -135,8 +146,16 @@ void cleanup()
     // Wait for the event to propagate
     vTaskDelay(400/portTICK_PERIOD_MS);
 
+    if (gsm_event_group) {
+        ESP_LOGI(log_prefix, " - Delete the event group");
+        
+        vEventGroupDelete(gsm_event_group);
+        gsm_event_group = NULL;
+    }
     gsm_ip_cleanup();
 
+
+    vTaskDelay(1200/portTICK_PERIOD_MS);
     // Making sure gsm_modem_setup_task is null and use a temporary variable instead. 
     // This to avoid a race condition, as gsm_before_sleep_cb may be called simultaneously  
 
@@ -146,6 +165,17 @@ void cleanup()
     }
 
     if (gsm_dce) {
+ 
+        ESP_LOGI(log_prefix, "* Powering down GPS by turning off power line (SGPIO=0,4,1,0)");
+        char res[100];  
+        esp_err_t err = esp_modem_at(gsm_dce, "AT+SGPIO=0,4,1,0", res, 10000);
+        if (err != ESP_OK)
+        {
+            ESP_LOGI(log_prefix, "Powering down GPS by turning off power line succeeded, response: %s .", res);
+        } else  
+        {
+            ESP_LOGE(log_prefix, "Powering down GPS using AT failed with %d", err);
+        }                
         /*
         ESP_LOGI(log_prefix, " - Set command mode");
         esp_err_t err = esp_modem_set_mode(gsm_dce, ESP_MODEM_MODE_COMMAND);
@@ -182,7 +212,7 @@ void cleanup()
         } else  
         {
             ESP_LOGE(log_prefix, "esp_modem_power_down(gsm_dce) failed with %d", err);
-        } */
+        } 
 
         ESP_LOGI(log_prefix, "* Powering down GPS using CGNSPWR=0");
         char res[100];  
@@ -195,39 +225,31 @@ void cleanup()
             ESP_LOGE(log_prefix, "Powering down GPS using AT failed with %d", err);
         }          
         ESP_LOGI(log_prefix, "* Done powering down using CGNSPWR=0");
- 
-        ESP_LOGI(log_prefix, "* Powering down GPS by turning off power line (SGPIO=0,4,1,0)");
-        err = esp_modem_at(gsm_dce, "AT+SGPIO=0,4,1,0", res, 10000);
-        if (err != ESP_OK)
-        {
-            ESP_LOGI(log_prefix, "Powering down GPS by turning off power line succeeded, response: %s .", res);
-        } else  
-        {
-            ESP_LOGE(log_prefix, "Powering down GPS using AT failed with %d", err);
-        }       
+        */
+       /*
+
            
         err = esp_modem_at(gsm_dce, "AT+CPOWD=1", res, 10000);
-        if (err != ESP_OK)
+        if (err != ESP_OK)  a
         {
             ESP_LOGI(log_prefix, " - Powering down using AT succeeded, response: %s .", res);
         } else  
         {
             ESP_LOGE(log_prefix, "Powering down using AT failed with %d", err);
         }  
- 
-
-        //ESP_LOGI(log_prefix, "- Destroying esp-modem");
-        //esp_modem_destroy(gsm_dce);
+ */
+        /*
+        ESP_LOGI(log_prefix, "- Destroying esp-modem");
+        esp_modem_destroy(gsm_dce);
+        */
     }
-    /*
-    if (gsm_event_group) {
-        ESP_LOGI(log_prefix, " - Delete the event group");
-        vEventGroupDelete(gsm_event_group);
-        gsm_event_group = NULL;
-    }
-    */
-    vTaskDelay(100 / portTICK_PERIOD_MS);
+    
+    
+    
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
     cut_modem_power();
+
+
 
 }
 
@@ -244,7 +266,7 @@ bool gsm_before_sleep_cb()
     cleanup();
     
 
-    ESP_LOGI(log_prefix, "- Setting pin 12 (LED) to hight.");
+  /*  ESP_LOGI(log_prefix, "- Setting pin 12 (LED) to hight.");
     gpio_set_direction(GPIO_NUM_12, GPIO_MODE_OUTPUT);
     gpio_pullup_en(GPIO_NUM_12);
     gpio_set_level(GPIO_NUM_12, 1);
@@ -254,7 +276,7 @@ bool gsm_before_sleep_cb()
      gpio_set_level(GPIO_NUM_12, 1);
     vTaskDelay(200/portTICK_PERIOD_MS);
      gpio_set_level(GPIO_NUM_12, 0);
-    vTaskDelay(200/portTICK_PERIOD_MS);
+    vTaskDelay(200/portTICK_PERIOD_MS);*/
     return true;
 }
 
@@ -354,9 +376,9 @@ void gsm_start()
             sync_attempts++;
 
             if (err == ESP_ERR_TIMEOUT) {
-                ESP_LOGI(log_prefix, "SIMCOMATI, attempt %i timed out.", sync_attempts);
+                ESP_LOGI(log_prefix, "Sync attempt %i timed out.", sync_attempts);
             } else {
-                ESP_LOGE(log_prefix, "SIMCOMATI, attempt %i failed with error:  %i", sync_attempts, err);
+                ESP_LOGE(log_prefix, "Sync attempt %i failed with error:  %i", sync_attempts, err);
             }
             gsm_abort_if_shutting_down();
             // We want to try until we either connect or hit the timebox limit
@@ -365,7 +387,7 @@ void gsm_start()
         }
         else
         {
-            ESP_LOGI(log_prefix, "SIMCOMATI returned:  %s", res);
+            ESP_LOGI(log_prefix, "Sync   returned:  %s", res);
             
         }   
         vTaskDelay(500 / portTICK_PERIOD_MS);

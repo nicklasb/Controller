@@ -85,11 +85,10 @@ void gsm_ip_cleanup() {
         ESP_LOGI(log_prefix, "- Unregistering IP/Netif events.");
         esp_event_handler_unregister(IP_EVENT, ESP_EVENT_ANY_ID, &on_ip_event);
         esp_event_handler_unregister(NETIF_PPP_STATUS, ESP_EVENT_ANY_ID, &on_ppp_changed);        
-        ESP_LOGI(log_prefix, "- Destroying netif at %p.", gsm_ip_esp_netif);
-      
-        esp_netif_destroy(gsm_ip_esp_netif);
         ESP_LOGI(log_prefix, "- Deinit netif");
         esp_netif_deinit();
+        ESP_LOGI(log_prefix, "- Destroying netif at %p.", gsm_ip_esp_netif);
+        esp_netif_destroy(gsm_ip_esp_netif);
         
         gsm_ip_esp_netif = NULL;
         ESP_LOGI(log_prefix, "GSM IP cleaned up.");

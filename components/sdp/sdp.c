@@ -34,10 +34,12 @@
 #endif
 
 #ifdef CONFIG_SDP_LOAD_ESP_NOW
-#include "espnow/espnow_init.h"
+#include "espnow/espnow.h"
 #endif
 
+#ifdef CONFIG_SDP_LOAD_UMTS
 #include "gsm/gsm.h"
+#endif
 
 char *log_prefix;
 
@@ -106,7 +108,7 @@ int sdp_init(work_callback *work_cb, work_callback *priority_cb, char *_log_pref
         ESP_LOGI(_log_prefix, "Initiating ESP-NOW..");
         espnow_init(_log_prefix);
     #endif
-    #ifdef CONFIG_SDP_LOAD_GSM
+    #ifdef CONFIG_SDP_LOAD_UMTS
         ESP_LOGI(_log_prefix, "Initiating GSM modem..");
         gsm_init(_log_prefix);
     #endif

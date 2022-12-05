@@ -1,20 +1,19 @@
-#include "espnow_init.h"
-
-//#include "../secret/local_settings.h"
 #include "sdkconfig.h"
 #ifdef CONFIG_SDP_LOAD_ESP_NOW
+
+#include "espnow.h"
+
+//#include "../secret/local_settings.h"
+
 
 #include <esp_log.h>
 #include <esp_wifi.h>
 #include <esp_now.h>
-#include "sdp_def.h"
+#include <sdp_def.h>
 
-#include "espnow_messaging.h"
-#include "espnow_peer.h"
-#include "driver/adc.h"
-
-
-
+#include <espnow/espnow_messaging.h>
+#include <espnow/espnow_peer.h>
+#include <driver/adc.h>
 
 /* The log prefix for all logging */
 char *log_prefix;

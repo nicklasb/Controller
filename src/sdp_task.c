@@ -11,13 +11,12 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "driver/gpio.h"
-
+ 
 #include "esp_timer.h"
 #include "ui_builder.h"
 #include "local_settings.h"
 
 #include "orchestration/orchestration.h"
-
 #include "sdp/sdp_worker.h"
 #include "sdp/gsm/gsm_worker.h"
 

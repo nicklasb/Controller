@@ -12,7 +12,7 @@
 #include "gsm_worker.h"
 #include "sdp_work_queue.h"
 
-#include <os/queue.h>
+#include <sys/queue.h>
 
 #include <esp_log.h>
 #include <string.h>

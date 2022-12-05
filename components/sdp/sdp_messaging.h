@@ -2,7 +2,7 @@
 #ifndef _SDP_MESSAGING_H_
 #define _SDP_MESSAGING_H_
 
-#include <os/queue.h>
+#include <sys/queue.h> 
 
 #include "stdint.h"
 

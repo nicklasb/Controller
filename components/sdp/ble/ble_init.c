@@ -3,7 +3,7 @@
  * @brief This is the BLE initialization routines
  *
  */
-#include "sdkconfig.h"
+#include <sdkconfig.h>
 #ifdef CONFIG_SDP_LOAD_BLE
 
 #include "ble_init.h"

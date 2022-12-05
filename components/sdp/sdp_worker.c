@@ -11,7 +11,7 @@
 
 #include "sdp_worker.h"
 
-#include <os/queue.h>
+#include <sys/queue.h>
 
 #include <esp_log.h>
 #include <string.h>

@@ -1,20 +1,22 @@
+#include <sdkconfig.h>
+#ifdef CONFIG_SDP_LOAD_UMTS
+
 #include "gsm.h"
 
 #include <string.h>
-#include <sdkconfig.h>
 
 #include "esp_log.h"
 #include "driver/gpio.h"
 #include "sdp_helpers.h"
 
 
-#include "gsm_ip.h"
-#include "gsm_worker.h"
-#include "gsm_mqtt.h"
-#include "orchestration/orchestration.h"
+#include <gsm/gsm_ip.h>
+#include <gsm/gsm_worker.h>
+#include <gsm/gsm_mqtt.h>
+#include <orchestration/orchestration.h>
 #include "sdp_helpers.h"
 
-#include "sleep/sleep.h"
+#include <sleep/sleep.h>
 
 TaskHandle_t *gsm_modem_setup_task = NULL;
 
@@ -539,3 +541,5 @@ void gsm_init(char *_log_prefix)
     }
     ESP_LOGI(log_prefix, "* GSM main task registered.");
 }
+
+#endif

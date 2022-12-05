@@ -8,7 +8,7 @@
 #include <esp_now.h>
 #include <esp_log.h>
 #include <string.h>
-#include "espnow_init.h"
+#include <espnow/espnow.h>
 
 char * log_prefix;
 

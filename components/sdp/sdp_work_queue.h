@@ -22,7 +22,7 @@
 #include "sdp_def.h"
 
 #include "stdint.h"
-#include <os/queue.h>
+#include <sys/queue.h>
 
 #include <freertos/FreeRTOS.h>
 #include <freertos/semphr.h>

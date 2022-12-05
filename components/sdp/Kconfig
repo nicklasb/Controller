@@ -12,8 +12,8 @@ menu "SDP Configuration"
     bool "Load ESP-Now libraries"
     help
         Set this option to tell SDP to load the ESP-Now library
-    config SDP_LOAD_GSM
-        bool "Load GSM libraries"
+    config SDP_LOAD_UMTS
+        bool "Load GSM/UMTS libraries"
         help
             Set this option to tell SDP to load the esp-modem GSM library
     config SDP_PEER_NAME_LEN

@@ -1,3 +1,6 @@
+#include <sdkconfig.h>
+#ifdef CONFIG_SDP_LOAD_UMTS
+
 #ifndef _GSM_H_
 #define _GSM_H_
 
@@ -18,5 +21,7 @@ void gsm_init(char * _log_prefix);
 bool gsm_before_sleep_cb();
 
 void gsm_abort_if_shutting_down();
+
+#endif
 
 #endif

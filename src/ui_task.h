@@ -22,7 +22,7 @@ extern "C"
      * *******************/
 
 #if CONFIG_LV_TOUCH_CONTROLLER == TOUCH_CONTROLLER_NONE
-    #error "This application needs a touch controller!"
+    #warning "This application needs a touch controller!"
 #endif
 
 

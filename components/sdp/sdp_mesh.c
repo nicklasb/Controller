@@ -1,6 +1,7 @@
 #include "sdp_mesh.h"
 
-#include <os/os_mempool.h>
+
+#include <string.h>
 #include <esp_log.h>
 
 #include "sdp.h"
@@ -17,9 +18,7 @@
 
 
 
-/* */
-static void *sdp_peer_mem;
-static struct os_mempool sdp_peer_pool;
+
 
 /* Used for creating new peer handles*/
 uint16_t _peer_handle_incrementor_ = 0;
@@ -102,11 +101,7 @@ int sdp_mesh_delete_peer(uint16_t peer_handle)
 
     SLIST_REMOVE(&sdp_peers, peer, sdp_peer, next);
 
-    rc = os_memblock_put(&sdp_peer_pool, peer);
-    if (rc != 0)
-    {
-        return SDP_ERR_OS_ERROR;
-    }
+    free(peer);
 
     return 0;
 }
@@ -125,7 +120,7 @@ int sdp_mesh_peer_add(sdp_peer_name name)
         return -SDP_ERR_PEER_EXISTS;
     }
 
-    peer = os_memblock_get(&sdp_peer_pool);
+    peer = malloc(sizeof(sdp_peer));
     if (peer == NULL)
     {
         ESP_LOGE(log_prefix, "sdp_peer_add() - Out of memory!");
@@ -143,13 +138,6 @@ int sdp_mesh_peer_add(sdp_peer_name name)
 
 
     return peer->peer_handle;
-}
-
-static void
-sdp_peer_free_mem(void)
-{
-    free(sdp_peer_mem);
-    sdp_peer_mem = NULL;
 }
 
 
@@ -199,35 +187,14 @@ sdp_peer* sdp_add_init_new_peer(sdp_peer_name peer_name, const sdp_mac_address m
 
 int sdp_mesh_init(char *_log_prefix, int max_peers)
 {
-    int rc;
+
     log_prefix = _log_prefix;
 
     /* Free memory first in case this function gets called more than once. */
-    sdp_peer_free_mem();
 
-    sdp_peer_mem = malloc(
-        OS_MEMPOOL_BYTES(max_peers, sizeof(struct sdp_peer)));
-    if (sdp_peer_mem == NULL)
-    {
-        rc = SDP_ERR_OUT_OF_MEMORY;
-        ESP_LOGE(log_prefix, "sdp_peer_init() - Out of memory!");
-        goto err;
-    }
-
-    rc = os_mempool_init(&sdp_peer_pool, max_peers,
-                         sizeof(struct sdp_peer), sdp_peer_mem,
-                         "sdp_peer_pool");
-    if (rc != 0)
-    {
-        rc = SDP_ERR_OS_ERROR;
-        goto err;
-    }
 
     sdp_peer_init(log_prefix);
 
-    return 0;
 
-err:
-    sdp_peer_free_mem();
-    return rc;
+    return 0;
 }

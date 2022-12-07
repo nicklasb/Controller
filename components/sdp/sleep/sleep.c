@@ -13,6 +13,7 @@
 #include "esp_err.h"
 #include "esp_sleep.h"
 #include "esp_log.h"
+#include "esp_timer.h"
 
 #include "inttypes.h"
 

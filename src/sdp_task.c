@@ -13,16 +13,19 @@
 #include "driver/gpio.h"
  
 #include "esp_timer.h"
-#include "ui_builder.h"
+//#include "ui_builder.h"
 #include "local_settings.h"
 
 #include "orchestration/orchestration.h"
-#include "sdp/sdp_worker.h"
-#include "sdp/gsm/gsm_worker.h"
+#include "sdp_worker.h"
 
-#include "sdp/gsm/gsm.h"
+#if ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(5, 0, 0)
+#error This project requires ESP-IDF version > 5 because of esp-modem
+#endif
 
-#include "sdp/sdp_worker.h"
+#include "gsm/gsm_worker.h"
+
+#include <gsm/gsm.h>
 
 #include "esp_log.h"
 
@@ -98,6 +101,8 @@ bool do_on_data(work_queue_item_t *queue_item)
     } else {
         ESP_LOGI(log_prefix, "No local conversation found");
     }
+#if 0 
+
 
     if (strcmp(conversation->reason, "status") == 0)
     {
@@ -121,6 +126,8 @@ bool do_on_data(work_queue_item_t *queue_item)
         
         
     } else
+
+#endif
     if (strcmp(conversation->reason, "external") == 0)
     {      
         ESP_LOGI(log_prefix, "Had an external message");

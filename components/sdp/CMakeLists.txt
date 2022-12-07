@@ -25,4 +25,5 @@ endif()
 
 idf_component_register(SRCS ${sdp_sources} 
 INCLUDE_DIRS . 
-REQUIRES bt esp-modem mqtt )
+REQUIRES driver esp_netif nvs_flash bt mqtt #esp_modem #esp_adc
+)

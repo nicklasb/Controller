@@ -1,5 +1,6 @@
 menu "GSM Configuration"
-
+    depends on SDP_LOAD_UMTS
+    
     choice EXAMPLE_SERIAL_CONFIG
         prompt "Type of serial connection to the modem"
         default EXAMPLE_SERIAL_CONFIG_UART

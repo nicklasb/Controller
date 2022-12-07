@@ -1,33 +1,48 @@
 # Kconfig file for SDP v0.1.0
 
+
 menu "SDP Configuration"
 
-    rsource "espnow/Kconfig"
-    rsource "gsm/Kconfig"    
     config SDP_LOAD_BLE
-    bool "Load Bluetooth libraries"
-    help
-        Set this option to tell SDP to load the Bluetooth library
+        bool "Load Bluetooth libraries"
+        help
+            Set this option to tell SDP to load the Bluetooth library
+
+    rsource "ble/Kconfig"
+
     config SDP_LOAD_ESP_NOW
-    bool "Load ESP-Now libraries"
-    help
-        Set this option to tell SDP to load the ESP-Now library
+        bool "Load ESP-Now libraries"
+        help
+            Set this option to tell SDP to load the ESP-Now library
+
+    rsource "espnow/Kconfig"
+
+    config SDP_LOAD_LORA
+        bool "Load LoRa libraries"
+        help
+            Set this option to tell SDP to load the LoRa library
+    
+    rsource "lora/Kconfig" 
+
     config SDP_LOAD_UMTS
         bool "Load GSM/UMTS libraries"
         help
             Set this option to tell SDP to load the esp-modem GSM library
+
+    rsource "gsm/Kconfig"
+
     config SDP_PEER_NAME_LEN
-    int "Peer name length"
-    default 16
-    help
-        The length of the sdp peer name. 
+        int "Peer name length"
+        default 16
+        help
+            The length of the sdp peer name. 
 
     config SDP_PEER_NAME
-    string "The name of the peer"
-    default "UNNAMEDPEER"
-    help
-        The name of the peer 
+        string "The name of the peer"
+        default "UNNAMEDPEER"
+        help
+            The name of the peer 
            
-    
 
 endmenu
+

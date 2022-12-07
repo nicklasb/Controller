@@ -1,0 +1,5 @@
+menu "BLE-configuration"
+    depends on SDP_LOAD_BLE
+
+    
+endmenu

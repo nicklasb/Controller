@@ -13,6 +13,8 @@
 
 #include <freertos/FreeRTOS.h>
 #include <freertos/semphr.h>
+
+#include <esp_timer.h>
 /* How often should we look */
 #define CONFIG_SDP_MONITOR_DELAY 10000000
 

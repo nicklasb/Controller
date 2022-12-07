@@ -13,7 +13,12 @@
 
 #include <espnow/espnow_messaging.h>
 #include <espnow/espnow_peer.h>
-#include <driver/adc.h>
+
+#if ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(5, 0, 0)
+    #include <driver/adc.h>
+#else
+    #include <esp_adc/adc_oneshot.h>
+#endif 
 
 /* The log prefix for all logging */
 char *log_prefix;
@@ -46,7 +51,15 @@ void espnow_shutdown() {
     ESP_LOGI(log_prefix, " - wifi deinit");   
     esp_wifi_deinit();
     ESP_LOGI(log_prefix, " - power of adc");   
-    adc_power_off();
+#if ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(5, 0, 0)
+    adc_power_release();
+
+#endif 
+
+    
+    
+
+
     ESP_LOGI(log_prefix, "ESP-NOW shut down.");
 }
 

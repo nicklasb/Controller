@@ -141,8 +141,8 @@ int safe_add_conversation(sdp_peer *peer, const char *reason, int conversation_i
 
 int handle_incoming(sdp_peer *peer, const uint8_t *data, int data_len, e_media_type media_type)
 {
-    ESP_LOGI(log_prefix, "Payload length: %i, call count %i, CRC32: %u", data_len, callcount++,
-             crc32_be(0, data, data_len));
+    ESP_LOGI(log_prefix, "Payload length: %i, call count %i, CRC32: %i.", data_len, callcount++,
+             (int)crc32_be(0, data, data_len));
 
     ESP_LOG_BUFFER_HEXDUMP(log_prefix, data, data_len, ESP_LOG_INFO);
 

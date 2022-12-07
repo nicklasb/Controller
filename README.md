@@ -1,3 +1,8 @@
+# NOTE: 
+This project (and Peripheral) should be considered a PoC, the code will be split up and generalized. 
+
+Feel free to learn from it (like I did), but do not base anything on the code, what will come will be better and more abstracted.
+
 
 # Controller
 

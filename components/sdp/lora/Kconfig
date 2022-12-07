@@ -99,4 +99,76 @@ menu "Lora Config"
 		help
 			Spreading Factor.
 
+	config LORA_GPIO_RANGE_MAX
+		int
+		default 33 if IDF_TARGET_ESP32
+		default 46 if IDF_TARGET_ESP32S2
+		default 19 if IDF_TARGET_ESP32C3
+		default 48 if IDF_TARGET_ESP32S3
+
+	config LORA_MISO_GPIO
+		int "MISO GPIO"
+		range 0 LORA_GPIO_RANGE_MAX
+		default 19 if IDF_TARGET_ESP32
+		default 37 if IDF_TARGET_ESP32S2
+		default 37 if IDF_TARGET_ESP32S3
+		default  4 if IDF_TARGET_ESP32C3
+		help
+			Pin Number to be used as the MISO SPI signal.
+
+	config LORA_SCK_GPIO
+		int "SCK GPIO"
+		range 0 LORA_GPIO_RANGE_MAX
+		default 18 if IDF_TARGET_ESP32
+		default 36 if IDF_TARGET_ESP32S2
+		default 36 if IDF_TARGET_ESP32S3
+		default  5 if IDF_TARGET_ESP32C3
+		help
+			Pin Number to be used as the SCK SPI signal.
+
+	config LORA_MOSI_GPIO
+		int "MOSI GPIO"
+		range 0 LORA_GPIO_RANGE_MAX
+		default 23 if IDF_TARGET_ESP32
+		default 35 if IDF_TARGET_ESP32S2
+		default 35 if IDF_TARGET_ESP32S3
+		default  6 if IDF_TARGET_ESP32C3
+		help
+			Pin Number to be used as the MOSI SPI signal.
+
+	config LORA_CS_GPIO
+		int "NSS GPIO"
+		range 0 LORA_GPIO_RANGE_MAX
+		default 15 if IDF_TARGET_ESP32
+		default 34 if IDF_TARGET_ESP32S2
+		default 34 if IDF_TARGET_ESP32S3
+		default 7  if IDF_TARGET_ESP32C3
+		help
+			Pin Number where the NCS pin of the LoRa module is connected to.
+
+	config LORA_RST_GPIO
+		int "RST GPIO"
+		range 0 LORA_GPIO_RANGE_MAX
+		default 16 if IDF_TARGET_ESP32
+		default 38 if IDF_TARGET_ESP32S2
+		default 38 if IDF_TARGET_ESP32S3
+		default 8  if IDF_TARGET_ESP32C3
+		help
+			Pin Number where the NRST pin of the LoRa module is connected to.
+
+	choice LORA_SPI_HOST
+		prompt "SPI peripheral that controls this bus"
+		default LORA_SPI2_HOST
+		help
+			Select SPI peripheral that controls this bus.
+		config LORA_SPI2_HOST
+			bool "SPI2_HOST"
+			help
+				Use SPI2_HOST. This is also called HSPI_HOST.
+		config LORA_SPI3_HOST
+			depends on IDF_TARGET_ESP32 || IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32S3
+			bool "SPI3_HOST"
+			help
+				USE SPI3_HOST. This is also called VSPI_HOST
+	endchoice
 endmenu 

@@ -68,9 +68,9 @@
 #define TIMEOUT_RESET                  100
 
 // SPI Stuff
-#if  
+#if  CONFIG_LORA_SPI2_HOST
 #define HOST_ID SPI2_HOST
-#elif CONFIG_SPI3_HOST
+#elif CONFIG_LORA_SPI3_HOST
 #define HOST_ID SPI3_HOST
 #endif
 
@@ -107,13 +107,13 @@ lora_write_reg(int reg, int val)
       .rx_buffer = in  
    };
 
-   //gpio_set_level(CONFIG_CS_GPIO, 0);
+   //gpio_set_level(CONFIG_LORA_CS_GPIO, 0);
 #if SPI_TRANSMIT
    spi_device_transmit(__spi, &t);
 #else
    spi_device_polling_transmit(__spi, &t);
 #endif
-   //gpio_set_level(CONFIG_CS_GPIO, 1);
+   //gpio_set_level(CONFIG_LORA_CS_GPIO, 1);
 }
 
 /**
@@ -139,13 +139,13 @@ lora_write_reg_buffer(int reg, uint8_t *val, int len)
       .rx_buffer = NULL
    };
 
-   //gpio_set_level(CONFIG_CS_GPIO, 0);
+   //gpio_set_level(CONFIG_LORA_CS_GPIO, 0);
 #if SPI_TRANSMIT
    spi_device_transmit(__spi, &t);
 #else
    spi_device_polling_transmit(__spi, &t);
 #endif
-   //gpio_set_level(CONFIG_CS_GPIO, 1);
+   //gpio_set_level(CONFIG_LORA_CS_GPIO, 1);
    free(out);
 }
 
@@ -167,13 +167,13 @@ lora_read_reg(int reg)
       .rx_buffer = in
    };
 
-   //gpio_set_level(CONFIG_CS_GPIO, 0);
+   //gpio_set_level(CONFIG_LORA_CS_GPIO, 0);
 #if SPI_TRANSMIT
    spi_device_transmit(__spi, &t);
 #else
    spi_device_polling_transmit(__spi, &t);
 #endif
-   //gpio_set_level(CONFIG_CS_GPIO, 1);
+   //gpio_set_level(CONFIG_LORA_CS_GPIO, 1);
    return in[1];
 }
 
@@ -202,13 +202,13 @@ lora_read_reg_buffer(int reg, uint8_t *val, int len)
       .rx_buffer = in
    };
 
-   //gpio_set_level(CONFIG_CS_GPIO, 0);
+   //gpio_set_level(CONFIG_LORA_CS_GPIO, 0);
 #if SPI_TRANSMIT
    spi_device_transmit(__spi, &t);
 #else
    spi_device_polling_transmit(__spi, &t);
 #endif
-   //gpio_set_level(CONFIG_CS_GPIO, 1);
+   //gpio_set_level(CONFIG_LORA_CS_GPIO, 1);
    for (int i=0;i<len;i++) {
       val[i] = in[i+1];
    }
@@ -222,9 +222,9 @@ lora_read_reg_buffer(int reg, uint8_t *val, int len)
 void 
 lora_reset(void)
 {
-   gpio_set_level(CONFIG_RST_GPIO, 0);
+   gpio_set_level(CONFIG_LORA_RST_GPIO, 0);
    vTaskDelay(pdMS_TO_TICKS(1));
-   gpio_set_level(CONFIG_RST_GPIO, 1);
+   gpio_set_level(CONFIG_LORA_RST_GPIO, 1);
    vTaskDelay(pdMS_TO_TICKS(10));
 }
 
@@ -515,24 +515,23 @@ lora_disable_crc(void)
 /**
  * Perform hardware initialization.
  */
-int 
-lora_init(void)
+int lora_init_local(void)
 {
    esp_err_t ret;
 
    /*
     * Configure CPU hardware to communicate with the radio chip
     */
-   gpio_reset_pin(CONFIG_RST_GPIO);
-   gpio_set_direction(CONFIG_RST_GPIO, GPIO_MODE_OUTPUT);
-   gpio_reset_pin(CONFIG_CS_GPIO);
-   gpio_set_direction(CONFIG_CS_GPIO, GPIO_MODE_OUTPUT);
-   gpio_set_level(CONFIG_CS_GPIO, 1);
+   gpio_reset_pin(CONFIG_LORA_RST_GPIO);
+   gpio_set_direction(CONFIG_LORA_RST_GPIO, GPIO_MODE_OUTPUT);
+   gpio_reset_pin(CONFIG_LORA_CS_GPIO);
+   gpio_set_direction(CONFIG_LORA_CS_GPIO, GPIO_MODE_OUTPUT);
+   gpio_set_level(CONFIG_LORA_CS_GPIO, 1);
 
    spi_bus_config_t bus = {
-      .miso_io_num = CONFIG_MISO_GPIO,
-      .mosi_io_num = CONFIG_MOSI_GPIO,
-      .sclk_io_num = CONFIG_SCK_GPIO,
+      .miso_io_num = CONFIG_LORA_MISO_GPIO,
+      .mosi_io_num = CONFIG_LORA_MOSI_GPIO,
+      .sclk_io_num = CONFIG_LORA_SCK_GPIO,
       .quadwp_io_num = -1,
       .quadhd_io_num = -1,
       .max_transfer_sz = 0
@@ -545,7 +544,7 @@ lora_init(void)
    spi_device_interface_config_t dev = {
       .clock_speed_hz = 9000000,
       .mode = 0,
-      .spics_io_num = CONFIG_CS_GPIO,
+      .spics_io_num = CONFIG_LORA_CS_GPIO,
       .queue_size = 7,
       .flags = 0,
       .pre_cb = NULL

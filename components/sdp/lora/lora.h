@@ -25,7 +25,7 @@ long lora_get_preamble_length(void);
 void lora_set_sync_word(int sw);
 void lora_enable_crc(void);
 void lora_disable_crc(void);
-int lora_init(void);
+int lora_init_local(void);
 void lora_send_packet(uint8_t *buf, int size);
 int lora_receive_packet(uint8_t *buf, int size);
 int lora_received(void);

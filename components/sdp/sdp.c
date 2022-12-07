@@ -41,6 +41,10 @@
 #include "gsm/gsm.h"
 #endif
 
+#ifdef CONFIG_SDP_LOAD_LORA
+#include "lora/lora_init.h"
+#endif
+
 char *log_prefix;
 
 void sdp_shutdown() {
@@ -79,8 +83,7 @@ int sdp_init(work_callback *work_cb, work_callback *priority_cb, char *_log_pref
 
     if (work_cb == NULL || priority_cb == NULL)
     {
-        ESP_LOGE(_log_prefix, "Error: Both work_cb and priority_cb are mandatory parameters, cannot be NULL!");
-        return SDP_ERR_INIT_FAIL;
+        ESP_LOGW(_log_prefix, "Error: Both work_cb and priority_cb are mandatory parameters, sdp will not work properly!");
     }
 
     /* Initialize NVS — it is used to store PHY calibration data */
@@ -112,6 +115,10 @@ int sdp_init(work_callback *work_cb, work_callback *priority_cb, char *_log_pref
         ESP_LOGI(_log_prefix, "Initiating GSM modem..");
         gsm_init(_log_prefix);
     #endif
+     #ifdef CONFIG_SDP_LOAD_LORA
+        ESP_LOGI(_log_prefix, "Initiating LoRa..");
+        lora_init(_log_prefix);
+    #endif   
      
     ESP_LOGI(_log_prefix, "SDP initiated!");
     return 0;

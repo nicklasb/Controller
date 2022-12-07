@@ -3,9 +3,6 @@ FILE(GLOB sdp_sources
 "sleep/sleep.h" "sleep/sleep.c"
 "orchestration/orchestration.h" "orchestration/orchestration.c"
 "monitor/monitor.h" "monitor/monitor.c"
-"gsm/gsm.h" "gsm/gsm.c"
-"espnow/espnow.h" "espnow/espnow.c"
-"ble/ble_init.h" "ble/ble_init.c"
 )
 
 if (CONFIG_SDP_LOAD_UMTS)
@@ -20,6 +17,11 @@ endif()
 
 if (CONFIG_SDP_LOAD_BLE)
     FILE(GLOB tmp_sources "ble/*.*")
+    LIST(APPEND sdp_sources ${tmp_sources})
+endif()
+
+if (CONFIG_SDP_LOAD_LORA)
+    FILE(GLOB tmp_sources "lora/*.*")
     LIST(APPEND sdp_sources ${tmp_sources})
 endif()
 

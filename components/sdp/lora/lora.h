@@ -1,6 +1,9 @@
 #ifndef __LORA_H__
 #define __LORA_H__
 
+#include <sdkconfig.h>
+#ifdef CONFIG_SDP_LOAD_LORA
+
 #include <stdint.h>
 
 void lora_reset(void);
@@ -34,5 +37,7 @@ float lora_packet_snr(void);
 void lora_close(void);
 int lora_initialized(void);
 void lora_dump_registers(void);
+
+#endif
 
 #endif

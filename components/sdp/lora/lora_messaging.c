@@ -1,0 +1,36 @@
+#include "lora_messaging.h"
+
+#include "lora.h"
+#include <sdp_def.h>
+#include <esp_log.h>
+#include <esp_timer.h>
+
+/* The log prefix for all logging */
+char *log_prefix;
+
+int lora_send_message(sdp_mac_address *dest_mac_address, void *data, int data_length) {
+
+    
+	// Maximum Payload size of SX1276/77/78/79 is 255
+    if (data_length > 256) {
+        return SDP_ERR_MESSAGE_TOO_LONG;
+    }
+// TODO: Make some way of handling longer messages
+
+	uint64_t starttime;
+	int tx_count = 0;
+
+	tx_count++;
+	starttime = esp_timer_get_time();
+	ESP_LOGI(log_prefix, "Sending message: \"%s\" %d bytes...", (char *)data, data_length);
+	lora_send_packet(data, data_length);
+	ESP_LOGI(log_prefix, "%d byte packet sent...speed %f byte/s", data_length, 
+	(float)data_length/((float)(esp_timer_get_time()-starttime))*1000000);
+
+	return ESP_OK;
+
+}
+
+void lora_messaging_init(char * _log_prefix){
+    log_prefix = _log_prefix;
+}

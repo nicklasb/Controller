@@ -24,7 +24,7 @@
 #include <esp_log.h>
 #include "lora.h"
 #include <sdp_def.h>
-
+#include "lora_messaging.h"
 
 /* The log prefix for all logging */
 char *log_prefix;
@@ -111,7 +111,7 @@ void lora_init(char * _log_prefix) {
     log_prefix = _log_prefix;
     ESP_LOGI(log_prefix, "Initializing LoRa");
     init_lora();
-    
+    lora_messaging_init(log_prefix);
 
     ESP_LOGI(log_prefix, "LoRa initialized.");
 }

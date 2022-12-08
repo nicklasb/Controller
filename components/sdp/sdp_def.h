@@ -77,7 +77,9 @@ typedef enum e_sdp_error_codes
     /* OS error.  See enum os_error in os/os_error.h for meaning of values when debugging */
     SDP_ERR_OS_ERROR = 14,
     /* Parsing error */
-    SDP_ERR_PARSING_FAILED = 15
+    SDP_ERR_PARSING_FAILED = 15,
+     /* Message to long to comply */
+    SDP_ERR_MESSAGE_TOO_LONG = 16   
 } e_sdp_error_codes;
 
 /* Common warning codes */

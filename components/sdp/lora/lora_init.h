@@ -1,4 +1,4 @@
-#include "sdkconfig.h"
+#include <sdkconfig.h>
 #ifdef CONFIG_SDP_LOAD_LORA
 
 #ifndef _LORA_INIT_H_

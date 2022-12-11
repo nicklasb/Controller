@@ -18,7 +18,7 @@ char *log_prefix;
 static void on_ppp_changed(void *arg, esp_event_base_t event_base,
                            int32_t event_id, void *event_data)
 {
-    ESP_LOGI(log_prefix, "PPP state changed event %d", event_id);
+    ESP_LOGI(log_prefix, "PPP state changed event %li", event_id);
     if (event_id == NETIF_PPP_ERRORUSER)
     {
         /* User interrupted event from esp-netif */
@@ -27,14 +27,14 @@ static void on_ppp_changed(void *arg, esp_event_base_t event_base,
     }
     else
     {
-        ESP_LOGW(log_prefix, "Got Uncategorized ppp event! %i", event_id);
+        ESP_LOGW(log_prefix, "Got Uncategorized ppp event! %li", event_id);
     }
 }
 
 static void on_ip_event(void *arg, esp_event_base_t event_base,
                         int32_t event_id, void *event_data)
 {
-    ESP_LOGD(log_prefix, "IP event! %d", event_id);
+    ESP_LOGD(log_prefix, "IP event! %li", event_id);
     if (event_id == IP_EVENT_PPP_GOT_IP)
     {
         ESP_LOGI(log_prefix, "* GOT ip event!!!");
@@ -70,7 +70,7 @@ static void on_ip_event(void *arg, esp_event_base_t event_base,
     }
     else
     {
-        ESP_LOGW(log_prefix, "Got Uncategorized IP event! %i", event_id);
+        ESP_LOGW(log_prefix, "Got Uncategorized IP event! %li", event_id);
     }
 }
 
@@ -105,7 +105,7 @@ void gsm_ip_enable_data_mode() {
     esp_err_t err = esp_modem_set_mode(gsm_dce, ESP_MODEM_MODE_DATA);
     if (err != ESP_OK)
     {
-        ESP_LOGE(log_prefix, "esp_modem_set_data_mode(gsm_dce) failed with %d", err);
+        ESP_LOGE(log_prefix, "esp_modem_set_data_mode(gsm_dce) failed with %i", err);
         gsm_ip_cleanup();
         return;
     }

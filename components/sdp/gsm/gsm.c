@@ -16,6 +16,8 @@
 #include <orchestration/orchestration.h>
 #include "sdp_helpers.h"
 
+#include "esp_timer.h"
+
 #include <sleep/sleep.h>
 
 TaskHandle_t *gsm_modem_setup_task = NULL;

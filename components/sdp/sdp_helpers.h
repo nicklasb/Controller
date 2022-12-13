@@ -1,5 +1,4 @@
-    
-    /**
+/**
  * @file sdp_helpers.h
  * @author Nicklas Borjesson
  * @brief This is the sensor data protocol server helper functions
@@ -13,7 +12,6 @@
 #ifndef _SDP_HELPERS_H_
 #define _SDP_HELPERS_H_
 
-#include "stdint.h"
 #include "sdp_def.h"
 #include "driver/gpio.h"
 

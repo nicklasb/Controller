@@ -36,7 +36,7 @@
  *
  */
 
-char* log_prefix;
+char* ble_service_log_prefix;
 
 static int ble_handle_incoming(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt *ctxt) {
     sdp_peer *peer = sdp_mesh_find_peer_by_handle(conn_handle);
@@ -48,7 +48,7 @@ static int ble_svc_gatt_handler(uint16_t conn_handle, uint16_t attr_handle, stru
     switch (ctxt->op)
     {
         case BLE_GATT_ACCESS_OP_READ_CHR:
-            ESP_LOGI(log_prefix, "Callback for read");
+            ESP_LOGI(ble_service_log_prefix, "Callback for read");
             break;
 
         case BLE_GATT_ACCESS_OP_WRITE_CHR:
@@ -56,7 +56,7 @@ static int ble_svc_gatt_handler(uint16_t conn_handle, uint16_t attr_handle, stru
             break;
 
         default:
-            ESP_LOGI(log_prefix, "\nDefault Callback");
+            ESP_LOGI(ble_service_log_prefix, "\nDefault Callback");
             break;
     }
     return 0;
@@ -122,5 +122,5 @@ int gatt_svr_register(void)
 }
 
 void ble_init_service(char * _log_prefix) {
-    log_prefix = _log_prefix;
+    ble_service_log_prefix = _log_prefix;
 }

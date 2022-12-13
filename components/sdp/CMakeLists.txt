@@ -1,5 +1,5 @@
 FILE(GLOB sdp_sources 
-"./*.*"
+"./*.c" "./*.h"
 "sleep/sleep.h" "sleep/sleep.c"
 "orchestration/orchestration.h" "orchestration/orchestration.c"
 "monitor/monitor.h" "monitor/monitor.c"
@@ -27,5 +27,5 @@ endif()
 
 idf_component_register(SRCS ${sdp_sources} 
 INCLUDE_DIRS . 
-REQUIRES driver esp_netif nvs_flash bt mqtt #esp_modem #esp_adc
+REQUIRES driver esp_netif nvs_flash esp_timer esp_wifi mqtt esp_modem esp_adc #bt
 )

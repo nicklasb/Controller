@@ -9,7 +9,8 @@
  */
 
 #include "sleep.h"
-#include "sdp_def.h"
+#include "../sdp_def.h"
+#include <sdp.h>
 #include "esp_err.h"
 #include "esp_sleep.h"
 #include "esp_log.h"
@@ -27,14 +28,14 @@ RTC_DATA_ATTR uint64_t wake_time;
 
 bool b_first_boot;
 
-char *log_prefix;
+char *sleep_log_prefix;
 
 void goto_sleep_for_microseconds(uint64_t microsecs)
 {
 
 
-    ESP_LOGI(log_prefix, "---------------------------------------- S L E E P ----------------------------------------");
-    ESP_LOGI(log_prefix, "At %lli and going to sleep for %llu microseconds", esp_timer_get_time(), microsecs);
+    ESP_LOGI(sleep_log_prefix, "---------------------------------------- S L E E P ----------------------------------------");
+    ESP_LOGI(sleep_log_prefix, "At %lli and going to sleep for %llu microseconds", esp_timer_get_time(), microsecs);
 
 
     sleep_count++;
@@ -49,7 +50,7 @@ void goto_sleep_for_microseconds(uint64_t microsecs)
     }
     else
     {
-        ESP_LOGE(log_prefix, "Error going to sleep for %"PRIu64" microseconds!", microsecs);
+        ESP_LOGE(sleep_log_prefix, "Error going to sleep for %"PRIu64" microseconds!", microsecs);
     }
 }
 /**
@@ -72,27 +73,28 @@ bool is_first_boot() {
 bool sleep_init(char *_log_prefix)
 {
     // TODO: Do I need a wake stub like: https://github.com/espressif/esp-idf/blob/master/docs/en/api-guides/deep-sleep-stub.rst
-    log_prefix = _log_prefix;
+    sleep_log_prefix = _log_prefix;
     esp_sleep_wakeup_cause_t wakeup_cause = esp_sleep_get_wakeup_cause();
 
     switch (wakeup_cause)
     {
     case ESP_SLEEP_WAKEUP_UNDEFINED:
-        ESP_LOGI(log_prefix, "-------------------------------------------------------------------------------------------");
-        ESP_LOGI(log_prefix, "----------------------------------------- B O O T -----------------------------------------");
-        ESP_LOGI(log_prefix, "-------------------------------------------------------------------------------------------");
-        ESP_LOGI(log_prefix, "Normal boot, not returning from sleep mode.");
+        ESP_LOGI(sleep_log_prefix, "-------------------------------------------------------------------------------------------");
+        ESP_LOGI(sleep_log_prefix, "----------------------------------------- B O O T -----------------------------------------");
+        ESP_LOGI(sleep_log_prefix, "-------------------------------------------------------------------------------------------");
+        ESP_LOGI(sleep_log_prefix, "Normal boot, not returning from sleep mode.");
         // No sleep time has happened if we don't return from sleep mode.
         last_sleep_time = 0;
         sleep_count = 0;
         wake_time = 0;
+        sdp_reset_rtc();
         b_first_boot = false;
         return false;
         break;
 
     default:
-        ESP_LOGI(log_prefix, "----------------------------------------- W A K E -----------------------------------------");
-        ESP_LOGI(log_prefix, "Returning from sleep mode.");
+        ESP_LOGI(sleep_log_prefix, "----------------------------------------- W A K E -----------------------------------------");
+        ESP_LOGI(sleep_log_prefix, "Returning from sleep mode.");
         b_first_boot = false;
         return true;
         break;

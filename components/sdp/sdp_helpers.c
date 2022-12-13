@@ -16,7 +16,7 @@
 
 #define WHO_LENGTH 4
 
-char *log_prefix;
+char *helpers_log_prefix;
 
 /* Helpers */
 
@@ -47,7 +47,7 @@ int add_to_message(uint8_t **message, const char *format, ...)
     
     char *loc_format = heap_caps_malloc(format_len + 1, MALLOC_CAP_8BIT);
     strcpy(loc_format, format);
-    ESP_LOGD(log_prefix, "Format string %s len %i", loc_format, format_len);
+    ESP_LOGD(helpers_log_prefix, "Format string %s len %i", loc_format, format_len);
 
     int break_count = 1;
     /* Make a pass to count pipes and replace them with nulls */
@@ -60,7 +60,7 @@ int add_to_message(uint8_t **message, const char *format, ...)
         }
     }
     // Ensure null-termination (alloc is 1 longer than format len)
-    ESP_LOGD(log_prefix, "format_len %i", format_len);
+    ESP_LOGD(helpers_log_prefix, "format_len %i", format_len);
     loc_format[format_len] = 0;
     /* Now we know that our format array needs to be break_count long, allocate it */
     char **format_array = heap_caps_malloc(break_count * sizeof(char *), MALLOC_CAP_8BIT);
@@ -94,13 +94,13 @@ int add_to_message(uint8_t **message, const char *format, ...)
                 int n=2;
                 while (((int)(curr_format[n]) != 0) && (n < 10)) { n++; }
                 if (n > 9 || n < 3) {
-                    ESP_LOGE(log_prefix, "Bad byte parameter on location %i, len %i in format string: %s", k, n-2, curr_format);
+                    ESP_LOGE(helpers_log_prefix, "Bad byte parameter on location %i, len %i in format string: %s", k, n-2, curr_format);
                     new_length = -SDP_ERR_PARSING_FAILED;
                     goto cleanup;                    
                 }
-                ESP_LOGI(log_prefix, "Found null value at %i in %s", n, curr_format);
+                ESP_LOGI(helpers_log_prefix, "Found null value at %i in %s", n, curr_format);
                 value_length = atoi((char *)&(curr_format[2]));
-                ESP_LOGD(log_prefix, "value_length parsed %i", value_length);
+                ESP_LOGD(helpers_log_prefix, "value_length parsed %i", value_length);
                 value_str = malloc(value_length);
                 memcpy(value_str,(void *)value, value_length);
                 
@@ -111,7 +111,7 @@ int add_to_message(uint8_t **message, const char *format, ...)
                 /*double test = 0;
                 memcpy(&test, value, 8);
 
-                ESP_LOGI(log_prefix, "Formatted value = %f with %s, into %s", test, curr_format, value_str);*/
+                ESP_LOGI(helpers_log_prefix, "Formatted value = %f with %s, into %s", test, curr_format, value_str);*/
             }
         } else {
             // If the format string doesn't start with a %-character, just use the format for value
@@ -133,7 +133,7 @@ int add_to_message(uint8_t **message, const char *format, ...)
 
         if (*message == NULL)
         {
-            ESP_LOGE(log_prefix, "(Re)alloc failed.");
+            ESP_LOGE(helpers_log_prefix, "(Re)alloc failed.");
             new_length = -SDP_ERR_OUT_OF_MEMORY;
             goto cleanup;
         };
@@ -141,13 +141,13 @@ int add_to_message(uint8_t **message, const char *format, ...)
 
 
         (*message)[new_length - 1] = (uint8_t)0x00;
-        ESP_LOGD(log_prefix, "Message: %s, value_str: %s, new_length: %i.", (char *)*message, value_str, (int)new_length);
+        ESP_LOGD(helpers_log_prefix, "Message: %s, value_str: %s, new_length: %i.", (char *)*message, value_str, (int)new_length);
         free(value_str);
         value_str = NULL;
         curr_pos = new_length;
 
     }
-    ESP_LOG_BUFFER_HEXDUMP(log_prefix, (char*)*message, new_length,  ESP_LOG_INFO);    
+    ESP_LOG_BUFFER_HEXDUMP(helpers_log_prefix, (char*)*message, new_length,  ESP_LOG_INFO);    
  cleanup:
     va_end(arg);
     free(value_str);   
@@ -185,5 +185,5 @@ float sdp_read_battery()
 }
 
 void sdp_helpers_init(char * _log_prefix) {
-    log_prefix = _log_prefix;
+    helpers_log_prefix = _log_prefix;
 }

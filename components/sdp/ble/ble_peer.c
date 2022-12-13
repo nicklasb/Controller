@@ -53,7 +53,7 @@ peer_dsc_disced(uint16_t conn_handle, const struct ble_gatt_error *error,
                 void *arg);
 
 /* Log prefix*/
-char *log_prefix; 
+char *ble_peer_log_prefix; 
 
 
 /**
@@ -815,12 +815,12 @@ int ble_peer_add(uint16_t conn_handle, struct ble_gap_conn_desc desc)
     {       
         return BLE_HS_EALREADY;   
     } else {
-        ESP_LOGW(log_prefix, "Didn't find the connection, looking at the address");
+        ESP_LOGW(ble_peer_log_prefix, "Didn't find the connection, looking at the address");
         // Might be a reboot
         sdp_peer *sdp_peer = ble_peer_find_sdp_peer_by_reverse_addr(&(desc.peer_id_addr.val));
         if (sdp_peer != NULL)
         {
-            ESP_LOGW(log_prefix, "An existing peer had the same peer_id_addr, assuming reconnect and updates conn_handle. \n \
+            ESP_LOGW(ble_peer_log_prefix, "An existing peer had the same peer_id_addr, assuming reconnect and updates conn_handle. \n \
              Might be hack though.");
             // TODO: Could this be an easy way to steal connections?
             // TODO: This should probably trigger some form of check or re-authentication.
@@ -831,11 +831,11 @@ int ble_peer_add(uint16_t conn_handle, struct ble_gap_conn_desc desc)
         }
     }
     
-    ESP_LOGI(log_prefix, "peer_id_addr (MAC address):");
-    ESP_LOG_BUFFER_HEX(log_prefix, &(desc.peer_id_addr.val), SDP_MAC_ADDR_LEN);
-    ESP_LOG_BUFFER_HEX(log_prefix, &(desc.peer_ota_addr.val), SDP_MAC_ADDR_LEN);
-    ESP_LOG_BUFFER_HEX(log_prefix, &(desc.our_id_addr.val), SDP_MAC_ADDR_LEN);
-    ESP_LOG_BUFFER_HEX(log_prefix, &(desc.our_ota_addr.val), SDP_MAC_ADDR_LEN);
+    ESP_LOGI(ble_peer_log_prefix, "peer_id_addr (MAC address):");
+    ESP_LOG_BUFFER_HEX(ble_peer_log_prefix, &(desc.peer_id_addr.val), SDP_MAC_ADDR_LEN);
+    ESP_LOG_BUFFER_HEX(ble_peer_log_prefix, &(desc.peer_ota_addr.val), SDP_MAC_ADDR_LEN);
+    ESP_LOG_BUFFER_HEX(ble_peer_log_prefix, &(desc.our_id_addr.val), SDP_MAC_ADDR_LEN);
+    ESP_LOG_BUFFER_HEX(ble_peer_log_prefix, &(desc.our_ota_addr.val), SDP_MAC_ADDR_LEN);
 
 
     peer = os_memblock_get(&ble_peer_pool);
@@ -865,7 +865,7 @@ int ble_peer_add(uint16_t conn_handle, struct ble_gap_conn_desc desc)
         peer->sdp_handle = _sdp_handle;
         _sdp_peer = sdp_mesh_find_peer_by_handle(_sdp_handle);
         if (_sdp_peer == NULL) {
-            ESP_LOGE(log_prefix, "ble_peer_add() - Wasn't able to map back to the sdp_handle. Handle: %i", _sdp_handle);
+            ESP_LOGE(ble_peer_log_prefix, "ble_peer_add() - Wasn't able to map back to the sdp_handle. Handle: %i", _sdp_handle);
             return BLE_ERR_HW_FAIL;
         } 
         
@@ -875,7 +875,7 @@ int ble_peer_add(uint16_t conn_handle, struct ble_gap_conn_desc desc)
         _sdp_peer = sdp_mesh_find_peer_by_name(tmpPeerName);
         _sdp_peer->ble_conn_handle = conn_handle;  
         
-        ESP_LOGI(log_prefix, "Didn't add SDP peer due to BLE reconnection (same name), but set the ble connection handle.");
+        ESP_LOGI(ble_peer_log_prefix, "Didn't add SDP peer due to BLE reconnection (same name), but set the ble connection handle.");
 
     }
 
@@ -883,7 +883,7 @@ int ble_peer_add(uint16_t conn_handle, struct ble_gap_conn_desc desc)
         // We know to little about the peer; ask for more information.
         if (sdp_peer_send_who_message(_sdp_peer) == SDP_MT_NONE)
         {
-            ESP_LOGE(log_prefix, "sdp_peer_add() - Failed to ask for more information: %s", _sdp_peer->name);
+            ESP_LOGE(ble_peer_log_prefix, "sdp_peer_add() - Failed to ask for more information: %s", _sdp_peer->name);
         }
     }
 
@@ -911,7 +911,7 @@ int ble_peer_init(char *_log_prefix, int max_peers, int max_svcs, int max_chrs, 
 {
     int rc;
 
-    log_prefix = _log_prefix;
+    ble_peer_log_prefix = _log_prefix;
 
     /* Free memory first in case this function gets called more than once. */
     peer_free_mem();

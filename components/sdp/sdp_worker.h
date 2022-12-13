@@ -13,13 +13,14 @@
  *      INCLUDES
  *********************/
 
+#include "sdp_def.h"
+#include "esp_err.h"
 
 /*********************
  *      DEFINES
  *********************/
 
-#include "sdp_def.h"
-#include <esp_err.h>
+
 
 esp_err_t sdp_safe_add_work_queue(work_queue_item_t *new_item);
 void sdp_cleanup_queue_task(work_queue_item_t *queue_item);

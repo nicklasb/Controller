@@ -30,28 +30,28 @@
 
 #include <esp_log.h>
 
-char *log_prefix;
+char *ble_init_log_prefix;
 
 void ble_shutdown() {
-    ESP_LOGI(log_prefix, "Shutting down BLE:");
-    ESP_LOGI(log_prefix, " - freertos deinit");
+    ESP_LOGI(ble_init_log_prefix, "Shutting down BLE:");
+    ESP_LOGI(ble_init_log_prefix, " - freertos deinit");
     nimble_port_freertos_deinit();
-    ESP_LOGI(log_prefix, " - port deinit");
+    ESP_LOGI(ble_init_log_prefix, " - port deinit");
     nimble_port_deinit();
-    ESP_LOGI(log_prefix, "BLE shut down.");
+    ESP_LOGI(ble_init_log_prefix, "BLE shut down.");
 }
 
 
 /**
  * @brief Initialize the  BLE server
  *
- * @param log_prefix The prefix for logging and naming
+ * @param ble_init_log_prefix The prefix for logging and naming
  * @param pvTaskFunction A function containing the task to run
  */
 void ble_init(char *_log_prefix)
 {
-    log_prefix = _log_prefix;
-    ESP_LOGI(log_prefix, "Initialising BLE..");
+    ble_init_log_prefix = _log_prefix;
+    ESP_LOGI(ble_init_log_prefix, "Initialising BLE..");
 
     // Note: NVS is not initiated here butin the main initiation
 
@@ -66,13 +66,13 @@ void ble_init(char *_log_prefix)
     assert(ret == 0);
 
     /* Initialize service */
-    ble_init_service(log_prefix);
+    ble_init_service(ble_init_log_prefix);
     
     // Print out the address
     sdp_mac_address ble_mac_addr;
     esp_base_mac_addr_get(ble_mac_addr);
-    ESP_LOGI(log_prefix, "BLE base MAC address:");
-    ESP_LOG_BUFFER_HEX(log_prefix, ble_mac_addr, SDP_MAC_ADDR_LEN);
+    ESP_LOGI(ble_init_log_prefix, "BLE base MAC address:");
+    ESP_LOG_BUFFER_HEX(ble_init_log_prefix, ble_mac_addr, SDP_MAC_ADDR_LEN);
 
     /* Register custom service */
     ret = gatt_svr_register();
@@ -105,13 +105,13 @@ void ble_init(char *_log_prefix)
     ble_hs_cfg.sm_sc = 0;
     /* Initialize data structures to track connected peers.
     There is a local pool in spp.h */
-    ESP_LOGI(log_prefix, "Init peer with %i max connections.", MYNEWT_VAL(BLE_MAX_CONNECTIONS));
-    ret = ble_peer_init(log_prefix, MYNEWT_VAL(BLE_MAX_CONNECTIONS), 64, 64, 64);
+    ESP_LOGI(ble_init_log_prefix, "Init peer with %i max connections.", MYNEWT_VAL(BLE_MAX_CONNECTIONS));
+    ret = ble_peer_init(ble_init_log_prefix, MYNEWT_VAL(BLE_MAX_CONNECTIONS), 64, 64, 64);
     assert(ret == 0);
     
     /* Generate and set the GAP device name. */
     char gapname[50] = "\0";
-    strcpy(gapname, log_prefix);
+    strcpy(gapname, ble_init_log_prefix);
     ret = ble_svc_gap_device_name_set(strncat(strlwr(gapname), "-cli", 100));
     assert(ret == 0);
 
@@ -121,7 +121,7 @@ void ble_init(char *_log_prefix)
     /* Start the thread for the host stack, pass the client task which nimble_port_run */
     nimble_port_freertos_init(ble_host_task);
 
-    ESP_LOGI(log_prefix, "BLE initialized.");
+    ESP_LOGI(ble_init_log_prefix, "BLE initialized.");
 }
 
 #endif

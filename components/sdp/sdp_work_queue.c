@@ -15,12 +15,12 @@
 #include <string.h>
 
 /* The log prefix for all logging */
-char *log_prefix;
+char *spd_work_queue_log_prefix;
 
 esp_err_t safe_add_work_queue(queue_context *q_context, work_queue_item_t *new_item)
 {
     if (q_context->shutdown) {
-        ESP_LOGE(log_prefix, "The queue is shut down.");
+        ESP_LOGE(spd_work_queue_log_prefix, "The queue is shut down.");
         return SDP_ERR_SEMAPHORE;
     } else
     if (pdTRUE == xSemaphoreTake(q_context->__x_queue_semaphore, portMAX_DELAY))
@@ -31,7 +31,7 @@ esp_err_t safe_add_work_queue(queue_context *q_context, work_queue_item_t *new_i
     }
     else
     {
-        ESP_LOGE(log_prefix, "Couldn't get semaphore to add to work queue!");
+        ESP_LOGE(spd_work_queue_log_prefix, "Couldn't get semaphore to add to work queue!");
         return SDP_ERR_SEMAPHORE;
     }
     return ESP_OK;
@@ -54,7 +54,7 @@ work_queue_item_t *safe_get_head_work_item(queue_context *q_context)
     }
     else
     {
-        ESP_LOGE(log_prefix, "Error: Couldn't get semaphore to access work queue!");
+        ESP_LOGE(spd_work_queue_log_prefix, "Error: Couldn't get semaphore to access work queue!");
         return NULL;
     }
 }
@@ -68,7 +68,7 @@ void alter_task_count(queue_context *q_context, int change)
     }
     else
     {
-        ESP_LOGE(log_prefix, "Error: Couldn't get semaphore to alter task count (change: %i, taskhandle: %p)!", change, xTaskGetCurrentTaskHandle());
+        ESP_LOGE(spd_work_queue_log_prefix, "Error: Couldn't get semaphore to alter task count (change: %i, taskhandle: %p)!", change, xTaskGetCurrentTaskHandle());
     }
 }
 
@@ -81,19 +81,19 @@ void set_queue_blocked(queue_context *q_context, bool blocked)
     }
     else
     {
-        ESP_LOGE(log_prefix, "Error: Couldn't get semaphore to block/unblock it (blocked: %i, taskhandle: %p)!", (int)blocked, xTaskGetCurrentTaskHandle());
+        ESP_LOGE(spd_work_queue_log_prefix, "Error: Couldn't get semaphore to block/unblock it (blocked: %i, taskhandle: %p)!", (int)blocked, xTaskGetCurrentTaskHandle());
     }
 }
 
 static void sdp_worker(queue_context *q_context)
 {
-    ESP_LOGI(log_prefix, "Worker task %s now running, context: ", q_context->worker_task_name);
-    ESP_LOGI(log_prefix, "on_work_cb: %p", q_context->on_work_cb);
-    ESP_LOGI(log_prefix, "on_priority_cb: %p", q_context->on_priority_cb);   
-    ESP_LOGI(log_prefix, "max_task_count: %i", q_context->max_task_count);
-    ESP_LOGI(log_prefix, "first_queue_item_cb: %p", q_context->first_queue_item_cb);
-    ESP_LOGI(log_prefix, "insert_tail_cb: %p", q_context->insert_tail_cb);
-    ESP_LOGI(log_prefix, "---------------------------");
+    ESP_LOGI(spd_work_queue_log_prefix, "Worker task %s now running, context: ", q_context->worker_task_name);
+    ESP_LOGI(spd_work_queue_log_prefix, "on_work_cb: %p", q_context->on_work_cb);
+    ESP_LOGI(spd_work_queue_log_prefix, "on_priority_cb: %p", q_context->on_priority_cb);   
+    ESP_LOGI(spd_work_queue_log_prefix, "max_task_count: %i", q_context->max_task_count);
+    ESP_LOGI(spd_work_queue_log_prefix, "first_queue_item_cb: %p", q_context->first_queue_item_cb);
+    ESP_LOGI(spd_work_queue_log_prefix, "insert_tail_cb: %p", q_context->insert_tail_cb);
+    ESP_LOGI(spd_work_queue_log_prefix, "---------------------------");
 
     work_queue_item_t *curr_work;
 
@@ -118,20 +118,20 @@ static void sdp_worker(queue_context *q_context)
             if (curr_work != NULL)
             {
                 char taskname[50] = "\0";
-                sprintf(taskname, "%s_worker_%d_%d", log_prefix, curr_work->conversation_id, q_context->task_count);
+                sprintf(taskname, "%s_worker_%d_%d", spd_work_queue_log_prefix, curr_work->conversation_id, q_context->task_count);
                 if (q_context->on_work_cb != NULL)
                 {
-                    ESP_LOGI(log_prefix, "Running callback on_work. Partcount : %i, Worker address %p", curr_work->partcount, q_context->on_work_cb);
+                    ESP_LOGI(spd_work_queue_log_prefix, "Running callback on_work. Partcount : %i, Worker address %p", curr_work->partcount, q_context->on_work_cb);
                     /* To avoid congestion on Core 0, we act on non-immidiate requests on Core 1 (APP) */
                     TaskHandle_t th;
                     alter_task_count(q_context, 1);
                     int rc = xTaskCreatePinnedToCore((TaskFunction_t)q_context->on_work_cb, taskname, 8192, curr_work, 8, &th, 1);
                     if (rc != pdPASS)
                     {
-                        ESP_LOGE(log_prefix, "Failed creating work task, returned: %i (see projdefs.h)", rc);
+                        ESP_LOGE(spd_work_queue_log_prefix, "Failed creating work task, returned: %i (see projdefs.h)", rc);
                         alter_task_count(q_context, -1);
                     }
-                    ESP_LOGI(log_prefix, "Created task: %s, taskhandle: %i, taskcount: %i", taskname, (int)th, q_context->task_count);
+                    ESP_LOGI(spd_work_queue_log_prefix, "Created task: %s, taskhandle: %i, taskcount: %i", taskname, (int)th, q_context->task_count);
                 }
             }
         }
@@ -139,7 +139,7 @@ static void sdp_worker(queue_context *q_context)
         vTaskDelay(100/portTICK_PERIOD_MS);
     }
     
-    ESP_LOGI(log_prefix, "Worker task %s shut down, deleting task.", q_context->worker_task_name);
+    ESP_LOGI(spd_work_queue_log_prefix, "Worker task %s shut down, deleting task.", q_context->worker_task_name);
     free(q_context->__x_queue_semaphore);
         
     q_context->__x_queue_semaphore = NULL;
@@ -150,6 +150,10 @@ static void sdp_worker(queue_context *q_context)
 
 esp_err_t init_work_queue(queue_context *q_context, char *_log_prefix, const char *queue_name)
 {
+    spd_work_queue_log_prefix = _log_prefix;
+
+
+    ESP_LOGI(spd_work_queue_log_prefix, "Initiating the %s work queue.", queue_name);
 
     /* Create a semaphores to ensure thread safety (queue and tasks) */
     q_context->__x_queue_semaphore = xSemaphoreCreateMutex();
@@ -171,14 +175,14 @@ esp_err_t init_work_queue(queue_context *q_context, char *_log_prefix, const cha
      * applications on 1, traditionally called APP
      */
 
-    ESP_LOGI(log_prefix, "Register the worker task. Name: %s", q_context->worker_task_name);
+    ESP_LOGI(spd_work_queue_log_prefix, "Register the worker task. Name: %s", q_context->worker_task_name);
     int rc = xTaskCreatePinnedToCore((TaskFunction_t)sdp_worker, q_context->worker_task_name, 8192, (void *)(q_context), 8, q_context->worker_task_handle, 0);
     if (rc != pdPASS)
     {
-        ESP_LOGE(log_prefix, "Failed creating worker task, returned: %i (see projdefs.h)", rc);
+        ESP_LOGE(spd_work_queue_log_prefix, "Failed creating worker task, returned: %i (see projdefs.h)", rc);
         return SDP_ERR_INIT_FAIL;
     }
-    ESP_LOGI(log_prefix, "Worker task registered.");
+    ESP_LOGI(spd_work_queue_log_prefix, "Worker task registered.");
 
     return ESP_OK;
 }
@@ -190,7 +194,7 @@ esp_err_t init_work_queue(queue_context *q_context, char *_log_prefix, const cha
  */
 void cleanup_queue_task(queue_context *q_context, work_queue_item_t *queue_item)
 {
-    ESP_LOGI(log_prefix, "Cleaning up tasks. queue_item %p ", queue_item);
+    ESP_LOGI(spd_work_queue_log_prefix, "Cleaning up tasks. queue_item %p ", queue_item);
     
     if (queue_item != NULL) {
         free(queue_item->parts);

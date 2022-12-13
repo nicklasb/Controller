@@ -10,7 +10,7 @@
 #include <string.h>
 #include <espnow/espnow.h>
 
-char * log_prefix;
+char * espnow_peer_log_prefix;
 
 esp_now_peer_info_t* espnow_add_peer(sdp_mac_address mac_adress)
 {
@@ -19,7 +19,7 @@ esp_now_peer_info_t* espnow_add_peer(sdp_mac_address mac_adress)
     esp_now_peer_info_t *peer = malloc(sizeof(esp_now_peer_info_t));
     if (peer == NULL)
     {
-        ESP_LOGE(log_prefix, "Malloc peer information fail");
+        ESP_LOGE(espnow_peer_log_prefix, "Malloc peer information fail");
         return ESP_FAIL;
     }
 
@@ -31,19 +31,19 @@ esp_now_peer_info_t* espnow_add_peer(sdp_mac_address mac_adress)
     int rc = esp_now_add_peer(peer);
     if (rc != 0) {
         if (rc == ESP_ERR_ESPNOW_NOT_INIT) {
-            ESP_LOGE(log_prefix,"Error adding ESP-NOW-peer: ESPNOW is not initialized");
+            ESP_LOGE(espnow_peer_log_prefix,"Error adding ESP-NOW-peer: ESPNOW is not initialized");
         } else
         if (rc == ESP_ERR_ESPNOW_ARG) {
-            ESP_LOGE(log_prefix,"Error adding ESP-NOW-peer: Invalid argument (bad espnow_peer object?)");
+            ESP_LOGE(espnow_peer_log_prefix,"Error adding ESP-NOW-peer: Invalid argument (bad espnow_peer object?)");
         } else
         if (rc == ESP_ERR_ESPNOW_FULL) {
-            ESP_LOGE(log_prefix,"Error adding ESP-NOW-peer: The peer list is full");
+            ESP_LOGE(espnow_peer_log_prefix,"Error adding ESP-NOW-peer: The peer list is full");
         } else
         if (rc == ESP_ERR_ESPNOW_NO_MEM) {
-            ESP_LOGE(log_prefix,"Error adding ESP-NOW-peer: Out of memory");
+            ESP_LOGE(espnow_peer_log_prefix,"Error adding ESP-NOW-peer: Out of memory");
         } else
         if (rc == ESP_ERR_ESPNOW_EXIST) {
-            ESP_LOGE(log_prefix,"Error adding ESP-NOW-peer: Peer has existed");
+            ESP_LOGE(espnow_peer_log_prefix,"Error adding ESP-NOW-peer: Peer has existed");
         } 
 
     }
@@ -51,7 +51,7 @@ esp_now_peer_info_t* espnow_add_peer(sdp_mac_address mac_adress)
 }
 
 void espnow_peer_init(char * _log_prefix) {
-    log_prefix = _log_prefix;
+    espnow_peer_log_prefix = _log_prefix;
 }
 
 #endif

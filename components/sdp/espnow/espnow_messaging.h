@@ -5,7 +5,7 @@
 #include <esp_now.h>
 #include <string.h>
 
-#include "sdp_def.h"
+#include "../sdp_def.h"
 
 /* ESPNOW can work in both station and softap mode. It is configured in menuconfig. */
 #if CONFIG_ESPNOW_WIFI_MODE_STATION

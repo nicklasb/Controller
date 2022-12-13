@@ -20,7 +20,7 @@
 // The queue context
 queue_context gsm_queue_context;
 
-char *log_prefix;
+char *gsm_worker_log_prefix;
 
 /* Expands to a declaration for the work queue */
 STAILQ_HEAD(gsm_work_q, work_queue_item) gsm_work_q;
@@ -48,13 +48,13 @@ void gsm_set_queue_blocked(bool blocked) {
 }
 
 void gsm_shutdown_worker() {
-    ESP_LOGI(log_prefix, "Telling gsm worker to shut down.");
+    ESP_LOGI(gsm_worker_log_prefix, "Telling gsm worker to shut down.");
     gsm_queue_context.shutdown = true;
 }
 
 esp_err_t gsm_init_worker(work_callback work_cb, work_callback priority_cb, char *_log_prefix)
 {
-    log_prefix = _log_prefix;
+    gsm_worker_log_prefix = _log_prefix;
     // Initialize the work queue
     STAILQ_INIT(&gsm_work_q);
 

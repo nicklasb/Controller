@@ -9,8 +9,7 @@
  * Declare here for convenience, because some loop sdp_peers.
  * TODO: Perhaps this should be hidden. 
  */
-SLIST_HEAD(, sdp_peer)
-sdp_peers;
+
 
 int sdp_mesh_delete_peer(uint16_t peer_handle);
 int sdp_mesh_peer_add(sdp_peer_name name);

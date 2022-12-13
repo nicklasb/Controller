@@ -55,7 +55,7 @@ int least_memory_available = 0;
 int first_average_memory_available = 0;
 
 /* The log prefix for all logging */
-char *log_prefix;
+char *monitor_log_prefix;
 
 bool shutdown = false;
 
@@ -123,17 +123,17 @@ void memory_monitoring() {
 
     int level = ESP_LOG_INFO;
     if ((most_memory_available - curr_mem_avail) > CONFIG_SDP_MONITOR_DANGER_USAGE) {
-        ESP_LOGE(log_prefix, "Dangerously high memory usage at %i bytes! Will report!(CONFIG_SDP_MONITOR_DANGER_USAGE=%i)", 
+        ESP_LOGE(monitor_log_prefix, "Dangerously high memory usage at %i bytes! Will report!(CONFIG_SDP_MONITOR_DANGER_USAGE=%i)", 
         most_memory_available - curr_mem_avail, CONFIG_SDP_MONITOR_WARNING_USAGE);
         // TODO: Implement problem callback!
         level = ESP_LOG_ERROR;
     } else if ((most_memory_available - curr_mem_avail) > CONFIG_SDP_MONITOR_WARNING_USAGE) {
-        ESP_LOGW(log_prefix, "Unusually high memory usage at %i bytes(CONFIG_SDP_MONITOR_WARNING_USAGE=%i).", 
+        ESP_LOGW(monitor_log_prefix, "Unusually high memory usage at %i bytes(CONFIG_SDP_MONITOR_WARNING_USAGE=%i).", 
         most_memory_available - curr_mem_avail, CONFIG_SDP_MONITOR_WARNING_USAGE);
         // TODO: Implement warning callback!
         level = ESP_LOG_WARN;
     }
-    ESP_LOG_LEVEL(level, log_prefix, "Monitor reporting on available resources. Memory:\nCurrently: %i, avg mem: %.0f bytes. \nDeltas - Avg vs 1st: %.0f, Last vs now: %i. \nExtremes - Least: %i, Most(before init): %i. ",
+    ESP_LOG_LEVEL(level, monitor_log_prefix, "Monitor reporting on available resources. Memory:\nCurrently: %i, avg mem: %.0f bytes. \nDeltas - Avg vs 1st: %.0f, Last vs now: %i. \nExtremes - Least: %i, Most(before init): %i. ",
              curr_mem_avail, avg_mem_avail, avg_mem_avail - first_average_memory_available, delta_mem_avail, least_memory_available, most_memory_available);
     
 }
@@ -164,13 +164,13 @@ void monitor_task(void *arg)
 }
 
 void sdp_shutdown_monitor() {
-     ESP_LOGI(log_prefix, "Telling monitor to shut down.");
+     ESP_LOGI(monitor_log_prefix, "Telling monitor to shut down.");
      shutdown = true;
 }
 
 void sdp_init_monitor(char *_log_prefix)
 {   
-    log_prefix = _log_prefix;
+    monitor_log_prefix = _log_prefix;
     /* Init the monitor */
     const esp_timer_create_args_t monitor_timer_args = {
         .callback = &monitor_task,
@@ -181,7 +181,7 @@ void sdp_init_monitor(char *_log_prefix)
 
     // TODO: Loop list of external monitors 
 
-    ESP_LOGI(log_prefix, "Launching monitor, activate every %.2f seconds, history length: %i samples.", (float)CONFIG_SDP_MONITOR_DELAY/500000, CONFIG_SDP_MONITOR_HISTORY_LENGTH);
+    ESP_LOGI(monitor_log_prefix, "Launching monitor, activate every %.2f seconds, history length: %i samples.", (float)CONFIG_SDP_MONITOR_DELAY/500000, CONFIG_SDP_MONITOR_HISTORY_LENGTH);
     monitor_task(NULL);
 }
 

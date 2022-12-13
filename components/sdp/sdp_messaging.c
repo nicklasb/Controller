@@ -8,8 +8,6 @@
 #include <freertos/semphr.h>
 
 #include "sdp_mesh.h"
-#include "sdp_peer.h"
-#include "sdp_def.h"
 #include "sdp_helpers.h"
 #include "orchestration/orchestration.h"
 #include "sdp_worker.h"
@@ -21,18 +19,25 @@
 #endif
 #ifdef CONFIG_SDP_LOAD_ESP_NOW
 #include "espnow/espnow_messaging.h"
-
 #endif
 
 #define CONFIG_SDP_MAX_PEERS 20
 
 int callcount = 0;
 
+filter_callback *on_filter_request_cb = NULL;
+filter_callback *on_filter_reply_cb = NULL;
+filter_callback *on_filter_data_cb = NULL;
+
+work_callback *on_priority_cb;
+
+SLIST_HEAD(conversation_list, conversation_list_item) conversation_l;
+
 /* The last created conversation id */
 uint16_t last_conversation_id = 0;
 
 /* The log prefix for all logging */
-char *log_prefix;
+char *messaging_log_prefix;
 
 /* Semaphore for thread safety  */
 SemaphoreHandle_t x_conversation_list_semaphore;
@@ -68,7 +73,7 @@ void parse_message(work_queue_item_t *queue_item)
     check later (there should always be one there) */
     if (queue_item->raw_data[queue_item->raw_data_length - 1] != 0)
     {
-        ESP_LOGW(log_prefix, "WARNING: The data doesn't end with a NULL value, setting it forcefully!");
+        ESP_LOGW(messaging_log_prefix, "WARNING: The data doesn't end with a NULL value, setting it forcefully!");
         queue_item->raw_data[queue_item->raw_data_length - 1] = 0;
     }
     // Count the parts to only need to allocate the array once
@@ -134,17 +139,17 @@ int safe_add_conversation(sdp_peer *peer, const char *reason, int conversation_i
     }
     else
     {
-        ESP_LOGE(log_prefix, "Error: Couldn't get semaphore to add to conversation queue!");
+        ESP_LOGE(messaging_log_prefix, "Error: Couldn't get semaphore to add to conversation queue!");
         return -SDP_ERR_SEMAPHORE;
     }
 }
 
 int handle_incoming(sdp_peer *peer, const uint8_t *data, int data_len, e_media_type media_type)
 {
-    ESP_LOGI(log_prefix, "Payload length: %i, call count %i, CRC32: %i.", data_len, callcount++,
+    ESP_LOGI(messaging_log_prefix, "Payload length: %i, call count %i, CRC32: %i.", data_len, callcount++,
              (int)crc32_be(0, data, data_len));
 
-    ESP_LOG_BUFFER_HEXDUMP(log_prefix, data, data_len, ESP_LOG_INFO);
+    ESP_LOG_BUFFER_HEXDUMP(messaging_log_prefix, data, data_len, ESP_LOG_INFO);
 
     work_queue_item_t *new_item;
 
@@ -166,13 +171,13 @@ int handle_incoming(sdp_peer *peer, const uint8_t *data, int data_len, e_media_t
         // Save the conversation
         safe_add_conversation(peer, "external", new_item->conversation_id);
 
-        ESP_LOGI(log_prefix, "Message info : Version: %u, Conv.id: %u, Work type: %u, Media type: %u,Data len: %u, Message parts: %i.",
+        ESP_LOGI(messaging_log_prefix, "Message info : Version: %u, Conv.id: %u, Work type: %u, Media type: %u,Data len: %u, Message parts: %i.",
                  new_item->version, new_item->conversation_id, new_item->work_type,
                  new_item->media_type, new_item->raw_data_length, new_item->partcount);
     }
     else
     {
-        ESP_LOGE(log_prefix, "Error: The request must be more than %i bytes for SDP v %i compliance.",
+        ESP_LOGE(messaging_log_prefix, "Error: The request must be more than %i bytes for SDP v %i compliance.",
                  SDP_PROTOCOL_VERSION, SDP_PREAMBLE_LENGTH);
         return SDP_ERR_MESSAGE_TOO_SHORT;
     }
@@ -193,7 +198,7 @@ int handle_incoming(sdp_peer *peer, const uint8_t *data, int data_len, e_media_t
             }
             else
             {
-                ESP_LOGE(log_prefix, "SDP service: on_filter_request_cb returned a nonzero value, request not added to queue!");
+                ESP_LOGE(messaging_log_prefix, "SDP service: on_filter_request_cb returned a nonzero value, request not added to queue!");
                 return SDP_ERR_MESSAGE_FILTERED;
             }
         }
@@ -213,7 +218,7 @@ int handle_incoming(sdp_peer *peer, const uint8_t *data, int data_len, e_media_t
             }
             else
             {
-                ESP_LOGE(log_prefix, "SDP service: on_filter_request_cb returned a nonzero value, request not added to queue!");
+                ESP_LOGE(messaging_log_prefix, "SDP service: on_filter_request_cb returned a nonzero value, request not added to queue!");
                 return SDP_ERR_MESSAGE_FILTERED;
             }
         }
@@ -233,7 +238,7 @@ int handle_incoming(sdp_peer *peer, const uint8_t *data, int data_len, e_media_t
             }
             else
             {
-                ESP_LOGE(log_prefix, "SDP service: on_filter_data_cb returned a nonzero value, request not added to queue!");
+                ESP_LOGE(messaging_log_prefix, "SDP service: on_filter_data_cb returned a nonzero value, request not added to queue!");
                 return SDP_ERR_MESSAGE_FILTERED;
             }
         }
@@ -281,24 +286,28 @@ int handle_incoming(sdp_peer *peer, const uint8_t *data, int data_len, e_media_t
 
         if (on_priority_cb != NULL)
         {
-            ESP_LOGW(log_prefix, "SDP Calling on_priority_callback!");
+            ESP_LOGW(messaging_log_prefix, "SDP Calling on_priority_callback!");
 
             on_priority_cb(new_item);
         }
         else
         {
-            ESP_LOGE(log_prefix, "ERROR: SDP on_priority callback is not assigned, assigning to normal handling!");
+            ESP_LOGE(messaging_log_prefix, "ERROR: SDP on_priority callback is not assigned, assigning to normal handling!");
             sdp_safe_add_work_queue(new_item);
         }
         break;
 
     default:
-        ESP_LOGE(log_prefix, "ERROR: Invalid work type (%i)!", new_item->work_type);
+        ESP_LOGE(messaging_log_prefix, "ERROR: Invalid work type (%i)!", new_item->work_type);
         return 1;
     }
     return 0;
 }
 
+// TODO: The follow is inactivated for two reasons:
+// 1. I don't properly understand how *declare* the sdp_peers list in a way that can be share using the extern keyword
+// 2. This might not be how to broadcast as it is not thread safe if a peer disconnects and the memory is freed, we will crash
+#if 0
 /**
  * @brief Send a message to one or more peers
  *
@@ -321,12 +330,12 @@ int broadcast_message(uint16_t conversation_id,
         ret = send_message(curr_peer, data, data_length);
         if (ret < 0)
         {
-            ESP_LOGE(log_prefix, "Error: broadcast_message: Failure sending message! Peer: %s Code: %i", curr_peer->name, ret);
+            ESP_LOGE(messaging_log_prefix, "Error: broadcast_message: Failure sending message! Peer: %s Code: %i", curr_peer->name, ret);
             errors++;
         }
         else
         {
-            ESP_LOGI(log_prefix, "Sent a message to peer: %s Code: %i", curr_peer->name, ret);
+            ESP_LOGI(messaging_log_prefix, "Sent a message to peer: %s Code: %i", curr_peer->name, ret);
         }
 
         total++;
@@ -334,26 +343,28 @@ int broadcast_message(uint16_t conversation_id,
 
     if (total == 0)
     {
-        ESP_LOGW(log_prefix, "Broadcast had no peers to send to!");
+        ESP_LOGW(messaging_log_prefix, "Broadcast had no peers to send to!");
         return -SDP_WARN_NO_PEERS;
     }
 
     if (errors == total)
     {   
-        ESP_LOGW(log_prefix, "Broadcast failed all %i send attempts!", total);
+        ESP_LOGW(messaging_log_prefix, "Broadcast failed all %i send attempts!", total);
         return -SDP_ERR_SEND_FAIL;
     }
     else if (errors > 0)
     {
-        ESP_LOGW(log_prefix, "Broadcast failed %i send attempts!", errors);
+        ESP_LOGW(messaging_log_prefix, "Broadcast failed %i send attempts!", errors);
         return -SDP_ERR_SEND_SOME_FAIL;
     }
     else
     {
-        ESP_LOGI(log_prefix, "Broadcast sent to %i peers.", total);
+        ESP_LOGI(messaging_log_prefix, "Broadcast sent to %i peers.", total);
         return SDP_OK;
     }
 }
+
+#endif
 
 #ifdef CONFIG_SDP_LOAD_BLE
 void report_ble_connection_error(int conn_handle, int code)
@@ -365,16 +376,16 @@ void report_ble_connection_error(int conn_handle, int code)
         struct sdp_peer *s_peer = sdp_mesh_find_peer_by_handle(b_peer->sdp_handle);
         if (s_peer != NULL)
         {
-            ESP_LOGE(log_prefix, "Peer %s encountered a BLE error. Code: %i", s_peer->name, code);
+            ESP_LOGE(messaging_log_prefix, "Peer %s encountered a BLE error. Code: %i", s_peer->name, code);
         }
         else
         {
-            ESP_LOGE(log_prefix, "Unresolved BLE peer (no or invalid SDP peer handle), conn handle %i", conn_handle);
-            ESP_LOGE(log_prefix, "encountered a BLE error. Code: %i.", code);
+            ESP_LOGE(messaging_log_prefix, "Unresolved BLE peer (no or invalid SDP peer handle), conn handle %i", conn_handle);
+            ESP_LOGE(messaging_log_prefix, "encountered a BLE error. Code: %i.", code);
         }
         b_peer->failure_count++;
     }
-    ESP_LOGE(log_prefix, "Unregistered peer (!) at conn handle %i encountered a BLE error. Code: %i.", conn_handle, code);
+    ESP_LOGE(messaging_log_prefix, "Unregistered peer (!) at conn handle %i encountered a BLE error. Code: %i.", conn_handle, code);
 }
 #endif
 
@@ -403,8 +414,8 @@ int send_message(struct sdp_peer *peer, void *data, int data_length)
     }
 #endif
 #ifdef CONFIG_SDP_LOAD_ESP_NOW
-    ESP_LOGI(log_prefix, "ESP-NOW sending to: ");
-    ESP_LOG_BUFFER_HEX(log_prefix, peer->base_mac_address, SDP_MAC_ADDR_LEN);
+    ESP_LOGI(messaging_log_prefix, "ESP-NOW sending to: ");
+    ESP_LOG_BUFFER_HEX(messaging_log_prefix, peer->base_mac_address, SDP_MAC_ADDR_LEN);
     rc = espnow_send_message(peer->base_mac_address, data, data_length);
 
     if (rc == 0)
@@ -413,7 +424,7 @@ int send_message(struct sdp_peer *peer, void *data, int data_length)
     }
     else
     {
-        ESP_LOGE(log_prefix, "Sending using ESPNOW failed.");
+        ESP_LOGE(messaging_log_prefix, "Sending using ESPNOW failed.");
         return -SDP_ERR_SEND_FAIL;
         //report_ble_connection_error(peer->ble_conn_handle, rc);
         // TODO: Add start general QoS monitoring, stop using some technologies if they are failing
@@ -441,7 +452,7 @@ int sdp_reply(work_queue_item_t queue_item, enum e_work_type work_type, const vo
     // Add preamble with all SDP specifics in a new data
     void *new_data = sdp_add_preamble(work_type, queue_item.conversation_id, data, data_length);
 
-    ESP_LOGD(log_prefix, "In sdp reply.");
+    ESP_LOGD(messaging_log_prefix, "In sdp reply.");
     retval = send_message(queue_item.peer, new_data, data_length + SDP_PREAMBLE_LENGTH);
     free(new_data);
     return retval;
@@ -468,8 +479,11 @@ int start_conversation(sdp_peer *peer, enum e_work_type work_type,
         void *new_data = sdp_add_preamble(work_type, new_conversation_id, data, data_length);
         if (peer == NULL)
         {
+            retval = SDP_ERR_NOT_SUPPORTED;
+            /* See definition for information
             retval = broadcast_message(new_conversation_id, work_type,
                                         new_data, data_length + SDP_PREAMBLE_LENGTH);
+            */
         }
         else
         {
@@ -481,11 +495,11 @@ int start_conversation(sdp_peer *peer, enum e_work_type work_type,
         {
             if (retval == -SDP_WARN_NO_PEERS)
             {
-                ESP_LOGW(log_prefix, "Removing conversation, no peers");
+                ESP_LOGW(messaging_log_prefix, "Removing conversation, no peers");
             }
             else
             {
-                ESP_LOGE(log_prefix, "Error %i in communication, removing conversation.", retval);
+                ESP_LOGE(messaging_log_prefix, "Error %i in communication, removing conversation.", retval);
             }
             /* The communication failed, remove the conversation*/
             end_conversation(new_conversation_id);
@@ -495,7 +509,7 @@ int start_conversation(sdp_peer *peer, enum e_work_type work_type,
     else
     {
         // < 0 means that the conversation wasn't created.
-        ESP_LOGE(log_prefix, "Error: start_conversation - Failed to create a conversation.");
+        ESP_LOGE(messaging_log_prefix, "Error: start_conversation - Failed to create a conversation.");
         retval = -SDP_ERR_CONV_QUEUE;
     }
 
@@ -535,9 +549,9 @@ struct conversation_list_item *find_conversation(sdp_peer *peer, uint16_t conver
 void sdp_init_messaging(char *_log_prefix)
 {
 
-    log_prefix = _log_prefix;
+    messaging_log_prefix = _log_prefix;
 
-    sdp_mesh_init(_log_prefix, CONFIG_SDP_MAX_PEERS);
+    sdp_mesh_init(messaging_log_prefix, CONFIG_SDP_MAX_PEERS);
 
     /* Create a queue semaphore to ensure thread safety */
     x_conversation_list_semaphore = xSemaphoreCreateMutex();

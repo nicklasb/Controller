@@ -5,7 +5,9 @@
 
 #include "sdp_def.h"
 
-
+/* The host details */
+extern sdp_host_t sdp_host;
+//  TODO: Should this not just be a peer?
 
 int sdp_peer_send_me_message(work_queue_item_t *queue_item);
 int sdp_peer_send_who_message(sdp_peer *peer);

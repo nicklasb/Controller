@@ -1,5 +1,5 @@
-#ifndef __LORA_H__
-#define __LORA_H__
+#ifndef _LORA_H_
+#define _LORA_H_
 
 #include <sdkconfig.h>
 #ifdef CONFIG_SDP_LOAD_LORA

@@ -3,12 +3,12 @@
 #include <string.h>
 #include <esp_log.h>
 
-
-#include "sdp_def.h"
 #include "sdp_helpers.h"
 #include "sdp_messaging.h"
 
-char * log_prefix;
+char *peer_log_prefix;
+
+sdp_host_t sdp_host;
 
 /**
  * @brief Compile a message telling a peer about our abilities
@@ -69,7 +69,7 @@ int sdp_peer_send_who_message(sdp_peer *peer) {
 
 int sdp_peer_inform(work_queue_item_t *queue_item) {
 
-    ESP_LOGI(log_prefix, "Informing peer.");
+    ESP_LOGI(peer_log_prefix, "Informing peer.");
 
     /* Set the protocol versions*/
     queue_item->peer->protocol_version = (uint8_t)atoi(queue_item->parts[1]);
@@ -90,8 +90,8 @@ int sdp_peer_inform(work_queue_item_t *queue_item) {
     /* Set base MAC address*/ 
     memcpy(&queue_item->peer->base_mac_address, &(queue_item->raw_data[20]), SDP_MAC_ADDR_LEN);
     
-    ESP_LOGI(log_prefix, "Peer %s now more informed ",queue_item->peer->name);
-    ESP_LOG_BUFFER_HEX(log_prefix, queue_item->peer->base_mac_address, SDP_MAC_ADDR_LEN);
+    ESP_LOGI(peer_log_prefix, "Peer %s now more informed ",queue_item->peer->name);
+    ESP_LOG_BUFFER_HEX(peer_log_prefix, queue_item->peer->base_mac_address, SDP_MAC_ADDR_LEN);
 
 
     // TODO: Check protocol version for highest matching protocol version.
@@ -101,5 +101,8 @@ int sdp_peer_inform(work_queue_item_t *queue_item) {
 }
 
 void sdp_peer_init(char *_log_prefix) {
-    log_prefix = _log_prefix;
+    peer_log_prefix = _log_prefix;
+    sdp_host.protocol_version = SDP_PROTOCOL_VERSION;
+    sdp_host.min_protocol_version = SDP_PROTOCOL_VERSION_MIN;
+    strcpy(sdp_host.sdp_host_name, CONFIG_SDP_PEER_NAME);
 }

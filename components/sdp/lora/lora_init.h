@@ -1,8 +1,10 @@
+#ifndef _LORA_INIT_H_
+#define _LORA_INIT_H_
+
 #include <sdkconfig.h>
 #ifdef CONFIG_SDP_LOAD_LORA
 
-#ifndef _LORA_INIT_H_
-#define _LORA_INIT_H_
+
 
 #include <stdbool.h>
 

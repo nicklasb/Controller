@@ -1,15 +1,25 @@
-
 #ifndef _SDP_DEF_H_
 #define _SDP_DEF_H_
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+
+#include "sdkconfig.h"
+
 #include <sys/queue.h>
 #include <stdint.h>
-#include "sdkconfig.h"
-#include "stdbool.h"
+#include <stdbool.h>
 
-#ifdef CONFIG_SDP_LOAD_ESP_NOW
-#include <esp_now.h>
-#endif
+/* The possible states of SDP */
+enum sdp_states
+{
+    STARTING = 0,
+    RUNNING = 1,
+    SHUTTING_DOWN = 2
+};
 
 /* The current protocol version */
 #define SDP_PROTOCOL_VERSION 0
@@ -32,7 +42,6 @@
 
 /* How long will each cycle be*/
 #define SDP_SLEEP_TIME_uS HOUR - SDP_AWAKE_TIME_uS
-
 
 #if SDP_AWAKE_TIMEBOX_uS - SDP_SLEEP_TIME_uS > SDP_SLEEP_TIME_uS
 #error "SDP_AWAKE_TIMEBOX - SDP_SLEEP_TIME_uS  cannot be longer than the SDP_SLEEP_TIME_uS"
@@ -78,8 +87,10 @@ typedef enum e_sdp_error_codes
     SDP_ERR_OS_ERROR = 14,
     /* Parsing error */
     SDP_ERR_PARSING_FAILED = 15,
-     /* Message to long to comply */
-    SDP_ERR_MESSAGE_TOO_LONG = 16   
+    /* Message to long to comply */
+    SDP_ERR_MESSAGE_TOO_LONG = 16,
+    /* This feature is not supported */
+    SDP_ERR_NOT_SUPPORTED = 17    
 } e_sdp_error_codes;
 
 /* Common warning codes */
@@ -182,7 +193,7 @@ typedef char sdp_peer_name[CONFIG_SDP_PEER_NAME_LEN];
  * This is used by all parts of the application.
  * Much intersects with the peer information, but is set during initialization.
  */
-struct sdp_host_t
+typedef struct sdp_host_t
 {
 
     /* Protocol version*/
@@ -195,7 +206,7 @@ struct sdp_host_t
     /* The base mac adress handle of the system*/
     sdp_mac_address base_mac_address;
 
-} sdp_host;
+} sdp_host_t;
 
 typedef struct sdp_peer
 {
@@ -280,25 +291,22 @@ typedef struct work_queue_item
 typedef void(work_callback)(work_queue_item_t *work_item);
 
 /* Mandatory callback that handles incoming work items */
-work_callback *on_work_cb;
+extern work_callback *on_work_cb;
 
 /* Mandatory callback that handles incoming priority request immidiately */
-work_callback *on_priority_cb;
+extern work_callback *on_priority_cb;
 
 /* Callbacks that act as filters on incoming work items */
 typedef int(filter_callback)(work_queue_item_t *work_item);
 
-/* Optional callback that intercepts before incoming request messages are added to the work queue */
-filter_callback *on_filter_request_cb;
-/* Optional filtering before incoming reply messages are added to the work queue */
-filter_callback *on_filter_reply_cb;
-/* Optional filtering before incoming data messages are added to the work queue */
-filter_callback *on_filter_data_cb;
 
 /* Callbacks that are called before sleeping, return true to stop going to sleep. */
 typedef bool(before_sleep)();
 
-/* Optional callback that happen before the system is going to sleep */
-before_sleep *on_before_sleep_cb;
+
+
+#ifdef __cplusplus
+} /* extern "C" */
+#endif
 
 #endif

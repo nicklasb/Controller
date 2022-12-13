@@ -1,5 +1,5 @@
 /**
- * @file sdp.c
+ * @file sdp.h
  * @author Nicklas Borjesson
  * @brief This is the sensor data protocol server header file and queue definitions
  *
@@ -13,20 +13,14 @@
 #ifdef __cplusplus
 extern "C"
 {
-#endif 
+#endif
 
-
-#include <stdbool.h>
 #include "sdp_def.h"
-#include "sdp_worker.h"
 
     /**
      * This is the definitions of the Sensor Data Protocol (SDP) implementation
      * To be decided is how much of the implementation should be here.
      */
-
-    /* The log prefix for all logging */
-    char *log_prefix;
 
     /**
      * @brief Initialise the sdp subsystem
@@ -37,8 +31,24 @@ extern "C"
      * @param is_controller Is this the controller?
      * @return int  Returns 0 value if successful.
      */
-    int sdp_init(work_callback *work_cb, work_callback *priority_cb, char *_log_prefix, bool is_conductor);
+    int sdp_init(work_callback *work_cb, work_callback *priority_cb, before_sleep *before_sleep_cb, 
+        char *_log_prefix, bool is_conductor);
 
+    /**
+     * @brief If sdp is in the shutting down state, delete the task
+     *
+     */
+    void delete_task_if_shutting_down();
+    /**
+     * @brief Reset all RTC-stored data (for example statistics)
+     * 
+     */
+    void sdp_reset_rtc();
+
+    /**
+     * @brief Shut down SDP
+     *
+     */
     void sdp_shutdown();
 
 #ifdef __cplusplus

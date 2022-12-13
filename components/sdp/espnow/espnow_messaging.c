@@ -7,19 +7,17 @@
 #include <sdkconfig.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
+#include <freertos/queue.h>
 
 #include "esp_log.h"
 
-#include "esp_now.h"
 #include "esp_crc.h"
 
-#include "sdp_mesh.h"
-#include "sdp_messaging.h"
+#include "../sdp_mesh.h"
+#include "../sdp_messaging.h"
 
 
-#include <freertos/queue.h>
-
-char *log_prefix;
+char *espnow_messaging_log_prefix;
 
 
 
@@ -41,12 +39,12 @@ static void espnow_send_cb(const uint8_t *mac_addr, esp_now_send_status_t status
 {
     if (status == ESP_NOW_SEND_SUCCESS)
     {
-        ESP_LOGI(log_prefix, "In espnow_send_cb, send success.");
+        ESP_LOGI(espnow_messaging_log_prefix, "In espnow_send_cb, send success.");
     }
     if (status == ESP_NOW_SEND_FAIL)
     {
-        ESP_LOGW(log_prefix, "In espnow_send_cb, send failure, mac address:");
-        ESP_LOG_BUFFER_HEX(log_prefix, mac_addr, SDP_MAC_ADDR_LEN);
+        ESP_LOGW(espnow_messaging_log_prefix, "In espnow_send_cb, send failure, mac address:");
+        ESP_LOG_BUFFER_HEX(espnow_messaging_log_prefix, mac_addr, SDP_MAC_ADDR_LEN);
     }
 }
 
@@ -55,22 +53,22 @@ static void espnow_recv_cb(const uint8_t *mac_addr, const uint8_t *data, int len
 
     if (mac_addr == NULL || data == NULL || len <= 0)
     {
-        ESP_LOGE(log_prefix, "In espnow_recv_cb, either parameter was NULL or 0.");
+        ESP_LOGE(espnow_messaging_log_prefix, "In espnow_recv_cb, either parameter was NULL or 0.");
         return;
     }
 
     sdp_peer *peer = sdp_mesh_find_peer_by_base_mac_address(mac_addr);
     if (peer != NULL)
     {
-        ESP_LOGI(log_prefix, "espnow_recv_cb got a message from a peer. Data:");
-        ESP_LOG_BUFFER_HEX(log_prefix, data, len);
+        ESP_LOGI(espnow_messaging_log_prefix, "espnow_recv_cb got a message from a peer. Data:");
+        ESP_LOG_BUFFER_HEX(espnow_messaging_log_prefix, data, len);
 
         handle_incoming(peer, data, len, SDP_MT_BLE);
     }
     else
     {
-        ESP_LOGI(log_prefix, "espnow_recv_cb got a message from an unknown peer. Data:");
-        ESP_LOG_BUFFER_HEX(log_prefix, data, len);
+        ESP_LOGI(espnow_messaging_log_prefix, "espnow_recv_cb got a message from an unknown peer. Data:");
+        ESP_LOG_BUFFER_HEX(espnow_messaging_log_prefix, data, len);
         /* Remember peer. */
         esp_now_peer_info_t *espnow_peer = malloc(sizeof(esp_now_peer_info_t));
         /* TODO: These seem arbitrary, see how channel and such is handled*/
@@ -92,7 +90,7 @@ static esp_err_t espnow_init(void)
     s_espnow_queue = xQueueCreate(ESPNOW_QUEUE_SIZE, sizeof(espnow_event_t));
     if (s_espnow_queue == NULL)
     {
-        ESP_LOGE(log_prefix, "Create mutex fail");
+        ESP_LOGE(espnow_messaging_log_prefix, "Create mutex fail");
         return ESP_FAIL;
     }
 
@@ -133,43 +131,43 @@ int espnow_send_message(sdp_mac_address *dest_mac_address, void *data, int data_
     {
         if (rc == ESP_ERR_ESPNOW_NOT_INIT)
         {
-            ESP_LOGE(log_prefix, "ESP-NOW error: ESP_ERR_ESPNOW_NOT_INIT");
+            ESP_LOGE(espnow_messaging_log_prefix, "ESP-NOW error: ESP_ERR_ESPNOW_NOT_INIT");
         }
         else if (rc == ESP_ERR_ESPNOW_ARG)
         {
-            ESP_LOGE(log_prefix, "ESP-NOW error: ESP_ERR_ESPNOW_ARG");
+            ESP_LOGE(espnow_messaging_log_prefix, "ESP-NOW error: ESP_ERR_ESPNOW_ARG");
         }
         else if (rc == ESP_ERR_ESPNOW_NOT_FOUND)
         {
-            ESP_LOGE(log_prefix, "ESP-NOW error: ESP_ERR_ESPNOW_NOT_FOUND");
+            ESP_LOGE(espnow_messaging_log_prefix, "ESP-NOW error: ESP_ERR_ESPNOW_NOT_FOUND");
         }
         else if (rc == ESP_ERR_ESPNOW_NO_MEM)
         {
-            ESP_LOGE(log_prefix, "ESP-NOW error: ESP_ERR_ESPNOW_NO_MEM");
+            ESP_LOGE(espnow_messaging_log_prefix, "ESP-NOW error: ESP_ERR_ESPNOW_NO_MEM");
         }
         else if (rc == ESP_ERR_ESPNOW_FULL)
         {
-            ESP_LOGE(log_prefix, "ESP-NOW error: ESP_ERR_ESPNOW_FULL");
+            ESP_LOGE(espnow_messaging_log_prefix, "ESP-NOW error: ESP_ERR_ESPNOW_FULL");
         }
         else if (rc == ESP_ERR_ESPNOW_NOT_FOUND)
         {
-            ESP_LOGE(log_prefix, "ESP-NOW error: ESP_ERR_ESPNOW_NOT_FOUND");
+            ESP_LOGE(espnow_messaging_log_prefix, "ESP-NOW error: ESP_ERR_ESPNOW_NOT_FOUND");
         }
         else if (rc == ESP_ERR_ESPNOW_INTERNAL)
         {
-            ESP_LOGE(log_prefix, "ESP-NOW error: ESP_ERR_ESPNOW_INTERNAL");
+            ESP_LOGE(espnow_messaging_log_prefix, "ESP-NOW error: ESP_ERR_ESPNOW_INTERNAL");
         }
         else if (rc == ESP_ERR_ESPNOW_EXIST)
         {
-            ESP_LOGE(log_prefix, "ESP-NOW error: ESP_ERR_ESPNOW_EXIST");
+            ESP_LOGE(espnow_messaging_log_prefix, "ESP-NOW error: ESP_ERR_ESPNOW_EXIST");
         }
         else if (rc == ESP_ERR_ESPNOW_IF)
         {
-            ESP_LOGE(log_prefix, "ESP-NOW error: ESP_ERR_ESPNOW_IF");
+            ESP_LOGE(espnow_messaging_log_prefix, "ESP-NOW error: ESP_ERR_ESPNOW_IF");
         }
         else
         {
-            ESP_LOGE(log_prefix, "ESP-NOW unknown error: %i", rc);
+            ESP_LOGE(espnow_messaging_log_prefix, "ESP-NOW unknown error: %i", rc);
         }
         return -SDP_ERR_SEND_FAIL;
         // espnow_deinit(send_param);
@@ -181,7 +179,7 @@ int espnow_send_message(sdp_mac_address *dest_mac_address, void *data, int data_
 
 void espnow_messaging_init(char *_log_prefix)
 {
-    log_prefix = _log_prefix;
+    espnow_messaging_log_prefix = _log_prefix;
     espnow_init();
 }
 

@@ -8,7 +8,7 @@
 
 char *peer_log_prefix;
 
-sdp_host_t sdp_host;
+sdp_peer sdp_host = {};
 
 /**
  * @brief Compile a message telling a peer about our abilities
@@ -44,7 +44,7 @@ int sdp_peer_send_me_message(work_queue_item_t *queue_item) {
      * adresses: A list of addresses in the order of the bits in the media types byte.
      */
     int me_length = add_to_message(&me_msg,"ME|%i|%i|%s|%hhu|%b6", 
-        pv, pvm, sdp_host.sdp_host_name, supported_media_types, sdp_host.base_mac_address);
+        pv, pvm, sdp_host.name, supported_media_types, sdp_host.base_mac_address);
 
     if (me_length > 0) {
         retval = sdp_reply(*queue_item, HANDSHAKE, me_msg, me_length);
@@ -104,5 +104,5 @@ void sdp_peer_init(char *_log_prefix) {
     peer_log_prefix = _log_prefix;
     sdp_host.protocol_version = SDP_PROTOCOL_VERSION;
     sdp_host.min_protocol_version = SDP_PROTOCOL_VERSION_MIN;
-    strcpy(sdp_host.sdp_host_name, CONFIG_SDP_PEER_NAME);
+    strcpy(sdp_host.name, CONFIG_SDP_PEER_NAME);
 }

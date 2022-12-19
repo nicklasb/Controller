@@ -14,6 +14,7 @@
 #include "espnow/espnow_peer.h"
 #endif
 
+
 /* Used for creating new peer handles*/
 uint16_t _peer_handle_incrementor_ = 0;
 
@@ -148,6 +149,7 @@ sdp_peer *sdp_add_init_new_peer(sdp_peer_name peer_name, const sdp_mac_address m
     if (peer != NULL)
     {
         memcpy(peer->base_mac_address, mac_address, SDP_MAC_ADDR_LEN);
+        peer->supported_media_types = media_type;
 
 #ifdef CONFIG_SDP_LOAD_BLE
         if (media_type & SDP_MT_BLE)

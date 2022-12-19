@@ -92,23 +92,24 @@ void delete_task_if_shutting_down()
 int sdp_init(work_callback *work_cb, work_callback *priority_cb, before_sleep *before_sleep_cb, char *_log_prefix, bool is_conductor)
 {
     sdp_log_prefix = _log_prefix;
-    // Begin with initializing sleep functionality, it will also de
+    // Begin with initialising the monitor to capture initial memory state.
+    sdp_init_monitor(sdp_log_prefix);
+    
+    // Then initialize sleep functionality  
     if (sleep_init(sdp_log_prefix))
     {
         ESP_LOGI(sdp_log_prefix, "Needs to consider that we returned from sleep.");
     }
 
+    if (work_cb == NULL || priority_cb == NULL)
+    {
+        ESP_LOGE(_log_prefix, "Error: Both work_cb and priority_cb are mandatory parameters, \nsdp workers and queues will not work properly!");
+        return SDP_ERR_INIT_FAIL;
+    }
+
     sdp_peer_init(sdp_log_prefix);
 
     sdp_orchestration_init(sdp_log_prefix, before_sleep_cb);
-
-    // Begin with initialising the monitor to capture initial memory state.
-    sdp_init_monitor(sdp_log_prefix);
-
-    if (work_cb == NULL || priority_cb == NULL)
-    {
-        ESP_LOGW(_log_prefix, "Error: Both work_cb and priority_cb are mandatory parameters, sdp will not work properly!");
-    }
 
     /* Initialize NVS — it is used to store PHY calibration data */
     esp_err_t ret = nvs_flash_init();
@@ -118,7 +119,7 @@ int sdp_init(work_callback *work_cb, work_callback *priority_cb, before_sleep *b
         ret = nvs_flash_init();
     }
     ESP_ERROR_CHECK(ret);
-
+    
     sdp_init_worker(work_cb, priority_cb, _log_prefix);
     sdp_init_messaging(_log_prefix);
 

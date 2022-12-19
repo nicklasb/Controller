@@ -46,18 +46,24 @@ esp_err_t sdp_safe_add_work_queue(work_queue_item_t *new_item)
 
 void sdp_cleanup_queue_task(work_queue_item_t *queue_item)
 {
-    cleanup_queue_task(&sdp_queue_context, queue_item);
+    if (queue_item != NULL)
+    {
+        free(queue_item->parts);
+        free(queue_item->raw_data);
+        free(queue_item);
+    }
+    cleanup_queue_task(&sdp_queue_context);
+}
+
+void sdp_set_queue_blocked(bool blocked)
+{
+    set_queue_blocked(&sdp_queue_context, blocked);
 }
 
 void sdp_shutdown_worker()
 {
     ESP_LOGI(spd_worker_log_prefix, "Telling main sdp worker to shut down.");
     sdp_queue_context.shutdown = true;
-}
-
-void sdp_set_queue_blocked(bool blocked)
-{
-    set_queue_blocked(&sdp_queue_context, blocked);
 }
 
 esp_err_t sdp_init_worker(work_callback *work_cb, work_callback *priority_cb, char *_log_prefix)
@@ -72,6 +78,7 @@ esp_err_t sdp_init_worker(work_callback *work_cb, work_callback *priority_cb, ch
     sdp_queue_context.on_work_cb = work_cb,
     sdp_queue_context.on_priority_cb = priority_cb;
     sdp_queue_context.max_task_count = 0;
+    sdp_queue_context.multitasking = true;
 
     init_work_queue(&sdp_queue_context, _log_prefix, "SDP Queue");
 

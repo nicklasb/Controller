@@ -19,7 +19,6 @@
 #include "../sleep/sleep.h"
 
 
-
 char *gsm_log_prefix;
 
 
@@ -56,6 +55,9 @@ bool gsm_shutdown()
 }
 
 void gsm_do_on_work_cb(work_queue_item_t *work_item) {
+
+    // TODO: Consider what actually is the point here, should GSM=MQTT?
+
     ESP_LOGI(gsm_log_prefix, "In GSM work callback.");
 
     if ((strcmp(work_item->parts[1], "-1.00") != 0) && (strcmp(work_item->parts[1], "-2.00") != 0)) {

@@ -18,29 +18,43 @@
 #include <string.h>
 
 // The queue context
-queue_context lora_queue_context;
+struct queue_context lora_queue_context;
 
 char *lora_worker_log_prefix;
 
 /* Expands to a declaration for the work queue */
-STAILQ_HEAD(lora_work_q, work_queue_item) lora_work_q;
+STAILQ_HEAD(lora_work_q, lora_queue_item) 
+lora_work_q;
 
-struct work_queue_item_t *lora_first_queueitem() {
+struct lora_queue_item_t *lora_first_queueitem() 
+{
     return STAILQ_FIRST(&lora_work_q); 
 }
 
 void lora_remove_first_queue_item(){
-    STAILQ_REMOVE_HEAD(&lora_work_q, items); 
+    STAILQ_REMOVE_HEAD(&lora_work_q, items);
 }
-void lora_insert_tail(work_queue_item_t *new_item) {
+void lora_insert_tail(lora_queue_item_t *new_item) { 
     STAILQ_INSERT_TAIL(&lora_work_q, new_item, items);
 }
 
-esp_err_t lora_safe_add_work_queue(work_queue_item_t *new_item) {   
+esp_err_t lora_safe_add_work_queue(sdp_peer *peer, char *data, int data_length) {  
+    lora_queue_item_t *new_item = malloc(sizeof(lora_queue_item_t)); 
+    new_item->peer = peer;
+    new_item->data = malloc(data_length);
+    memcpy(new_item->data,data, data_length);
+    new_item->data_length = data_length;
+
     return safe_add_work_queue(&lora_queue_context, new_item);
 }
-void lora_cleanup_queue_task(work_queue_item_t *queue_item) {
-    cleanup_queue_task(&lora_queue_context, queue_item);
+void lora_cleanup_queue_task(lora_queue_item_t *queue_item) {
+    if (queue_item != NULL)
+    {    
+        free(queue_item->peer);
+        free(queue_item->data);
+        free(queue_item);
+    }
+    cleanup_queue_task(&lora_queue_context);
 }
 
 void lora_set_queue_blocked(bool blocked) {
@@ -48,7 +62,7 @@ void lora_set_queue_blocked(bool blocked) {
 }
 
 void lora_shutdown_worker() {
-    ESP_LOGI(lora_worker_log_prefix, "Telling lora worker to shut down.");
+    ESP_LOGI(lora_worker_log_prefix, "Telling LoRa worker to shut down.");
     lora_queue_context.shutdown = true;
 }
 
@@ -67,8 +81,5 @@ esp_err_t lora_init_worker(work_callback work_cb, work_callback priority_cb, cha
     // This queue cannot start processing items until lora is initialized
     lora_queue_context.blocked = true;
 
-    init_work_queue(&lora_queue_context, _log_prefix, "LoRa Queue");
-
-    return ESP_OK;
-
+    return init_work_queue(&lora_queue_context, _log_prefix, "LoRa Queue");      
 }

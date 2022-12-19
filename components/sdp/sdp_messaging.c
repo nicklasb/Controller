@@ -20,6 +20,9 @@
 #ifdef CONFIG_SDP_LOAD_ESP_NOW
 #include "espnow/espnow_messaging.h"
 #endif
+#ifdef CONFIG_SDP_LOAD_LORA
+#include "lora/lora_worker.h"
+#endif
 
 #define CONFIG_SDP_MAX_PEERS 20
 
@@ -414,25 +417,53 @@ int send_message(struct sdp_peer *peer, void *data, int data_length)
     }
 #endif
 #ifdef CONFIG_SDP_LOAD_ESP_NOW
-    ESP_LOGI(messaging_log_prefix, "ESP-NOW sending to: ");
-    ESP_LOG_BUFFER_HEX(messaging_log_prefix, peer->base_mac_address, SDP_MAC_ADDR_LEN);
-    rc = espnow_send_message(peer->base_mac_address, data, data_length);
+    if (peer->supported_media_types & SDP_MT_ESPNOW) {
+        ESP_LOGI(messaging_log_prefix, "ESP-NOW sending to: ");
+        ESP_LOG_BUFFER_HEX(messaging_log_prefix, peer->base_mac_address, SDP_MAC_ADDR_LEN);
+        rc = espnow_send_message(peer->base_mac_address, data, data_length);
 
-    if (rc == 0)
-    {
-        return SDP_MT_ESPNOW;
+        if (rc == 0)
+        {
+            return SDP_MT_ESPNOW;
+        }
+        else
+        {
+            ESP_LOGE(messaging_log_prefix, "Sending using ESPNOW failed.");
+            return -SDP_ERR_SEND_FAIL;
+            //report_ble_connection_error(peer->ble_conn_handle, rc);
+            // TODO: Add start general QoS monitoring, stop using some technologies if they are failing
+        }
     }
-    else
-    {
-        ESP_LOGE(messaging_log_prefix, "Sending using ESPNOW failed.");
-        return -SDP_ERR_SEND_FAIL;
-        //report_ble_connection_error(peer->ble_conn_handle, rc);
-        // TODO: Add start general QoS monitoring, stop using some technologies if they are failing
-    }
+    
 
     //if (peer->base_mac_address) {}
 
 #endif
+#ifdef CONFIG_SDP_LOAD_LORA
+    ESP_LOGI(messaging_log_prefix, "peer->supported_media_types: %hhx ",peer->supported_media_types);
+    if (peer->supported_media_types & SDP_MT_LoRa) {
+        ESP_LOGI(messaging_log_prefix, "LoRa sending to: ");
+        ESP_LOG_BUFFER_HEX(messaging_log_prefix, peer->base_mac_address, SDP_MAC_ADDR_LEN);
+        ESP_LOGI(messaging_log_prefix, "Data (including 4 bytes preamble): ");
+        ESP_LOG_BUFFER_HEX(messaging_log_prefix, data, data_length);
+
+        rc = lora_safe_add_work_queue(peer, data, data_length);
+        if (rc == 0)
+        {
+            return SDP_MT_LoRa;
+        }
+        else
+        {
+            ESP_LOGE(messaging_log_prefix, "Sending using Lora failed.");
+            return -SDP_ERR_SEND_FAIL;
+            //report_ble_connection_error(peer->ble_conn_handle, rc);
+            // TODO: Add start general QoS monitoring, stop using some technologies if they are failing
+        }
+
+    }
+#endif
+
+
 
     return SDP_MT_NONE;
 }

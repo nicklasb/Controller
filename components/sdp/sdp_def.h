@@ -189,43 +189,29 @@ typedef uint8_t sdp_mac_address[SDP_MAC_ADDR_LEN];
 /* A peer name in SDP */
 typedef char sdp_peer_name[CONFIG_SDP_PEER_NAME_LEN];
 
-/** Information about *this* host.
- * This is used by all parts of the application.
- * Much intersects with the peer information, but is set during initialization.
- */
-typedef struct sdp_host_t
-{
-
-    /* Protocol version*/
-    uint8_t protocol_version;
-    /* Minimum supported protocol version*/
-    uint8_t min_protocol_version;
-    /* The peer name*/
-    sdp_peer_name sdp_host_name;
-
-    /* The base mac adress handle of the system*/
-    sdp_mac_address base_mac_address;
-
-} sdp_host_t;
-
+/* A peer */
 typedef struct sdp_peer
 {
-    SLIST_ENTRY(sdp_peer)
-    next;
-
-    /* The unique handle of the peer*/
-    uint16_t peer_handle;
     /* The name of the peer*/
     sdp_peer_name name;
+    
+    /**
+     * @brief Following is the the 6-byte base MAC adress of the peer.
+     * Note that the other MAC-adresses are offset, and in BLE´s case little-endian, for example. More info here:
+     * https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/system/misc_system_api.html#mac-address
+     */
+    sdp_mac_address base_mac_address;
+
     /* Eight bits of the media types*/
     sdp_media_types supported_media_types;
+    /* The unique handle of the peer*/
+    uint16_t peer_handle;    
     /* Last time heard from the peer*/
     uint64_t last_time_in;
     /* Last time we tried to contact the  peer*/
     uint64_t last_time_out;
     /* The peer state, if unknown, it cannot be used in many situations*/
     e_peer_state state;
-
     /* Protocol version*/
     uint8_t protocol_version;
     /* Minimum supported protocol version*/
@@ -234,13 +220,10 @@ typedef struct sdp_peer
     /* Next availability (measured in mikroseconds from first boot)*/
     uint64_t next_availability;
 
-    /**
-     * @brief Following is the the 6-byte base MAC adress of the peer.
-     * Note that the other MAC-adresses are offset, and in BLE´s case little-endian, for example. More info here:
-     * https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/system/misc_system_api.html#mac-address
-     */
 
-    sdp_mac_address base_mac_address;
+
+    SLIST_ENTRY(sdp_peer)
+    next;
 
 #ifdef CONFIG_SDP_LOAD_BLE
     /* The connection handle of the BLE connection, NimBLE has its own peer handling.*/
@@ -288,7 +271,7 @@ typedef struct work_queue_item
  * work types.
  */
 /* Callbacks that handles incoming work items */
-typedef void(work_callback)(work_queue_item_t *work_item);
+typedef void (work_callback)(void *work_item);
 
 /* Mandatory callback that handles incoming work items */
 extern work_callback *on_work_cb;

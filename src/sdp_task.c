@@ -210,7 +210,7 @@ void init_sdp_task(char *_log_prefix)
     
     sdp_init(&do_on_work, &do_on_priority, &before_sleep_cb , "Controller\0", true);
 
-    sdp_add_init_new_peer(local_hosts[1].sdp_host_name, local_hosts[1].base_mac_address, SDP_MT_ESPNOW);
+    sdp_add_init_new_peer(local_hosts[1].name, local_hosts[1].base_mac_address, SDP_MT_ESPNOW);
 
 
     /* Controller:  e0:e2:e6:bd:8e:58*/

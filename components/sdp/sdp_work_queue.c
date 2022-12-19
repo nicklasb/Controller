@@ -10,20 +10,21 @@
  */
 
 #include "sdp_work_queue.h"
-
+#include "sdp_def.h"
 #include <esp_log.h>
 #include <string.h>
 
 /* The log prefix for all logging */
 char *spd_work_queue_log_prefix;
 
-esp_err_t safe_add_work_queue(queue_context *q_context, work_queue_item_t *new_item)
+esp_err_t safe_add_work_queue(queue_context *q_context, void *new_item)
 {
-    if (q_context->shutdown) {
+    if (q_context->shutdown)
+    {
         ESP_LOGE(spd_work_queue_log_prefix, "The queue is shut down.");
         return SDP_ERR_SEMAPHORE;
-    } else
-    if (pdTRUE == xSemaphoreTake(q_context->__x_queue_semaphore, portMAX_DELAY))
+    }
+    else if (pdTRUE == xSemaphoreTake(q_context->__x_queue_semaphore, portMAX_DELAY))
     {
         /* As the worker takes the queue from the head, and we want a LIFO, add the item to the tail */
         q_context->insert_tail_cb(new_item);
@@ -37,12 +38,12 @@ esp_err_t safe_add_work_queue(queue_context *q_context, work_queue_item_t *new_i
     return ESP_OK;
 }
 
-work_queue_item_t *safe_get_head_work_item(queue_context *q_context)
+void *safe_get_head_work_item(queue_context *q_context)
 {
     if (pdTRUE == xSemaphoreTake(q_context->__x_queue_semaphore, portMAX_DELAY))
     {
         /* Pull the first item from the work queue */
-        work_queue_item_t *curr_work = q_context->first_queue_item_cb();
+        void *curr_work = q_context->first_queue_item_cb();
 
         /* Immidiate deletion from the head of the queue */
         if (curr_work != NULL)
@@ -89,62 +90,83 @@ static void sdp_worker(queue_context *q_context)
 {
     ESP_LOGI(spd_work_queue_log_prefix, "Worker task %s now running, context: ", q_context->worker_task_name);
     ESP_LOGI(spd_work_queue_log_prefix, "on_work_cb: %p", q_context->on_work_cb);
-    ESP_LOGI(spd_work_queue_log_prefix, "on_priority_cb: %p", q_context->on_priority_cb);   
+    ESP_LOGI(spd_work_queue_log_prefix, "on_priority_cb: %p", q_context->on_priority_cb);
     ESP_LOGI(spd_work_queue_log_prefix, "max_task_count: %i", q_context->max_task_count);
     ESP_LOGI(spd_work_queue_log_prefix, "first_queue_item_cb: %p", q_context->first_queue_item_cb);
     ESP_LOGI(spd_work_queue_log_prefix, "insert_tail_cb: %p", q_context->insert_tail_cb);
+    ESP_LOGI(spd_work_queue_log_prefix, "multitasking: %s", q_context->multitasking ? "true" : "false");
     ESP_LOGI(spd_work_queue_log_prefix, "---------------------------");
 
-    work_queue_item_t *curr_work;
+    void *curr_work = NULL;
 
     for (;;)
     {
         // Are we shutting down?
-        if (q_context->shutdown) {
+        if (q_context->shutdown)
+        {
             break;
         }
-        if (
-            // First check so that the queue isn't blocked
-            (!q_context->blocked) &&
-            // And that we don't have a maximum number of tasks
-            (q_context->max_task_count == 0 ||
-            // Or if we do, that we don't exceed it
-            (q_context->max_task_count > 0 && (q_context->task_count < q_context->max_task_count))
-            )
-        )
+        // First check so that the queue isn't blocked
+        if (!q_context->blocked)
         {
-            
-            curr_work = safe_get_head_work_item(q_context);
-            if (curr_work != NULL)
+            // Use separate tasks
+            if (q_context->multitasking)
             {
-                char taskname[50] = "\0";
-                sprintf(taskname, "%s_worker_%d_%d", spd_work_queue_log_prefix, curr_work->conversation_id, q_context->task_count);
-                if (q_context->on_work_cb != NULL)
+                // Check that we don't have a maximum number of tasks
+                if (q_context->max_task_count == 0 ||
+                    // Or if we do, that we don't exceed it
+                    (q_context->max_task_count > 0 && (q_context->task_count < q_context->max_task_count)))
                 {
-                    ESP_LOGI(spd_work_queue_log_prefix, "Running callback on_work. Partcount : %i, Worker address %p", curr_work->partcount, q_context->on_work_cb);
-                    /* To avoid congestion on Core 0, we act on non-immidiate requests on Core 1 (APP) */
-                    TaskHandle_t th;
-                    alter_task_count(q_context, 1);
-                    int rc = xTaskCreatePinnedToCore((TaskFunction_t)q_context->on_work_cb, taskname, 8192, curr_work, 8, &th, 1);
-                    if (rc != pdPASS)
+                    // Check if there is anything to do
+                    curr_work = safe_get_head_work_item(q_context);
+                    if (curr_work != NULL)
                     {
-                        ESP_LOGE(spd_work_queue_log_prefix, "Failed creating work task, returned: %i (see projdefs.h)", rc);
-                        alter_task_count(q_context, -1);
+                        ESP_LOGI(spd_work_queue_log_prefix, "Running multitasking callback on_work. Worker address %p", q_context->on_work_cb);
+                        char taskname[50] = "\0";
+                        sprintf(taskname, "%s_worker_%d", spd_work_queue_log_prefix, q_context->task_count + 1);
+                        /* To avoid congestion on Core 0, we act on non-immidiate requests on Core 1 (APP) */
+                        TaskHandle_t th;
+                        alter_task_count(q_context, 1);
+                        int rc = xTaskCreatePinnedToCore((TaskFunction_t)q_context->on_work_cb, taskname, 8192, curr_work, 8, &th, 1);
+                        if (rc != pdPASS)
+                        {
+                            ESP_LOGE(spd_work_queue_log_prefix, "Failed creating work task, returned: %i (see projdefs.h)", rc);
+                            alter_task_count(q_context, -1);
+                        }
+                        else
+                        {
+                            ESP_LOGI(spd_work_queue_log_prefix, "Created task: %s, taskhandle: %i, taskcount: %i", taskname, (int)th, q_context->task_count);
+                        }
                     }
-                    ESP_LOGI(spd_work_queue_log_prefix, "Created task: %s, taskhandle: %i, taskcount: %i", taskname, (int)th, q_context->task_count);
+                }
+            }
+            else
+            {
+                // Check if there is anything to do
+                curr_work = safe_get_head_work_item(q_context);
+                if (curr_work != NULL)
+                {
+                    ESP_LOGI(spd_work_queue_log_prefix, "Running single task callback on_work. Worker address %p, work address %p.", (void *)(q_context->on_work_cb), (void *)(curr_work));
+                    q_context->on_work_cb(curr_work);
                 }
             }
         }
+
+        /* If defined, call the poll callback. */
+        if (q_context->on_poll_cb != NULL)
+        {
+            q_context->on_poll_cb(curr_work);
+        }
+
         // TODO: Use event loop to wait instead?
-        vTaskDelay(100/portTICK_PERIOD_MS);
+        vTaskDelay(100 / portTICK_PERIOD_MS);
     }
-    
     ESP_LOGI(spd_work_queue_log_prefix, "Worker task %s shut down, deleting task.", q_context->worker_task_name);
     free(q_context->__x_queue_semaphore);
-        
+
     q_context->__x_queue_semaphore = NULL;
     q_context->__x_task_state_semaphore = NULL;
-    
+
     vTaskDelete(NULL);
 }
 
@@ -152,8 +174,15 @@ esp_err_t init_work_queue(queue_context *q_context, char *_log_prefix, const cha
 {
     spd_work_queue_log_prefix = _log_prefix;
 
-
     ESP_LOGI(spd_work_queue_log_prefix, "Initiating the %s work queue.", queue_name);
+
+    if (q_context->on_work_cb == NULL)
+    {
+        ESP_LOGE(spd_work_queue_log_prefix, "Work queue init of %s failed; no work callback defined, \
+        without it there is no point to the queue.",
+                 queue_name);
+        return SDP_ERR_INIT_FAIL;
+    }
 
     /* Create a semaphores to ensure thread safety (queue and tasks) */
     q_context->__x_queue_semaphore = xSemaphoreCreateMutex();
@@ -192,15 +221,9 @@ esp_err_t init_work_queue(queue_context *q_context, char *_log_prefix, const cha
  * @param q_context The actur
  * @param queue_item A queue item to free.
  */
-void cleanup_queue_task(queue_context *q_context, work_queue_item_t *queue_item)
+void cleanup_queue_task(queue_context *q_context)
 {
-    ESP_LOGI(spd_work_queue_log_prefix, "Cleaning up tasks. queue_item %p ", queue_item);
-    
-    if (queue_item != NULL) {
-        free(queue_item->parts);
-        free(queue_item->raw_data);
-        free(queue_item);
-    }
+    ESP_LOGI(spd_work_queue_log_prefix, "Cleaning up tasks. Handle %i.", (uint32_t)q_context->worker_task_handle);
     alter_task_count(q_context, -1);
     vTaskDelete(NULL);
 }

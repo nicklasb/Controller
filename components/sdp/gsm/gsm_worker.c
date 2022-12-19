@@ -40,7 +40,13 @@ esp_err_t gsm_safe_add_work_queue(work_queue_item_t *new_item) {
     return safe_add_work_queue(&gsm_queue_context, new_item);
 }
 void gsm_cleanup_queue_task(work_queue_item_t *queue_item) {
-    cleanup_queue_task(&gsm_queue_context, queue_item);
+    if (queue_item != NULL)
+    {
+        free(queue_item->parts);
+        free(queue_item->raw_data);
+        free(queue_item);
+    }
+    cleanup_queue_task(&gsm_queue_context);
 }
 
 void gsm_set_queue_blocked(bool blocked) {

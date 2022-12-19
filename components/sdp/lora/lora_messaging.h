@@ -3,7 +3,7 @@
 
 #include "../sdp_def.h"
 
-int lora_send_message(sdp_mac_address *dest_mac_address, void *data, int data_length);
+int lora_send_message(sdp_mac_address *dest_mac_address, char *data, int data_length);
 
 void lora_messaging_init(char * _log_prefix);
 

@@ -90,7 +90,7 @@ int sdp_peer_inform(work_queue_item_t *queue_item) {
 
 
     /* Set base MAC address*/ 
-    memcpy(&queue_item->peer->base_mac_address, &(queue_item->raw_data[20]), SDP_MAC_ADDR_LEN);
+    memcpy(&queue_item->peer->base_mac_address, queue_item->parts[5], SDP_MAC_ADDR_LEN);
     
     ESP_LOGI(peer_log_prefix, "Peer %s now more informed ",queue_item->peer->name);
     ESP_LOG_BUFFER_HEX(peer_log_prefix, queue_item->peer->base_mac_address, SDP_MAC_ADDR_LEN);

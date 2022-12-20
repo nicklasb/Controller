@@ -23,7 +23,7 @@ char *espnow_messaging_log_prefix;
 
 #define ESPNOW_MAXDELAY 512
 
-int espnow_unknown_counter = 0;
+int unknown_counter = 0;
 
 static QueueHandle_t s_espnow_queue;
 
@@ -56,7 +56,7 @@ static void espnow_recv_cb(const uint8_t *mac_addr, const uint8_t *data, int len
         ESP_LOGE(espnow_messaging_log_prefix, "In espnow_recv_cb, either parameter was NULL or 0.");
         return;
     }
-
+    
     sdp_peer *peer = sdp_mesh_find_peer_by_base_mac_address(mac_addr);
     if (peer != NULL)
     {
@@ -78,7 +78,7 @@ static void espnow_recv_cb(const uint8_t *mac_addr, const uint8_t *data, int len
         memcpy(espnow_peer->peer_addr, mac_addr, SDP_MAC_ADDR_LEN);
 
         char *new_name;
-        asprintf(&new_name, "UNKNOWN_%i", espnow_unknown_counter++);
+        asprintf(&new_name, "UNKNOWN_%i", unknown_counter);
         sdp_peer *s_peer = sdp_add_init_new_peer(new_name, mac_addr, SDP_MT_ESPNOW);
     }
 }

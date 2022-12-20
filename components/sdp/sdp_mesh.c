@@ -106,7 +106,7 @@ int sdp_mesh_peer_add(sdp_peer_name name)
 {
     struct sdp_peer *peer;
 
-    ESP_LOGI(mesh_log_prefix, "sdp_peer_add() - adding SDP peer, name: %s", name);
+    ESP_LOGI(mesh_log_prefix, "sdp_mesh_peer_add() - adding SDP peer, name: %s", name);
 
     /* TODO: Make sure the peer name is unique*/
     peer = sdp_mesh_find_peer_by_name(name);
@@ -118,7 +118,7 @@ int sdp_mesh_peer_add(sdp_peer_name name)
     peer = malloc(sizeof(sdp_peer));
     if (peer == NULL)
     {
-        ESP_LOGE(mesh_log_prefix, "sdp_peer_add() - Out of memory!");
+        ESP_LOGE(mesh_log_prefix, "sdp_mesh_peer_add() - Out of memory!");
         /* Out of memory. */
         return SDP_ERR_OUT_OF_MEMORY;
     }
@@ -129,7 +129,7 @@ int sdp_mesh_peer_add(sdp_peer_name name)
 
     SLIST_INSERT_HEAD(&sdp_peers, peer, next);
 
-    ESP_LOGI(mesh_log_prefix, "sdp_peer_add() - Peer added: %s", peer->name);
+    ESP_LOGI(mesh_log_prefix, "sdp_mesh_peer_add() - Peer added: %s", peer->name);
 
     return peer->peer_handle;
 }

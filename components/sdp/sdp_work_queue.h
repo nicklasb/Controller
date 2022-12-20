@@ -31,6 +31,8 @@ typedef void(remove_first_queueitem)();
 
 typedef void(insert_tail)(void *new_item);
 
+typedef void(poll_callback)(void *q_context);
+
 typedef struct queue_context
 {
   /* Queue management callbacks, needed because of the difficulties in passing queues as pointers */
@@ -45,7 +47,7 @@ typedef struct queue_context
   work_callback *on_priority_cb;
   /* Optional callback that is called each poll period. T
   Note: This is run in the queue task, and might conflict with multitasking. */
-  work_callback *on_poll_cb;
+  poll_callback *on_poll_cb;
   /* Max number of concurrent tasks. (0 = unlimited) */
   uint max_task_count;
   /* Current number of running tasks */
@@ -69,6 +71,8 @@ typedef struct queue_context
   SemaphoreHandle_t __x_task_state_semaphore; // Thread-safe the tasks
 
 } queue_context;
+
+
 
 esp_err_t safe_add_work_queue(queue_context *q_context, void *new_item);
 

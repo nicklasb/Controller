@@ -155,7 +155,7 @@ static void sdp_worker(queue_context *q_context)
         /* If defined, call the poll callback. */
         if (q_context->on_poll_cb != NULL)
         {
-            q_context->on_poll_cb(curr_work);
+            q_context->on_poll_cb(q_context);
         }
 
         // TODO: Use event loop to wait instead?

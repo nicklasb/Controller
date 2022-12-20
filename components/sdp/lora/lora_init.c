@@ -24,9 +24,12 @@
 #include <esp_log.h>
 #include "lora.h"
 #include <sdp_def.h>
+#include <sdp_peer.h>
 #include "lora_messaging.h"
 #include "lora_worker.h"
-#include "sdp_work_queue.h"
+
+
+
 
 /* The log prefix for all logging */
 char *lora_init_log_prefix;
@@ -94,13 +97,7 @@ void init_lora() {
 
 }
 
-void lora_do_on_work_cb(lora_queue_item_t *work_item) {
-    ESP_LOGI(lora_init_log_prefix, "In LoRa work callback.");
-    ESP_LOGI(lora_init_log_prefix, "Data (including 4 bytes preamble): ");
-    ESP_LOG_BUFFER_HEX(lora_init_log_prefix, work_item->data, work_item->data_length);    
-    lora_send_message(work_item->peer->base_mac_address, work_item->data, work_item->data_length);
-    
-}
+
 
 void lora_shutdown() {
     ESP_LOGI(lora_init_log_prefix, "Shutting down LoRa:");
@@ -117,16 +114,18 @@ void lora_shutdown() {
 void lora_init(char * _log_prefix) {
     lora_init_log_prefix = _log_prefix;
 
-    if (lora_init_worker(&lora_do_on_work_cb, NULL, lora_init_log_prefix) != ESP_OK)
+
+    ESP_LOGI(lora_init_log_prefix, "Initializing LoRa");
+    lora_messaging_init(lora_init_log_prefix);
+    init_lora();
+    if (lora_init_worker(&lora_do_on_work_cb, NULL, &lora_do_on_poll_cb, lora_init_log_prefix) != ESP_OK)
     {
        ESP_LOGE(lora_init_log_prefix, "Failed initializing LoRa"); 
        return;
     }
-
-    ESP_LOGI(lora_init_log_prefix, "Initializing LoRa");
-    init_lora();
-    lora_messaging_init(lora_init_log_prefix);
     lora_set_queue_blocked(false);
+    lora_receive();
+
     ESP_LOGI(lora_init_log_prefix, "LoRa initialized.");
 }
 

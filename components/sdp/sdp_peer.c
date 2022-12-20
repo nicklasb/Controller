@@ -29,6 +29,9 @@ int sdp_peer_send_me_message(work_queue_item_t *queue_item) {
     #ifdef CONFIG_SDP_LOAD_ESP_NOW
     + SDP_MT_ESPNOW
     #endif
+    #ifdef CONFIG_SDP_LOAD_LORA
+    + SDP_MT_LoRa
+    #endif
     ;
     uint8_t *me_msg = NULL;
     int pv = SDP_PROTOCOL_VERSION;
@@ -45,7 +48,6 @@ int sdp_peer_send_me_message(work_queue_item_t *queue_item) {
      */
     int me_length = add_to_message(&me_msg,"ME|%i|%i|%s|%hhu|%b6", 
         pv, pvm, sdp_host.name, supported_media_types, sdp_host.base_mac_address);
-
     if (me_length > 0) {
         retval = sdp_reply(*queue_item, HANDSHAKE, me_msg, me_length);
     } else {

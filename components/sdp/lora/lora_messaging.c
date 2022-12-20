@@ -80,10 +80,8 @@ void lora_do_on_poll_cb(queue_context *q_context) {
                     char *new_name;
                     asprintf(&new_name, "UNKNOWN_%i", lora_unknown_counter++);
                     peer = sdp_add_init_new_peer(new_name, buf + SDP_MAC_ADDR_LEN, SDP_MT_LoRa);
-//                    ESP_LOGI(lora_messaging_log_prefix, "Did not find peer: ");
-//                    ESP_LOG_BUFFER_HEX(lora_messaging_log_prefix, buf + 6, SDP_MAC_ADDR_LEN);
                 }
-                handle_incoming(peer, &buf + (SDP_MAC_ADDR_LEN * 2), receive_len - (SDP_MAC_ADDR_LEN * 2), SDP_MT_LoRa);    
+                handle_incoming(peer, buf + (SDP_MAC_ADDR_LEN * 2), receive_len - (SDP_MAC_ADDR_LEN * 2), SDP_MT_LoRa);    
                 
                 
             } else {

@@ -129,7 +129,7 @@ int sdp_mesh_peer_add(sdp_peer_name name)
 
     SLIST_INSERT_HEAD(&sdp_peers, peer, next);
 
-    ESP_LOGI(mesh_log_prefix, "sdp_peer_add() - Peer added - asking for more information: %s", peer->name);
+    ESP_LOGI(mesh_log_prefix, "sdp_peer_add() - Peer added: %s", peer->name);
 
     return peer->peer_handle;
 }

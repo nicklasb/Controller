@@ -26,6 +26,7 @@
 #include "sdp_peer.h"
 #include "sdp_worker.h"
 #include "sdp_messaging.h"
+#include "sdp_helpers.h"
 
 #ifdef CONFIG_SDP_LOAD_BLE
 #include "ble/ble_init.h"
@@ -107,6 +108,7 @@ int sdp_init(work_callback *work_cb, work_callback *priority_cb, before_sleep *b
         return SDP_ERR_INIT_FAIL;
     }
 
+    sdp_helpers_init(sdp_log_prefix);
     sdp_peer_init(sdp_log_prefix);
 
     sdp_orchestration_init(sdp_log_prefix, before_sleep_cb);

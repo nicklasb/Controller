@@ -256,6 +256,7 @@ int handle_incoming(sdp_peer *peer, const uint8_t *data, int data_len, e_media_t
         // TODO: Are there security considerations here?
         if (strcmp(new_item->parts[0], "WHO") == 0)
         {
+               
             // Reply
             sdp_peer_send_me_message(new_item);
         }

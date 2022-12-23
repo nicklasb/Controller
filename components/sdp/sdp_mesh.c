@@ -6,6 +6,9 @@
 #include "sdp_peer.h"
 #include "sdkconfig.h"
 
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+
 #ifdef CONFIG_SDP_LOAD_BLE
 #include "ble/ble_spp.h"
 #endif
@@ -30,7 +33,6 @@ sdp_mesh_find_peer_by_name(const sdp_peer_name name)
 
     SLIST_FOREACH(peer, &sdp_peers, next)
     {
-        ESP_LOGI(mesh_log_prefix, "Comparing %s with %s.", peer->name, name);
         if (strcmp(peer->name, name) == 0)
         {
             return peer;
@@ -134,12 +136,15 @@ int sdp_mesh_peer_add(sdp_peer_name name)
     return peer->peer_handle;
 }
 
+
+
+
 /**
- * @brief Convenience function to add new peers, usually at startup
+ * @brief Add and initialize a new peer (does not contact it, see add_peer for that)
  *
- * @param peer_name
- * @param mac_address
- * @return sdp_peer*
+ * @param peer_name The peer name
+ * @param mac_address The mac adress
+ * @return sdp_peer* An initialized peer
  */
 sdp_peer *sdp_add_init_new_peer(sdp_peer_name peer_name, const sdp_mac_address mac_address, e_media_type media_type)
 {
@@ -155,6 +160,7 @@ sdp_peer *sdp_add_init_new_peer(sdp_peer_name peer_name, const sdp_mac_address m
         if (media_type & SDP_MT_BLE)
         {
             //(mac_address);
+            peer->ble_state.initial_media = true;
         }
         // TODO: Usually BLE sort of finds each other, however we might wan't to do something here
 #endif
@@ -164,14 +170,18 @@ sdp_peer *sdp_add_init_new_peer(sdp_peer_name peer_name, const sdp_mac_address m
         {
             ESP_LOGI(mesh_log_prefix, "Adding espnow peer at:");
             ESP_LOG_BUFFER_HEX(mesh_log_prefix, peer->base_mac_address, SDP_MAC_ADDR_LEN);
+            peer->espnow_state.initial_media = true;
             int rc = espnow_add_peer(peer->base_mac_address);
         }
 #endif
-        // We know too little about the peer; ask for more information.
-        if (sdp_peer_send_who_message(peer) == SDP_MT_NONE)
+
+#ifdef CONFIG_SDP_LOAD_LORA
+        if (media_type & SDP_MT_LoRa)
         {
-            ESP_LOGE(mesh_log_prefix, "sdp_peer_add() - Failed to ask for more information: %s", peer_name);
+            peer->lora_state.initial_media = true;
         }
+#endif
+
     }
     else
     {
@@ -179,6 +189,18 @@ sdp_peer *sdp_add_init_new_peer(sdp_peer_name peer_name, const sdp_mac_address m
     }
 
     return peer;
+}
+/**
+ * @brief Adds a new peer, contacts it and exchanges information
+ * 
+ * @param peer_name The name of the peer, if we want our own
+ * @param mac_address The mac_address of the peer
+ * @param media_type The way we want to contact the peer
+ * @return int Returns a negative value if it failed to send the message, a positive if it succeeded
+ */
+int add_peer(sdp_peer_name peer_name, const sdp_mac_address mac_address, e_media_type media_type) {
+    sdp_peer *peer = sdp_add_init_new_peer(peer_name, mac_address, media_type);
+    return sdp_peer_send_hi_message(peer, false);
 }
 
 int sdp_mesh_init(char *_log_prefix, int max_peers)

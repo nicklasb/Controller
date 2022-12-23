@@ -11,11 +11,15 @@ char *peer_log_prefix;
 sdp_peer sdp_host = {};
 
 /**
- * @brief Compile a message telling a peer about our abilities
+ * @brief Compile a HI or HIR message telling a peer about our abilities
  * 
  * @param peer The peer 
+ * @param is_reply This is a reply, send a HIR-message
+ * 
  */
-int sdp_peer_send_me_message(work_queue_item_t *queue_item) {
+int sdp_peer_send_hi_message(sdp_peer *peer, bool is_reply) {
+
+    ESP_LOGI(peer_log_prefix, ">> Send a HI or HIR-message with information.");
 
     int retval;
     // TODO: Use CONFIG_SDP_NAME
@@ -33,12 +37,12 @@ int sdp_peer_send_me_message(work_queue_item_t *queue_item) {
     + SDP_MT_LoRa
     #endif
     ;
-    uint8_t *me_msg = NULL;
+
     int pv = SDP_PROTOCOL_VERSION;
     int pvm = SDP_PROTOCOL_VERSION_MIN;
     
     /**
-     * @brief Construct a me-message
+     * @brief Construct a HI-message
      * Parameters: 
      * pv : Protocol version
      * pvm: Minimal supported version
@@ -46,32 +50,28 @@ int sdp_peer_send_me_message(work_queue_item_t *queue_item) {
      * supported  media types: A byte describing the what communication technologies the peer supports.
      * adresses: A list of addresses in the order of the bits in the media types byte.
      */
-    int me_length = add_to_message(&me_msg,"ME|%i|%i|%s|%hhu|%b6", 
+    char fmt_str[22] = "HI";
+    if (is_reply) {
+        strcpy(fmt_str, "HIR");
+    }
+
+    uint8_t *hi_msg = NULL;
+    int hi_length = add_to_message(&hi_msg, strcat(fmt_str, "|%i|%i|%s|%hhu|%b6"), 
         pv, pvm, sdp_host.name, supported_media_types, sdp_host.base_mac_address);
-    if (me_length > 0) {
-        retval = sdp_reply(*queue_item, HANDSHAKE, me_msg, me_length);
+    if (hi_length > 0) {
+        void *new_data = sdp_add_preamble(HANDSHAKE, 0, hi_msg, hi_length);
+        retval = sdp_send_message(peer, new_data, hi_length+ SDP_PREAMBLE_LENGTH);
     } else {
         // Returning the negative of the return value as that denotes an error.
-        retval = -me_length;
+        retval = -hi_length;
     }
-    free(me_msg);
+    free(hi_msg);
     return retval;
-}
-
-
-/**
- * @brief Send a "WHO"-message that asks the peer to describe themselves
- * 
- * @return int A pointer to the created conversation
- */
-int sdp_peer_send_who_message(sdp_peer *peer) {
-    char who_msg[4] = "WHO\0";
-    return start_conversation(peer, HANDSHAKE, "Handshaking", &who_msg,4);
 }
 
 int sdp_peer_inform(work_queue_item_t *queue_item) {
 
-    ESP_LOGI(peer_log_prefix, "Informing peer.");
+    ESP_LOGI(peer_log_prefix, "<< Got a HI or HIR-message with information.");
 
     /* Set the protocol versions*/
     queue_item->peer->protocol_version = (uint8_t)atoi(queue_item->parts[1]);
@@ -92,9 +92,9 @@ int sdp_peer_inform(work_queue_item_t *queue_item) {
     /* Set base MAC address*/ 
     memcpy(&queue_item->peer->base_mac_address, queue_item->parts[5], SDP_MAC_ADDR_LEN);
     
-    ESP_LOGI(peer_log_prefix, "Peer %s now more informed ",queue_item->peer->name);
-    ESP_LOG_BUFFER_HEX(peer_log_prefix, queue_item->peer->base_mac_address, SDP_MAC_ADDR_LEN);
-
+    ESP_LOGI(peer_log_prefix, "<< Peer %s now more informed ",queue_item->peer->name);
+    log_peer_info(peer_log_prefix, queue_item->peer);
+    
 
     // TODO: Check protocol version for highest matching protocol version.
     

@@ -1,10 +1,9 @@
 
 
-#include "sdkconfig.h"
+#include <sdkconfig.h>
 #ifdef CONFIG_SDP_LOAD_ESP_NOW
 
 #include "espnow_messaging.h"
-#include <sdkconfig.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 #include <freertos/queue.h>
@@ -39,35 +38,35 @@ static void espnow_send_cb(const uint8_t *mac_addr, esp_now_send_status_t status
 {
     if (status == ESP_NOW_SEND_SUCCESS)
     {
-        ESP_LOGI(espnow_messaging_log_prefix, "In espnow_send_cb, send success.");
+        ESP_LOGI(espnow_messaging_log_prefix, ">> In espnow_send_cb, send success.");
     }
     if (status == ESP_NOW_SEND_FAIL)
     {
-        ESP_LOGW(espnow_messaging_log_prefix, "In espnow_send_cb, send failure, mac address:");
+        ESP_LOGW(espnow_messaging_log_prefix, ">> In espnow_send_cb, send failure, mac address:");
         ESP_LOG_BUFFER_HEX(espnow_messaging_log_prefix, mac_addr, SDP_MAC_ADDR_LEN);
     }
 }
 
 static void espnow_recv_cb(const uint8_t *mac_addr, const uint8_t *data, int len)
 {
-
+    // TODO: In ESP-IDF 5, this callback gets much more information from the first parameter, use it.
     if (mac_addr == NULL || data == NULL || len <= 0)
     {
-        ESP_LOGE(espnow_messaging_log_prefix, "In espnow_recv_cb, either parameter was NULL or 0.");
+        ESP_LOGE(espnow_messaging_log_prefix, "<< In espnow_recv_cb, either parameter was NULL or 0.");
         return;
     }
-    
+
     sdp_peer *peer = sdp_mesh_find_peer_by_base_mac_address(mac_addr);
     if (peer != NULL)
     {
-        ESP_LOGI(espnow_messaging_log_prefix, "espnow_recv_cb got a message from a peer. Data:");
+        ESP_LOGI(espnow_messaging_log_prefix, "<< espnow_recv_cb got a message from a peer. Data:");
         ESP_LOG_BUFFER_HEX(espnow_messaging_log_prefix, data, len);
-
-        handle_incoming(peer, data, len, SDP_MT_BLE);
+        handle_incoming(peer, data, len, SDP_MT_ESPNOW);
     }
     else
     {
-        ESP_LOGI(espnow_messaging_log_prefix, "espnow_recv_cb got a message from an unknown peer. Data:");
+        /* We will not */
+        ESP_LOGI(espnow_messaging_log_prefix, "<< espnow_recv_cb got a message from an unknown peer. Data:");
         ESP_LOG_BUFFER_HEX(espnow_messaging_log_prefix, data, len);
         /* Remember peer. */
         esp_now_peer_info_t *espnow_peer = malloc(sizeof(esp_now_peer_info_t));

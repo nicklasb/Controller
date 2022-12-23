@@ -46,6 +46,8 @@ int start_conversation(sdp_peer *peer, e_work_type work_type,
                        const char *reason, const void *data, int data_length);
 int end_conversation(uint16_t conversation_id);
 
+int sdp_send_message(struct sdp_peer *peer, void *data, int data_length);
+
 struct conversation_list_item *find_conversation(sdp_peer *peer, uint16_t conversation_id);
 
 int sdp_reply(work_queue_item_t queue_item, enum e_work_type work_type, const void *data, int data_length);

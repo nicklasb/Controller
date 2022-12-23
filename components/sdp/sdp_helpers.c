@@ -98,7 +98,7 @@ int add_to_message(uint8_t **message, const char *format, ...)
                     new_length = -SDP_ERR_PARSING_FAILED;
                     goto cleanup;                    
                 }
-                ESP_LOGI(helpers_log_prefix, "Found null value at %i in %s", n, curr_format);
+                ESP_LOGD(helpers_log_prefix, "Found null value at %i in %s", n, curr_format);
                 value_length = atoi((char *)&(curr_format[2]));
                 ESP_LOGD(helpers_log_prefix, "value_length parsed %i", value_length);
                 value_str = malloc(value_length);
@@ -147,7 +147,7 @@ int add_to_message(uint8_t **message, const char *format, ...)
         curr_pos = new_length;
 
     }
-    ESP_LOG_BUFFER_HEXDUMP(helpers_log_prefix, (char*)*message, new_length,  ESP_LOG_INFO);    
+    ESP_LOG_BUFFER_HEXDUMP(helpers_log_prefix, (char*)*message, new_length,  ESP_LOG_DEBUG);    
  cleanup:
     va_end(arg);
     free(value_str);   
@@ -183,6 +183,20 @@ float sdp_read_battery()
     float battery_voltage = ((float)volt / 4095.0) * 2.0 * 3.3 ;
     return battery_voltage;
 }
+
+
+void log_peer_info(char * _log_prefix, sdp_peer *peer) {
+    ESP_LOGI(_log_prefix, "Peer info:");
+    ESP_LOGI(_log_prefix, "Name:                  %s", peer->name);
+    ESP_LOGI(_log_prefix, "Base Mac address:      %02X:%02X:%02X:%02X:%02X:%02X", peer->base_mac_address[0],
+    peer->base_mac_address[1],peer->base_mac_address[2],peer->base_mac_address[3],peer->base_mac_address[4],peer->base_mac_address[5]);
+    ESP_LOGI(_log_prefix, "State:                 %hhx", peer->state);
+    ESP_LOGI(_log_prefix, "Supported media types: %hhx", peer->supported_media_types);
+    ESP_LOGI(_log_prefix, "Protocol version:      %i", peer->protocol_version);
+    ESP_LOGI(_log_prefix, "Next availability:     %lli", peer->next_availability);
+    ESP_LOGI(_log_prefix, "Handle:                %i", peer->peer_handle);
+}
+
 
 void sdp_helpers_init(char * _log_prefix) {
     helpers_log_prefix = _log_prefix;

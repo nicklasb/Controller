@@ -34,7 +34,8 @@ filter_callback *on_filter_data_cb = NULL;
 
 work_callback *on_priority_cb;
 
-SLIST_HEAD(conversation_list, conversation_list_item) conversation_l;
+SLIST_HEAD(conversation_list, conversation_list_item)
+conversation_l;
 
 /* The last created conversation id */
 uint16_t last_conversation_id = 0;
@@ -46,7 +47,7 @@ char *messaging_log_prefix;
 SemaphoreHandle_t x_conversation_list_semaphore;
 
 /* Forward declarations*/
-int send_message(struct sdp_peer *peer, void *data, int data_length);
+int sdp_send_message(struct sdp_peer *peer, void *data, int data_length);
 
 /**
  * @brief Add a preamble with general info in the beginning of a message
@@ -109,11 +110,11 @@ void parse_message(work_queue_item_t *queue_item)
 
 /**
  * @brief Add a new conversation
- * 
+ *
  * @param peer The peer we are conversing with
  * @param reason The reason for the conversation
- * @param conversation_id if < 0, it is a new conversation we initiated locally.  
- * @return int 
+ * @param conversation_id if < 0, it is a new conversation we initiated locally.
+ * @return int
  */
 int safe_add_conversation(sdp_peer *peer, const char *reason, int conversation_id)
 {
@@ -128,14 +129,17 @@ int safe_add_conversation(sdp_peer *peer, const char *reason, int conversation_i
     /* Some things needs to be thread-safe */
     if (pdTRUE == xSemaphoreTake(x_conversation_list_semaphore, portMAX_DELAY))
     {
-        if (new_item->local) {
+        if (new_item->local)
+        {
             // This is a conversation we initiated
             new_item->conversation_id = last_conversation_id++;
-        } else {
+        }
+        else
+        {
             // Initiated by the other peer
             new_item->conversation_id = conversation_id;
         }
-        
+
         SLIST_INSERT_HEAD(&conversation_l, new_item, items);
         xSemaphoreGive(x_conversation_list_semaphore);
         return new_item->conversation_id;
@@ -149,7 +153,7 @@ int safe_add_conversation(sdp_peer *peer, const char *reason, int conversation_i
 
 int handle_incoming(sdp_peer *peer, const uint8_t *data, int data_len, e_media_type media_type)
 {
-    ESP_LOGI(messaging_log_prefix, "Payload length: %i, call count %i, CRC32: %i.", data_len, callcount++,
+    ESP_LOGI(messaging_log_prefix, "<< Payload length: %i, call count %i, CRC32: %i.", data_len, callcount++,
              (int)crc32_be(0, data, data_len));
 
     ESP_LOG_BUFFER_HEXDUMP(messaging_log_prefix, data, data_len, ESP_LOG_INFO);
@@ -174,13 +178,13 @@ int handle_incoming(sdp_peer *peer, const uint8_t *data, int data_len, e_media_t
         // Save the conversation
         safe_add_conversation(peer, "external", new_item->conversation_id);
 
-        ESP_LOGI(messaging_log_prefix, "Message info : Version: %u, Conv.id: %u, Work type: %u, Media type: %u,Data len: %u, Message parts: %i.",
+        ESP_LOGI(messaging_log_prefix, "<< Message info : Version: %u, Conv.id: %u, Work type: %u, Media type: %u,Data len: %u, Message parts: %i.",
                  new_item->version, new_item->conversation_id, new_item->work_type,
                  new_item->media_type, new_item->raw_data_length, new_item->partcount);
     }
     else
     {
-        ESP_LOGE(messaging_log_prefix, "Error: The request must be more than %i bytes for SDP v %i compliance.",
+        ESP_LOGE(messaging_log_prefix, "<< Error: The request must be more than %i bytes for SDP v %i compliance.",
                  SDP_PROTOCOL_VERSION, SDP_PREAMBLE_LENGTH);
         return SDP_ERR_MESSAGE_TOO_SHORT;
     }
@@ -201,7 +205,7 @@ int handle_incoming(sdp_peer *peer, const uint8_t *data, int data_len, e_media_t
             }
             else
             {
-                ESP_LOGE(messaging_log_prefix, "SDP service: on_filter_request_cb returned a nonzero value, request not added to queue!");
+                ESP_LOGE(messaging_log_prefix, "<< SDP messaging: on_filter_request_cb returned a nonzero value, request not added to queue!");
                 return SDP_ERR_MESSAGE_FILTERED;
             }
         }
@@ -221,7 +225,7 @@ int handle_incoming(sdp_peer *peer, const uint8_t *data, int data_len, e_media_t
             }
             else
             {
-                ESP_LOGE(messaging_log_prefix, "SDP service: on_filter_request_cb returned a nonzero value, request not added to queue!");
+                ESP_LOGE(messaging_log_prefix, "<< SDP messaging: on_filter_request_cb returned a nonzero value, request not added to queue!");
                 return SDP_ERR_MESSAGE_FILTERED;
             }
         }
@@ -241,7 +245,7 @@ int handle_incoming(sdp_peer *peer, const uint8_t *data, int data_len, e_media_t
             }
             else
             {
-                ESP_LOGE(messaging_log_prefix, "SDP service: on_filter_data_cb returned a nonzero value, request not added to queue!");
+                ESP_LOGE(messaging_log_prefix, "<< SDP messaging: on_filter_data_cb returned a nonzero value, request not added to queue!");
                 return SDP_ERR_MESSAGE_FILTERED;
             }
         }
@@ -252,18 +256,24 @@ int handle_incoming(sdp_peer *peer, const uint8_t *data, int data_len, e_media_t
         break;
 
     case HANDSHAKE:
-        // A peer asks us about our abilities
+        
         // TODO: Are there security considerations here?
-        if (strcmp(new_item->parts[0], "WHO") == 0)
+        // Should this not happen if a peer isn't already on some list
+        // A peer says HI, and tells us a little about itself. 
+        if ((strncmp(new_item->parts[0], "HI", 2) == 0))
         {
-               
-            // Reply
-            sdp_peer_send_me_message(new_item);
-        }
-        else if (strcmp(new_item->parts[0], "ME") == 0)
-        {
+            // We have already added it as a peer, lets get any information
             sdp_peer_inform(new_item);
+            // If its not a reply, we reply with our information
+            if (strcmp(new_item->parts[0], "HIR") != 0) {
+                if (sdp_peer_send_hi_message(peer, true) == SDP_MT_NONE)
+                {
+                    ESP_LOGE(messaging_log_prefix, "handle_incoming() - Failed to send HIR-message %s", new_item->peer->name);
+                }
+            }
         }
+                // So we want to talk, begin with introducing ourselves.
+        
 
         break;
     case ORCHESTRATION:
@@ -278,31 +288,30 @@ int handle_incoming(sdp_peer *peer, const uint8_t *data, int data_len, e_media_t
         }
         break;
 
-
     case PRIORITY:
         /* This is likely to be some kind of problem report or alarm,
         immidiately respond with CRC32 to tell the
         reporter that the information has reached the controller. */
 
-        send_message(new_item->peer, &(new_item->crc32), 2);
+        sdp_send_message(new_item->peer, &(new_item->crc32), 2);
 
         /* Do NOT add the work item to the queue, it will be immidiately adressed in the callback */
 
         if (on_priority_cb != NULL)
         {
-            ESP_LOGW(messaging_log_prefix, "SDP Calling on_priority_callback!");
+            ESP_LOGW(messaging_log_prefix, "<< SDP Calling on_priority_callback!");
 
             on_priority_cb(new_item);
         }
         else
         {
-            ESP_LOGE(messaging_log_prefix, "ERROR: SDP on_priority callback is not assigned, assigning to normal handling!");
+            ESP_LOGE(messaging_log_prefix, "<< ERROR: SDP on_priority callback is not assigned, assigning to normal handling!");
             sdp_safe_add_work_queue(new_item);
         }
         break;
 
     default:
-        ESP_LOGE(messaging_log_prefix, "ERROR: Invalid work type (%i)!", new_item->work_type);
+        ESP_LOGE(messaging_log_prefix, "<< ERROR: Invalid work type (%i)!", new_item->work_type);
         return 1;
     }
     return 0;
@@ -331,7 +340,7 @@ int broadcast_message(uint16_t conversation_id,
     int ret;
     SLIST_FOREACH(curr_peer, &sdp_peers, next)
     {
-        ret = send_message(curr_peer, data, data_length);
+        ret = sdp_send_message(curr_peer, data, data_length);
         if (ret < 0)
         {
             ESP_LOGE(messaging_log_prefix, "Error: broadcast_message: Failure sending message! Peer: %s Code: %i", curr_peer->name, ret);
@@ -397,13 +406,20 @@ void report_ble_connection_error(int conn_handle, int code)
  * @brief Sends to one specified peer using first available media type.
 
  */
-int send_message(struct sdp_peer *peer, void *data, int data_length)
+int sdp_send_message(struct sdp_peer *peer, void *data, int data_length)
 {
     int rc = 0;
+    e_media_type preferred = SDP_MT_NONE;
+    ESP_LOGI(messaging_log_prefix, ">> peer->supported_media_types: %hhx ", peer->supported_media_types);
 #ifdef CONFIG_SDP_LOAD_BLE
 
     // Send message using BLE
-    if (peer->ble_conn_handle >= 0)
+    if ((peer->ble_conn_handle >= 0) && (peer->supported_media_types & SDP_MT_BLE) &&
+        (
+            (preferred == SDP_MT_NONE && (peer->lora_stats.initial_media)) ||
+            (preferred == SDP_MT_BLE)
+        )
+    )
     {
         rc = ble_send_message(peer->ble_conn_handle, data, data_length);
         if (rc == 0)
@@ -415,38 +431,48 @@ int send_message(struct sdp_peer *peer, void *data, int data_length)
             report_ble_connection_error(peer->ble_conn_handle, rc);
             // TODO: Add start general QoS monitoring, stop using some technologies if they are failing
         }
-    }
+    } 
 #endif
 #ifdef CONFIG_SDP_LOAD_ESP_NOW
-    if (peer->supported_media_types & SDP_MT_ESPNOW) {
-        ESP_LOGI(messaging_log_prefix, "ESP-NOW sending to: ");
+    if ((peer->supported_media_types & SDP_MT_ESPNOW) && 
+        (
+            ((preferred == SDP_MT_NONE) && (peer->espnow_state.initial_media)) ||
+            (preferred == SDP_MT_ESPNOW)
+        )
+    )
+    {
+        ESP_LOGI(messaging_log_prefix, ">> ESP-NOW sending to: ");
         ESP_LOG_BUFFER_HEX(messaging_log_prefix, peer->base_mac_address, SDP_MAC_ADDR_LEN);
         rc = espnow_send_message(peer->base_mac_address, data, data_length);
-
         if (rc == 0)
         {
             return SDP_MT_ESPNOW;
         }
         else
         {
-            ESP_LOGE(messaging_log_prefix, "Sending using ESPNOW failed.");
+            ESP_LOGE(messaging_log_prefix, ">> Sending using ESP-NOW failed.");
             return -SDP_ERR_SEND_FAIL;
-            //report_ble_connection_error(peer->ble_conn_handle, rc);
-            // TODO: Add start general QoS monitoring, stop using some technologies if they are failing
+            // report_ble_connection_error(peer->ble_conn_handle, rc);
+            //  TODO: Add start general QoS monitoring, stop using some technologies if they are failing
         }
     }
-    
 
-    //if (peer->base_mac_address) {}
+        // if (peer->base_mac_address) {}
 
 #endif
 #ifdef CONFIG_SDP_LOAD_LORA
-    ESP_LOGI(messaging_log_prefix, "peer->supported_media_types: %hhx ",peer->supported_media_types);
-    if (peer->supported_media_types & SDP_MT_LoRa) {
-        ESP_LOGI(messaging_log_prefix, "LoRa sending to: ");
+
+    if ((peer->supported_media_types & SDP_MT_LoRa) &&
+        (
+            ((preferred == SDP_MT_NONE) && (peer->lora_state.initial_media)) || 
+            (preferred == SDP_MT_LoRa)
+        )
+    )
+    {
+        ESP_LOGI(messaging_log_prefix, ">> LoRa sending to: ");
         ESP_LOG_BUFFER_HEX(messaging_log_prefix, peer->base_mac_address, SDP_MAC_ADDR_LEN);
-        ESP_LOGI(messaging_log_prefix, "Data (including 4 bytes preamble): ");
-        ESP_LOG_BUFFER_HEX(messaging_log_prefix, data, data_length);
+        ESP_LOGI(messaging_log_prefix, ">> Data (including 4 bytes preamble): ");
+        ESP_LOG_BUFFER_HEXDUMP(messaging_log_prefix, data, data_length, ESP_LOG_INFO);
 
         rc = lora_safe_add_work_queue(peer, data, data_length);
         if (rc == 0)
@@ -455,16 +481,13 @@ int send_message(struct sdp_peer *peer, void *data, int data_length)
         }
         else
         {
-            ESP_LOGE(messaging_log_prefix, "Sending using Lora failed.");
+            ESP_LOGE(messaging_log_prefix, ">> Sending using Lora failed.");
             return -SDP_ERR_SEND_FAIL;
-            //report_ble_connection_error(peer->ble_conn_handle, rc);
-            // TODO: Add start general QoS monitoring, stop using some technologies if they are failing
+            // report_ble_connection_error(peer->ble_conn_handle, rc);
+            //  TODO: Add start general QoS monitoring, stop using some technologies if they are failing
         }
-
     }
 #endif
-
-
 
     return SDP_MT_NONE;
 }
@@ -484,8 +507,8 @@ int sdp_reply(work_queue_item_t queue_item, enum e_work_type work_type, const vo
     // Add preamble with all SDP specifics in a new data
     void *new_data = sdp_add_preamble(work_type, queue_item.conversation_id, data, data_length);
 
-    ESP_LOGD(messaging_log_prefix, "In sdp reply.");
-    retval = send_message(queue_item.peer, new_data, data_length + SDP_PREAMBLE_LENGTH);
+    ESP_LOGD(messaging_log_prefix, ">> In sdp reply.");
+    retval = sdp_send_message(queue_item.peer, new_data, data_length + SDP_PREAMBLE_LENGTH);
     free(new_data);
     return retval;
 }
@@ -519,7 +542,7 @@ int start_conversation(sdp_peer *peer, enum e_work_type work_type,
         }
         else
         {
-            retval = send_message(peer, new_data, data_length + SDP_PREAMBLE_LENGTH);
+            retval = sdp_send_message(peer, new_data, data_length + SDP_PREAMBLE_LENGTH);
         }
         free(new_data);
 

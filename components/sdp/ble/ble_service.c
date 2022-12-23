@@ -40,6 +40,9 @@ char* ble_service_log_prefix;
 
 static int ble_handle_incoming(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt *ctxt) {
     sdp_peer *peer = sdp_mesh_find_peer_by_handle(conn_handle);
+    // TODO: This is a weird one, this needs to be set so that 
+    // the first reply will not be suppressed (really doesn't matter then). 
+    peer->ble_state.initial_media = true;
     return handle_incoming(peer, ctxt->om->om_data, ctxt->om->om_len, SDP_MT_BLE);
 }
 

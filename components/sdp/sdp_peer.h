@@ -9,8 +9,7 @@
 extern sdp_peer sdp_host;
 
 
-int sdp_peer_send_me_message(work_queue_item_t *queue_item);
-int sdp_peer_send_who_message(sdp_peer *peer);
+int sdp_peer_send_hi_message(sdp_peer *peer, bool is_reply);
 int sdp_peer_inform(work_queue_item_t *queue_item);
 void sdp_peer_init(char *_log_prefix);
 

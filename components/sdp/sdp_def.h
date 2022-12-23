@@ -189,6 +189,19 @@ typedef uint8_t sdp_mac_address[SDP_MAC_ADDR_LEN];
 /* A peer name in SDP */
 typedef char sdp_peer_name[CONFIG_SDP_PEER_NAME_LEN];
 
+struct sdp_peer_state
+{
+    /* V 1.0, just save if it has been working at all */
+    bool initial_media;
+
+    /* Last time heard from the peer*/
+    uint64_t last_time;
+    /* Last time we tried to contact the  peer*/
+    uint64_t last_time_out;
+    /* Last time a  */
+    uint64_t last_success;
+};
+
 /* A peer */
 typedef struct sdp_peer
 {
@@ -206,22 +219,32 @@ typedef struct sdp_peer
     sdp_media_types supported_media_types;
     /* The unique handle of the peer*/
     uint16_t peer_handle;    
-    /* Last time heard from the peer*/
-    uint64_t last_time_in;
-    /* Last time we tried to contact the  peer*/
-    uint64_t last_time_out;
+
     /* The peer state, if unknown, it cannot be used in many situations*/
     e_peer_state state;
     /* Protocol version*/
     uint8_t protocol_version;
     /* Minimum supported protocol version*/
     uint8_t min_protocol_version;
-
     /* Next availability (measured in mikroseconds from first boot)*/
     uint64_t next_availability;
 
+    /* Media-specific statistics*/
+    #if CONFIG_SDP_LOAD_BLE
+    struct sdp_peer_state ble_stats;
+    #endif
 
+    #if CONFIG_SDP_LOAD_ESP_NOW
+    struct sdp_peer_state espnow_state;
+    #endif
 
+    #if CONFIG_SDP_LOAD_LORA
+    struct sdp_peer_state lora_state;
+    #endif
+    #if CONFIG_SDP_LOAD_I2C
+    struct sdp_peer_state i2c_state;
+    #endif
+    
     SLIST_ENTRY(sdp_peer)
     next;
 

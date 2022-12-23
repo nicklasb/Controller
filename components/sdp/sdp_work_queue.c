@@ -121,7 +121,7 @@ static void sdp_worker(queue_context *q_context)
                     curr_work = safe_get_head_work_item(q_context);
                     if (curr_work != NULL)
                     {
-                        ESP_LOGI(spd_work_queue_log_prefix, "Running multitasking callback on_work. Worker address %p", q_context->on_work_cb);
+                        ESP_LOGI(spd_work_queue_log_prefix, ">> Running multitasking callback on_work. Worker address %p", q_context->on_work_cb);
                         char taskname[50] = "\0";
                         sprintf(taskname, "%s_worker_%d", spd_work_queue_log_prefix, q_context->task_count + 1);
                         /* To avoid congestion on Core 0, we act on non-immidiate requests on Core 1 (APP) */
@@ -130,12 +130,12 @@ static void sdp_worker(queue_context *q_context)
                         int rc = xTaskCreatePinnedToCore((TaskFunction_t)q_context->on_work_cb, taskname, 8192, curr_work, 8, &th, 1);
                         if (rc != pdPASS)
                         {
-                            ESP_LOGE(spd_work_queue_log_prefix, "Failed creating work task, returned: %i (see projdefs.h)", rc);
+                            ESP_LOGE(spd_work_queue_log_prefix, ">> Failed creating work task, returned: %i (see projdefs.h)", rc);
                             alter_task_count(q_context, -1);
                         }
                         else
                         {
-                            ESP_LOGI(spd_work_queue_log_prefix, "Created task: %s, taskhandle: %i, taskcount: %i", taskname, (int)th, q_context->task_count);
+                            ESP_LOGI(spd_work_queue_log_prefix, ">> Created task: %s, taskhandle: %i, taskcount: %i", taskname, (int)th, q_context->task_count);
                         }
                     }
                 }
@@ -146,20 +146,20 @@ static void sdp_worker(queue_context *q_context)
                 curr_work = safe_get_head_work_item(q_context);
                 if (curr_work != NULL)
                 {
-                    ESP_LOGI(spd_work_queue_log_prefix, "Running single task callback on_work. Worker address %p, work address %p.", (void *)(q_context->on_work_cb), (void *)(curr_work));
+                    ESP_LOGI(spd_work_queue_log_prefix, ">> Running single task callback on_work. Worker address %p, work address %p.", (void *)(q_context->on_work_cb), (void *)(curr_work));
                     q_context->on_work_cb(curr_work);
                 }
             }
         }
-
+        
         /* If defined, call the poll callback. */
         if (q_context->on_poll_cb != NULL)
         {
             q_context->on_poll_cb(q_context);
         }
-
+        vTaskDelay(100/ portTICK_PERIOD_MS);
         // TODO: Use event loop to wait instead?
-        vTaskDelay(100 / portTICK_PERIOD_MS);
+        
     }
     ESP_LOGI(spd_work_queue_log_prefix, "Worker task %s shut down, deleting task.", q_context->worker_task_name);
     free(q_context->__x_queue_semaphore);

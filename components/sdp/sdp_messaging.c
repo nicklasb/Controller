@@ -443,6 +443,8 @@ int sdp_send_message(struct sdp_peer *peer, void *data, int data_length)
     {
         ESP_LOGI(messaging_log_prefix, ">> ESP-NOW sending to: ");
         ESP_LOG_BUFFER_HEX(messaging_log_prefix, peer->base_mac_address, SDP_MAC_ADDR_LEN);
+        ESP_LOGI(messaging_log_prefix, ">> Data (including 4 bytes preamble): ");
+        ESP_LOG_BUFFER_HEXDUMP(messaging_log_prefix, data, data_length, ESP_LOG_INFO);        
         rc = espnow_send_message(peer->base_mac_address, data, data_length);
         if (rc == 0)
         {

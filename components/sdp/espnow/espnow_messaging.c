@@ -61,7 +61,6 @@ static void espnow_recv_cb(const uint8_t *mac_addr, const uint8_t *data, int len
     {
         ESP_LOGI(espnow_messaging_log_prefix, "<< espnow_recv_cb got a message from a peer. Data:");
         ESP_LOG_BUFFER_HEX(espnow_messaging_log_prefix, data, len);
-        handle_incoming(peer, data, len, SDP_MT_ESPNOW);
     }
     else
     {
@@ -78,8 +77,10 @@ static void espnow_recv_cb(const uint8_t *mac_addr, const uint8_t *data, int len
 
         char *new_name;
         asprintf(&new_name, "UNKNOWN_%i", unknown_counter);
-        sdp_peer *s_peer = sdp_add_init_new_peer(new_name, mac_addr, SDP_MT_ESPNOW);
+        peer = sdp_add_init_new_peer(new_name, mac_addr, SDP_MT_ESPNOW);
+        
     }
+    handle_incoming(peer, data, len, SDP_MT_ESPNOW);
 }
 
 

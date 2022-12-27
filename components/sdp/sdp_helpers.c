@@ -192,6 +192,7 @@ void log_peer_info(char * _log_prefix, sdp_peer *peer) {
     peer->base_mac_address[1],peer->base_mac_address[2],peer->base_mac_address[3],peer->base_mac_address[4],peer->base_mac_address[5]);
     ESP_LOGI(_log_prefix, "State:                 %hhx", peer->state);
     ESP_LOGI(_log_prefix, "Supported media types: %hhx", peer->supported_media_types);
+    ESP_LOGI(_log_prefix, "Relation id:           %u", peer->relation_id);
     ESP_LOGI(_log_prefix, "Protocol version:      %i", peer->protocol_version);
     ESP_LOGI(_log_prefix, "Next availability:     %lli", peer->next_availability);
     ESP_LOGI(_log_prefix, "Handle:                %i", peer->peer_handle);

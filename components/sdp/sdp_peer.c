@@ -2,11 +2,30 @@
 
 #include <string.h>
 #include <esp_log.h>
+#include <esp32/rom/crc.h>
 
 #include "sdp_helpers.h"
 #include "sdp_messaging.h"
 
 char *peer_log_prefix;
+
+
+struct relation {
+    uint32_t relation_id;
+    sdp_mac_address mac_address;
+};
+
+/**
+ * @brief  This is an an array with all relations 
+ * It has two uses:
+ * 1. Faster way to lookup the mac address than looping peers (discern where a communication is relevant)
+ * 2. Stores relevant peers relations ids and their mac adresses in RTC, 
+ *    making it possible to reconnect after deep sleep
+ * 3. We doesn't have to use the peer list when sending and receiving data
+ * 
+ */
+RTC_DATA_ATTR struct relation relations[SDP_MAX_PEERS];
+RTC_DATA_ATTR uint8_t rel_end = 0;
 
 sdp_peer sdp_host = {};
 
@@ -50,14 +69,20 @@ int sdp_peer_send_hi_message(sdp_peer *peer, bool is_reply) {
      * supported  media types: A byte describing the what communication technologies the peer supports.
      * adresses: A list of addresses in the order of the bits in the media types byte.
      */
-    char fmt_str[22] = "HI";
-    if (is_reply) {
-        strcpy(fmt_str, "HIR");
+    char fmt_str[22] = "HIR";
+    if (!is_reply) {
+        strcpy(fmt_str, "HI");
+        uint8_t *tmp_crc_data = malloc(12);
+        memcpy(tmp_crc_data, peer->base_mac_address, SDP_MAC_ADDR_LEN);
+        memcpy(tmp_crc_data+SDP_MAC_ADDR_LEN, sdp_host.base_mac_address, SDP_MAC_ADDR_LEN);
+        peer->relation_id = crc32_be(0, tmp_crc_data, SDP_MAC_ADDR_LEN * 2);
+        free(tmp_crc_data);
     }
-
+    add_relation(peer->base_mac_address, peer->relation_id);
+    
     uint8_t *hi_msg = NULL;
-    int hi_length = add_to_message(&hi_msg, strcat(fmt_str, "|%i|%i|%s|%hhu|%b6"), 
-        pv, pvm, sdp_host.name, supported_media_types, sdp_host.base_mac_address);
+    int hi_length = add_to_message(&hi_msg, strcat(fmt_str, "|%u|%u|%s|%hhu|%u|%b6"), 
+        pv, pvm, sdp_host.name, supported_media_types, peer->relation_id, sdp_host.base_mac_address);
     if (hi_length > 0) {
         void *new_data = sdp_add_preamble(HANDSHAKE, 0, hi_msg, hi_length);
         retval = sdp_send_message(peer, new_data, hi_length+ SDP_PREAMBLE_LENGTH);
@@ -87,10 +112,10 @@ int sdp_peer_inform(work_queue_item_t *queue_item) {
 
     /* Set supported media types*/
     queue_item->peer->supported_media_types = (uint8_t)atoi(queue_item->parts[4]);
-
+    queue_item->peer->relation_id = atoi(queue_item->parts[5]);
 
     /* Set base MAC address*/ 
-    memcpy(&queue_item->peer->base_mac_address, queue_item->parts[5], SDP_MAC_ADDR_LEN);
+    memcpy(&queue_item->peer->base_mac_address, queue_item->parts[6], SDP_MAC_ADDR_LEN);
     
     ESP_LOGI(peer_log_prefix, "<< Peer %s now more informed ",queue_item->peer->name);
     log_peer_info(peer_log_prefix, queue_item->peer);
@@ -100,6 +125,54 @@ int sdp_peer_inform(work_queue_item_t *queue_item) {
     
     return 0;
 
+}
+
+/** 
+ * Find the relation id through the mac address.
+ * Usua
+*/
+
+/**
+ * @brief Find the relation id through the mac address.
+ * (without having to loop all peers) 
+ * @param relation_id The relation id to investigate
+ * @return sdp_mac_address* 
+ */
+sdp_mac_address *relation_id_to_mac_address(uint32_t relation_id) {
+    int rel_idx = 0;
+    while (rel_idx <= rel_end) {
+        if (relations[rel_idx].relation_id == relation_id) {
+            return &(relations[rel_idx].mac_address);
+        }
+        rel_idx++;
+    }
+    ESP_LOGI(peer_log_prefix, "Relation %u not found.", relation_id);
+    return NULL;
+}
+
+bool add_relation(sdp_mac_address mac_address, uint32_t relation_id) {
+    /* Is it already there? */
+    int rel_idx = 0;
+    while (rel_idx <= rel_end) {
+        if (memcmp(relations[rel_idx].mac_address, mac_address, SDP_MAC_ADDR_LEN) == 0) {
+            return false;
+        }
+        rel_idx++;
+    }
+    if (rel_end >= SDP_MAX_PEERS) {
+        ESP_LOGE(peer_log_prefix, "!!! Relations are added that cannot be accommodated, this is likely an attack! !!!");
+        // TODO: This needs to be reported to monitoring
+        // TODO: Monitoring should detect slow (but pointless) and fast adding of peers (similar RSSI:s indicate the same source, too). 
+        return false;
+    } else {
+        
+        relations[rel_end].relation_id = relation_id;
+        memcpy(relations[rel_end].mac_address, mac_address, SDP_MAC_ADDR_LEN);
+        ESP_LOGI(peer_log_prefix, "Relation added at %hhu", rel_end);
+        rel_end++;
+        
+        return true;
+    }
 }
 
 void sdp_peer_init(char *_log_prefix) {

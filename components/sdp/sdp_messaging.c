@@ -264,7 +264,7 @@ int handle_incoming(sdp_peer *peer, const uint8_t *data, int data_len, e_media_t
         {
             // We have already added it as a peer, lets get any information
             sdp_peer_inform(new_item);
-            // If its not a reply, we reply with our information
+            // If its wasn't a reply, we reply with our information
             if (strcmp(new_item->parts[0], "HIR") != 0) {
                 if (sdp_peer_send_hi_message(peer, true) == SDP_MT_NONE)
                 {
@@ -272,8 +272,6 @@ int handle_incoming(sdp_peer *peer, const uint8_t *data, int data_len, e_media_t
                 }
             }
         }
-                // So we want to talk, begin with introducing ourselves.
-        
 
         break;
     case ORCHESTRATION:

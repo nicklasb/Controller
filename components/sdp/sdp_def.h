@@ -201,6 +201,11 @@ struct sdp_peer_state
     /* Last time a  */
     uint64_t last_success;
 };
+/* This is the maximum number of peers */
+/* NOTE: A list of relations, it relations+mac_addresses (4 + 6 * SDP_MAX_PEERS) is stored
+* in RTC memory, so 32 peers mean 320 bytes of the 8K RTC memory
+*/
+#define SDP_MAX_PEERS 32
 
 /* A peer */
 typedef struct sdp_peer
@@ -217,15 +222,19 @@ typedef struct sdp_peer
 
     /* Eight bits of the media types*/
     sdp_media_types supported_media_types;
-    /* The unique handle of the peer*/
-    uint16_t peer_handle;    
 
-    /* The peer state, if unknown, it cannot be used in many situations*/
-    e_peer_state state;
     /* Protocol version*/
     uint8_t protocol_version;
     /* Minimum supported protocol version*/
     uint8_t min_protocol_version;
+     /** A generated 32-bit crc32 of the peer's mac address and this peer
+      * Used by non-addressed and low-bandwith medias (LoRa) to economically resolve peers w
+      */
+    uint32_t relation_id;   
+    /* The unique handle of the peer*/
+    uint16_t peer_handle;    
+    /* The peer state, if unknown, it cannot be used in many situations*/
+    e_peer_state state;    
     /* Next availability (measured in mikroseconds from first boot)*/
     uint64_t next_availability;
 

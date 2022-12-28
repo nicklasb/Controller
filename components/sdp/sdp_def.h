@@ -28,7 +28,7 @@ enum sdp_states
 #define SDP_PROTOCOL_VERSION_MIN 0
 
 /* The length, in bytes of the SDP preamble. */
-#define SDP_PREAMBLE_LENGTH 4
+#define SDP_PREAMBLE_LENGTH 3
 
 /* Define all the reasonable time */
 #define SECOND 1000000
@@ -276,8 +276,6 @@ typedef struct work_queue_item
 
     /* Hash of indata */
     uint16_t crc32;
-    /* Protocol version of the request */
-    uint8_t version;
     /* The conversation it belongs to */
     uint16_t conversation_id;
     /* The data */

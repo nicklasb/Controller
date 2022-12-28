@@ -62,10 +62,9 @@ int sdp_send_message(struct sdp_peer *peer, void *data, int data_length);
 void *sdp_add_preamble(e_work_type work_type, uint16_t conversation_id, const void *data, int data_length)
 {
     char *new_data = malloc(data_length + SDP_PREAMBLE_LENGTH);
-    new_data[0] = SDP_PROTOCOL_VERSION;
+    new_data[0] = (uint8_t)work_type;
     new_data[1] = (uint8_t)(&conversation_id)[0];
     new_data[2] = (uint8_t)(&conversation_id)[1];
-    new_data[3] = (uint8_t)work_type;
     memcpy(&(new_data[SDP_PREAMBLE_LENGTH]), data, (size_t)data_length);
     return new_data;
 }
@@ -164,9 +163,8 @@ int handle_incoming(sdp_peer *peer, const uint8_t *data, int data_len, e_media_t
     {
         // TODO: Change malloc to something more optimized?
         new_item = malloc(sizeof(work_queue_item_t));
-        new_item->version = data[0];
+        new_item->work_type = data[0];    
         new_item->conversation_id = (uint16_t)data[1];
-        new_item->work_type = data[3];
         new_item->raw_data_length = data_len - SDP_PREAMBLE_LENGTH;
         new_item->raw_data = malloc(new_item->raw_data_length);
         memcpy(new_item->raw_data, &(data[SDP_PREAMBLE_LENGTH]), new_item->raw_data_length);
@@ -178,8 +176,8 @@ int handle_incoming(sdp_peer *peer, const uint8_t *data, int data_len, e_media_t
         // Save the conversation
         safe_add_conversation(peer, "external", new_item->conversation_id);
 
-        ESP_LOGI(messaging_log_prefix, "<< Message info : Version: %u, Conv.id: %u, Work type: %u, Media type: %u,Data len: %u, Message parts: %i.",
-                 new_item->version, new_item->conversation_id, new_item->work_type,
+        ESP_LOGI(messaging_log_prefix, "<< Message info : Work type: %u, Conv.id: %u, Media type: %u,Data len: %u, Message parts: %i.",
+                 new_item->work_type, new_item->conversation_id, 
                  new_item->media_type, new_item->raw_data_length, new_item->partcount);
     }
     else
@@ -409,6 +407,7 @@ int sdp_send_message(struct sdp_peer *peer, void *data, int data_length)
     int rc = 0;
     e_media_type preferred = SDP_MT_NONE;
     ESP_LOGI(messaging_log_prefix, ">> peer->supported_media_types: %hhx ", peer->supported_media_types);
+
 #ifdef CONFIG_SDP_LOAD_BLE
 
     // Send message using BLE

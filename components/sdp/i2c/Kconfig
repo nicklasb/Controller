@@ -1,0 +1,69 @@
+menu "I2C Configuration"
+    depends on SDP_LOAD_I2C
+    help 
+        Robusto can use I2C for wired communications. 
+        The method it uses is slightly atypical; all peers are both masters and slaves.
+        Basically, a peer is a master only when it is sending and receiving and acknowlegdements for that. 
+        Then it immitiately goes in to slave mode and listens to the bus for packets with its address.
+        This way is that peers can freely commununicate and adjust communication speeds without interfering with others.
+        Changing modes is relatively quick, especially stopping being the master, which makes the performance impact small.
+        
+        
+
+    config I2C_SDA_IO
+        int "SDA GPIO Pin"
+        default 4
+        range 0 40
+        help
+            Pin number of the SDA (data) line.
+    config I2C_SCL_IO
+        int "SCL GPIO Pin"
+        default 4
+        range 0 40
+        help
+            Pin number of the SCL (clock) line.
+    config I2C_CONTROLLER_NUM
+        int "SCL Controller to use"
+        default 0
+        range 0 1
+        help
+            The ESP32 have two I2C controllers (sometimes called ports), choose which to use for Robusto.
+            Note: You probably want to use one for communication with peripherals (like sensors, screens).
+            If you mix them, they will interfere with each others function. 
+
+    config I2C_MAX_FREQ_HZ
+        int "Maximum I2C clock frequency"
+        default 400000
+        range 0 4000000
+        help
+            Robusto will always try with the highest frequency, and then taper down until its working. 
+            The max frequency is 4 Mhz, however this is likely not going to work.
+            1 200 000 Hz seems to be max on 20 cm dupont unshielded with common ground via USB.
+            The default, 400 000 Hz, is the higher common frequency. 
+            Frequency translates into Kbit/s like this: kbit/s = freq(Hz)/16. 
+            
+
+    config I2C_ACKNOWLEGMENT_TIMEOUT_MS
+        int "I2C acknowlegement timeout (milliseconds)"
+        default 50
+        range 0 10000
+        help
+            The extra time Robusto will wait for a acknowledgement (not to confuse with I2C ack/nack).
+            To minimize the time it hogs the line to optimize throughput, Robusto
+            will predict the time a transmission will take and adjust timeouts to this. 
+            However, it has to wait a short while for the slave to respond with the receipt. 
+            This it usually a very short time, but if the slave has enabled heavy logging for example, 
+            it might take hundreds of milliseconds. Here this can be taken into account.
+
+    config I2C_ADDR
+        int "I2C Address"
+        default -1
+        range -1 256
+        help
+            When a peer listens, it is put in I2C slave mode by Robusto, and listens for request that matches a given address.
+            This is that address. 
+            IMPORTANT: This must be actively set to a value between 0 and 256 or the build will fail. 
+            Note: It is possible that this address might become dynamically assigned in later versions.
+            In that case this setting will force that address to be used, and -1 will no longer stop builds.
+
+endmenu

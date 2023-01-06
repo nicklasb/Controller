@@ -4,9 +4,10 @@
 menu "SDP Configuration"
 
     config SDP_LOAD_BLE
-        bool "Load Bluetooth libraries"
+        bool "Load Bluetooth Low Energy (BLE) libraries"
         help
             Set this option to tell SDP to load the Bluetooth library
+            https://en.wikipedia.org/wiki/Bluetooth_Low_Energy
 
     rsource "ble/Kconfig"
 
@@ -14,6 +15,7 @@ menu "SDP Configuration"
         bool "Load ESP-Now libraries"
         help
             Set this option to tell SDP to load the ESP-Now library
+            https://www.espressif.com/en/products/software/esp-now/overview
 
     rsource "espnow/Kconfig"
 
@@ -21,7 +23,13 @@ menu "SDP Configuration"
         bool "Load LoRa libraries"
         help
             Set this option to tell SDP to load the LoRa library
-    
+            https://en.wikipedia.org/wiki/LoRa
+    config SDP_LOAD_I2C
+        bool "Load I2C libraries"
+        help
+            Set this option to tell SDP to load the I2C wired library
+            https://en.wikipedia.org/wiki/I%C2%B2C
+        
     rsource "lora/Kconfig" 
 
     config SDP_LOAD_UMTS

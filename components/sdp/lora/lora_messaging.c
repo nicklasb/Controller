@@ -1,6 +1,6 @@
 #include "lora_messaging.h"
 
-#include "lora.h"
+#include "lora_lib.h"
 #include <esp_log.h>
 #include <esp_timer.h>
 #include <sdp_mesh.h>

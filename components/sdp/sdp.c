@@ -29,7 +29,7 @@
 #include "sdp_helpers.h"
 
 #ifdef CONFIG_SDP_LOAD_BLE
-#include "ble/ble_init.h"
+#include "ble/ble.h"
 #endif
 
 #ifdef CONFIG_SDP_LOAD_ESP_NOW
@@ -41,9 +41,11 @@
 #endif
 
 #ifdef CONFIG_SDP_LOAD_LORA
-#include "lora/lora_init.h"
+#include "lora/lora.h"
 #endif
-
+#ifdef CONFIG_SDP_LOAD_I2C
+#include "i2c/i2c.h"
+#endif
 char *sdp_log_prefix;
 
 enum sdp_states sdp_state;

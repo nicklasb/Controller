@@ -6,7 +6,7 @@
 #include <sdkconfig.h>
 #ifdef CONFIG_SDP_LOAD_BLE
 
-#include "ble_init.h"
+#include "ble.h"
 
 
 #include <host/ble_hs.h>

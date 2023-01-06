@@ -1,7 +1,7 @@
 
 
-#ifndef _BLE_INIT_H_
-#define _BLE_INIT_H_
+#ifndef _BLE_H_
+#define _BLE_H_
     /*********************
      *      DEFINES
      *********************/

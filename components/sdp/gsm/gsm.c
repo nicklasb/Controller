@@ -1,4 +1,6 @@
 #include <sdkconfig.h>
+// TODO: The naming of things in the KConfig still have the names of the examples, this needs to change
+
 #ifdef CONFIG_SDP_LOAD_UMTS
 
 #include "gsm.h"
@@ -122,6 +124,7 @@ void gsm_reset_rtc() {
 
 void gsm_init(char *_log_prefix)
 {
+    
     gsm_log_prefix = _log_prefix;
     gsm_init_worker(&gsm_do_on_work_cb, NULL, gsm_log_prefix);
     

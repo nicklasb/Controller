@@ -43,6 +43,7 @@
 #ifdef CONFIG_SDP_LOAD_LORA
 #include "lora/lora.h"
 #endif
+
 #ifdef CONFIG_SDP_LOAD_I2C
 #include "i2c/i2c.h"
 #endif
@@ -81,7 +82,11 @@ void sdp_shutdown()
     gsm_shutdown();
 #endif
 
-    sdp_shutdown_monitor();
+#ifdef CONFIG_SDP_LOAD_I2C
+    i2c_shutdown();
+#endif
+
+sdp_shutdown_monitor();
 }
 
 void delete_task_if_shutting_down()
@@ -126,25 +131,25 @@ int sdp_init(work_callback *work_cb, work_callback *priority_cb, before_sleep *b
     
     sdp_init_worker(work_cb, priority_cb, _log_prefix);
     sdp_init_messaging(_log_prefix);
-
     // Create the default event loop (almost all technologies use it    )
     ESP_ERROR_CHECK(esp_event_loop_create_default());
 
 /* Init media types */
+
+#ifdef CONFIG_SDP_LOAD_I2C
+   i2c_init(_log_prefix);
+#endif
 #ifdef CONFIG_SDP_LOAD_BLE
-    ESP_LOGI(_log_prefix, "Initiating BLE..");
-    ble_init(_log_prefix, is_conductor);
+
+    ble_init(_log_prefix);
 #endif
 #ifdef CONFIG_SDP_LOAD_ESP_NOW
-    ESP_LOGI(_log_prefix, "Initiating ESP-NOW..");
     espnow_init(_log_prefix);
 #endif
 #ifdef CONFIG_SDP_LOAD_UMTS
-    ESP_LOGI(_log_prefix, "Initiating GSM modem..");
     gsm_init(_log_prefix);
 #endif
 #ifdef CONFIG_SDP_LOAD_LORA
-    ESP_LOGI(_log_prefix, "Initiating LoRa..");
     lora_init(_log_prefix);
 #endif
 

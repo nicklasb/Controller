@@ -113,8 +113,6 @@ void lora_shutdown() {
  */
 void lora_init(char * _log_prefix) {
     lora_init_log_prefix = _log_prefix;
-
-
     ESP_LOGI(lora_init_log_prefix, "Initializing LoRa");
     lora_messaging_init(lora_init_log_prefix);
     init_lora();

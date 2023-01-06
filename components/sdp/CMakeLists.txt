@@ -25,6 +25,11 @@ if (CONFIG_SDP_LOAD_LORA)
     LIST(APPEND sdp_sources ${tmp_sources})
 endif()
 
+if (CONFIG_SDP_LOAD_I2C)
+    FILE(GLOB tmp_sources "i2c/*.*")
+    LIST(APPEND sdp_sources ${tmp_sources})
+endif()
+
 idf_component_register(SRCS ${sdp_sources} 
 INCLUDE_DIRS . 
 REQUIRES driver esp_netif nvs_flash esp_timer esp_wifi #mqtt esp_modem esp_adc #bt

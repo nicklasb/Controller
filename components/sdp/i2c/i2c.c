@@ -1,3 +1,6 @@
+#include "sdkconfig.h"
+#if CONFIG_SDP_LOAD_I2C
+
 #include "i2c.h"
 #include "esp_log.h"
 #include "driver/i2c.h"
@@ -5,16 +8,9 @@
 #include "esp32/rom/crc.h"
 #include "inttypes.h"
 
-#define I2C_SDA_IO 4
-#define I2C_SCL_IO 22
-
-/* I2C clock frequency */
-/* (1 200 000 Hz seems to be max on 20 cm dupont unshielded with common ground via USB)) */
-#define I2C_FREQ_HZ 400000 
-#define I2C_RESPONSE_TIMEOUT_MS 50
 #define I2C_TIMEOUT_MS 80
-#define I2C_NUM 0
-#define SLAVE_ADDR 0x68
+
+// TODO: What is the point of WRITE_BIT?
 #define WRITE_BIT I2C_MASTER_WRITE /*!< I2C master write */
 #define READ_BIT I2C_MASTER_READ   /*!< I2C master read */
 #define ACK_CHECK_EN 0x1           /*!< I2C master will check ack from slave*/
@@ -22,7 +18,6 @@
 #define ACK_VAL 0x0                /*!< I2C ack value */
 #define NACK_VAL 0x1               /*!< I2C nack value */
 
-#define IS_MASTER 1
 #define TEST_DATA_LENGTH_KB 10
 #define TEST_DATA_MULTIPLIER 100
 
@@ -34,49 +29,52 @@
 #error "TEST_DATA_LENGTH_KB * TEST_DATA_MULTIPLIER must be divideable by 10!"
 #endif
 
-static const char *TAG = "i2c-simple";
+#if CONFIG_I2C_ADDR == -1
+#error "I2C - An I2C address must be set in menuconfig!"
+#endif
+
+const char * i2c_log_prefix;
 
 /**
  * @brief i2c initialization
  */
-static esp_err_t i2c_init(bool is_master)
+static esp_err_t i2c_driver_init(bool is_master)
 {
-
+    ESP_LOGI("sdfsdf", "I2C Master ");
     if (is_master)
     {
 
         i2c_config_t conf = {
             .mode = I2C_MODE_MASTER,
-            .sda_io_num = I2C_SDA_IO,
-            .scl_io_num = I2C_SCL_IO,
+            .sda_io_num = CONFIG_I2C_SDA_IO,
+            .scl_io_num = CONFIG_I2C_SCL_IO,
             .sda_pullup_en = GPIO_PULLUP_ENABLE,
             .scl_pullup_en = GPIO_PULLUP_ENABLE,
-            .master.clk_speed = I2C_FREQ_HZ,
-            //.slave.slave_addr = SLAVE_ADDR,
+            .master.clk_speed = CONFIG_I2C_MAX_FREQ_HZ,
             .clk_flags = I2C_SCLK_SRC_FLAG_FOR_NOMAL,
         };
-        ESP_ERROR_CHECK(i2c_param_config(I2C_NUM, &conf));
+        ESP_ERROR_CHECK(i2c_param_config(CONFIG_I2C_CONTROLLER_NUM, &conf));
 
-        ESP_LOGI(TAG, "I2C Master - Installing driver");
-        return i2c_driver_install(I2C_NUM, conf.mode, I2C_TX_BUF_KB * 2, I2C_RX_BUF_KB * 2, 0);
+        ESP_LOGI(i2c_log_prefix, "I2C Master - Installing driver");
+        return i2c_driver_install(CONFIG_I2C_CONTROLLER_NUM, conf.mode, I2C_TX_BUF_KB * 2, I2C_RX_BUF_KB * 2, 0);
     }
     else
     {
 
         i2c_config_t conf = {
             .mode = I2C_MODE_SLAVE,
-            .sda_io_num = I2C_SDA_IO,
-            .scl_io_num = I2C_SCL_IO,
+            .sda_io_num = CONFIG_I2C_SDA_IO,
+            .scl_io_num = CONFIG_I2C_SCL_IO,
             .sda_pullup_en = GPIO_PULLUP_ENABLE,
             .scl_pullup_en = GPIO_PULLUP_ENABLE,
             //.master.clk_speed = I2C_FREQ_HZ,
-            .slave.slave_addr = SLAVE_ADDR,
+            .slave.slave_addr = CONFIG_I2C_ADDR,
             .clk_flags = I2C_SCLK_SRC_FLAG_FOR_NOMAL,
         };
-        ESP_ERROR_CHECK(i2c_param_config(I2C_NUM, &conf));
+        ESP_ERROR_CHECK(i2c_param_config(CONFIG_I2C_CONTROLLER_NUM, &conf));
 
-        ESP_LOGI(TAG, "I2C Slave - Installing driver");
-        return i2c_driver_install(I2C_NUM, conf.mode, I2C_TX_BUF_KB * 2, I2C_RX_BUF_KB * 2, 0);
+        ESP_LOGI(i2c_log_prefix, "I2C Slave - Installing driver");
+        return i2c_driver_install(CONFIG_I2C_CONTROLLER_NUM, conf.mode, I2C_TX_BUF_KB * 2, I2C_RX_BUF_KB * 2, 0);
     }
 }
 /**
@@ -87,12 +85,12 @@ static esp_err_t i2c_init(bool is_master)
  * @return int The timeout needed.
  */
 int calc_timeout_ms(uint32_t data_length) {
-    int timeout_ms = (data_length / (I2C_FREQ_HZ/16*10000)) + I2C_RESPONSE_TIMEOUT_MS;
-    ESP_LOGI(TAG, "I2C - Timeout calculated to %i ms.", timeout_ms);
+    int timeout_ms = (data_length / (CONFIG_I2C_MAX_FREQ_HZ/16*10000)) + CONFIG_I2C_ACKNOWLEGMENT_TIMEOUT_MS;
+    ESP_LOGI(i2c_log_prefix, "I2C - Timeout calculated to %i ms.", timeout_ms);
     return timeout_ms;
 }
 
-void app_main()
+void i2c_start()
 {
     uint32_t send_len = TEST_DATA_LENGTH_KB * TEST_DATA_MULTIPLIER;
     uint8_t *send_data = malloc(send_len);
@@ -102,10 +100,10 @@ void app_main()
         memcpy(send_data + (i * 10), &pattern, 10);
     }
 
-    ESP_LOGI(TAG, "I2C - Initiated %i bytes of data, crc32 :%u", send_len, crc32_be(0, send_data, send_len));
+    ESP_LOGI(i2c_log_prefix, "I2C - Initiated %i bytes of data, crc32 :%u", send_len, crc32_be(0, send_data, send_len));
     if (send_len <= 1000)
     {
-        ESP_LOG_BUFFER_HEXDUMP(TAG, send_data, send_len, ESP_LOG_INFO);
+        ESP_LOG_BUFFER_HEXDUMP(i2c_log_prefix, send_data, send_len, ESP_LOG_INFO);
     }
 
     uint8_t *rcv_data = malloc(send_len);
@@ -115,32 +113,32 @@ void app_main()
     while (1)
     {
         // Init as a master.
-        ESP_ERROR_CHECK(i2c_init(true));
+        ESP_ERROR_CHECK(i2c_driver_init(true));
 
         uint64_t starttime;
         starttime = esp_timer_get_time();
 
         i2c_cmd_handle_t cmd = i2c_cmd_link_create();
         i2c_master_start(cmd);
-        i2c_master_write_byte(cmd, (SLAVE_ADDR << 1) | I2C_MASTER_WRITE, ACK_CHECK_EN);
+        i2c_master_write_byte(cmd, (CONFIG_I2C_ADDR << 1) | I2C_MASTER_WRITE, ACK_CHECK_EN);
         i2c_master_write(cmd, send_data, send_len, ACK_CHECK_EN);
         i2c_master_stop(cmd);
 
         esp_err_t ret = ESP_FAIL;
         int retries = 0;
         // Check if SDA is HIGH (then we can send)
-        if (gpio_get_level(I2C_SDA_IO) == 1)
+        if (gpio_get_level(CONFIG_I2C_SDA_IO) == 1)
         {
-            gpio_set_level(I2C_SDA_IO, 0);
+            gpio_set_level(CONFIG_I2C_SDA_IO, 0);
             
-            ESP_LOGI(TAG, "I2C Master - >> SDA was high, now set to low.");
+            ESP_LOGI(i2c_log_prefix, "I2C Master - >> SDA was high, now set to low.");
             
             do {
-                ESP_LOGI(TAG, "I2C Master - >> Sending, try %i.", retries);
-                ret = i2c_master_cmd_begin(I2C_NUM, cmd, 1000 / portTICK_PERIOD_MS);
+                ESP_LOGI(i2c_log_prefix, "I2C Master - >> Sending, try %i.", retries);
+                ret = i2c_master_cmd_begin(CONFIG_I2C_CONTROLLER_NUM, cmd, 1000 / portTICK_PERIOD_MS);
                 if (ret != ESP_OK)
                 {
-                    ESP_LOGE(TAG, "I2C Master - >> Send failure, code %i.", ret);
+                    ESP_LOGE(i2c_log_prefix, "I2C Master - >> Send failure, code %i.", ret);
                     vTaskDelay(I2C_TIMEOUT_MS / 2 / portTICK_PERIOD_MS);
                 }
                 retries++;
@@ -151,27 +149,27 @@ void app_main()
 
             if (ret == ESP_OK)
             {
-                ESP_LOGI(TAG, "I2C Master - >> %d byte packet sent...speed %f byte/s, air time: %lli , return value: %i", send_len,
+                ESP_LOGI(i2c_log_prefix, "I2C Master - >> %d byte packet sent...speed %f byte/s, air time: %lli , return value: %i", send_len,
                          (float)(send_len / ((float)(esp_timer_get_time() - starttime)) * 1000000), esp_timer_get_time() - starttime, ret);
                 vTaskDelay(calc_timeout_ms(send_len)/ portTICK_PERIOD_MS);
 
                 i2c_cmd_handle_t cmd = i2c_cmd_link_create();
                 i2c_master_start(cmd);
-                i2c_master_write_byte(cmd, (SLAVE_ADDR << 1) | I2C_MASTER_READ, ACK_CHECK_EN);
+                i2c_master_write_byte(cmd, (CONFIG_I2C_ADDR << 1) | I2C_MASTER_READ, ACK_CHECK_EN);
                 i2c_master_read(cmd, rcv_data, 7, ACK_VAL);
                 i2c_master_read_byte(cmd, rcv_data + 7, NACK_VAL);
                 i2c_master_stop(cmd);
                 //memset(rcv_data, 1, read_len);
 
-                ESP_LOGI(TAG, "I2C Master  - << Reading from client.");
+                ESP_LOGI(i2c_log_prefix, "I2C Master  - << Reading from client.");
                 int retries = 0;
                 
                 do {
-                    ESP_LOGI(TAG, "I2C Master - << Reading, try %i.", retries + 1);
-                    ret = i2c_master_cmd_begin(I2C_NUM, cmd, 1000 / portTICK_PERIOD_MS);
+                    ESP_LOGI(i2c_log_prefix, "I2C Master - << Reading, try %i.", retries + 1);
+                    ret = i2c_master_cmd_begin(CONFIG_I2C_CONTROLLER_NUM, cmd, 1000 / portTICK_PERIOD_MS);
                     if (ret != ESP_OK)
                     {
-                        ESP_LOGE(TAG, "I2C Master - << Read failure, code %i. Waiting a short while.", ret);
+                        ESP_LOGE(i2c_log_prefix, "I2C Master - << Read failure, code %i. Waiting a short while.", ret);
                         vTaskDelay(I2C_TIMEOUT_MS / 2 / portTICK_PERIOD_MS);
                     }
                     retries++;
@@ -181,45 +179,45 @@ void app_main()
 
                 if (ret == ESP_OK)
                 {
-                    ESP_LOGI(TAG, "I2C Master - << Got a crc %u  and length %u.",
+                    ESP_LOGI(i2c_log_prefix, "I2C Master - << Got a crc %u  and length %u.",
                              *(unsigned int *)&rcv_data[0], *(unsigned int *)&rcv_data[4]);
                     
                     if ((send_len) <= 1000)
                     {
-                        ESP_LOG_BUFFER_HEXDUMP(TAG, rcv_data, 8, ESP_LOG_INFO);
+                        ESP_LOG_BUFFER_HEXDUMP(i2c_log_prefix, rcv_data, 8, ESP_LOG_INFO);
                     }
                     
                 }
             }
             else
             {
-                ESP_LOGE(TAG, "I2C Master - >> Send failure after retries! Code: %i", ret);
+                ESP_LOGE(i2c_log_prefix, "I2C Master - >> Send failure after retries! Code: %i", ret);
             }
         } else {
-            ESP_LOGW(TAG, "I2C Master - >> SDA was low, seems we have to listen first..");
+            ESP_LOGW(i2c_log_prefix, "I2C Master - >> SDA was low, seems we have to listen first..");
         }
-        ESP_LOGI(TAG, "I2C Master - Deleting driver");
-        i2c_driver_delete(I2C_NUM);
+        ESP_LOGI(i2c_log_prefix, "I2C Master - Deleting driver");
+        i2c_driver_delete(CONFIG_I2C_CONTROLLER_NUM);
         // Go into slave mode
-        ESP_ERROR_CHECK(i2c_init(false));
+        ESP_ERROR_CHECK(i2c_driver_init(false));
         
         for (int i = 0; i < 2; i++)
         {
-            ESP_LOGI(TAG, "I2C Slave - Listening");
+            ESP_LOGI(i2c_log_prefix, "I2C Slave - Listening");
         
             int read_so_far = 0;
  
             do
             {
-                ret = i2c_slave_read_buffer(I2C_NUM, rcv_data + read_so_far, read_len - read_so_far,
+                ret = i2c_slave_read_buffer(CONFIG_I2C_CONTROLLER_NUM, rcv_data + read_so_far, read_len - read_so_far,
                                             I2C_TIMEOUT_MS / portTICK_PERIOD_MS);
                 if (ret < 0) {
-                    ESP_LOGE(TAG, "I2C Slave - << Error %i reading buffer", ret);
+                    ESP_LOGE(i2c_log_prefix, "I2C Slave - << Error %i reading buffer", ret);
                 } 
                 read_so_far = read_so_far + ret;
                 if (read_so_far > read_len)
                 {
-                    ESP_LOGE(TAG, "I2C Slave - << Got too much data: %i bytes", read_so_far);
+                    ESP_LOGE(i2c_log_prefix, "I2C Slave - << Got too much data: %i bytes", read_so_far);
                 }
                 vTaskDelay(10 / portTICK_PERIOD_MS);
             } while (ret > 0); // Continue as long as there is a result.
@@ -227,34 +225,49 @@ void app_main()
             if (read_so_far > 0)
             {
                 unsigned int crc = crc32_be(0, rcv_data, read_so_far);
-                ESP_LOGI(TAG, "I2C Slave - << Got %i bytes of data. crc32 : %u", read_so_far, crc);
+                ESP_LOGI(i2c_log_prefix, "I2C Slave - << Got %i bytes of data. crc32 : %u", read_so_far, crc);
 
-                ESP_LOGI(TAG, "I2C Slave - >> Creating a response:");
+                ESP_LOGI(i2c_log_prefix, "I2C Slave - >> Creating a response:");
 
                 int response_len = read_so_far;
                 unsigned int response_buf[2];
                 response_buf[0] = crc;
                 response_buf[1] = (unsigned int)read_so_far;
-                ESP_LOG_BUFFER_HEXDUMP(TAG, &response_buf, 8, ESP_LOG_INFO);
+                ESP_LOG_BUFFER_HEXDUMP(i2c_log_prefix, &response_buf, 8, ESP_LOG_INFO);
                 
-                ret = i2c_slave_write_buffer(I2C_NUM, &response_buf, 8,
+                ret = i2c_slave_write_buffer(CONFIG_I2C_CONTROLLER_NUM, &response_buf, 8,
                                              I2C_TIMEOUT_MS / portTICK_PERIOD_MS);
                 if (ret < 0)
                 {
-                    ESP_LOGE(TAG, "I2C Slave - >> Got an error from sending back data: %i", ret);
+                    ESP_LOGE(i2c_log_prefix, "I2C Slave - >> Got an error from sending back data: %i", ret);
                 }
                 else
                 {
-                    ESP_LOGI(TAG, "I2C Slave - >> Sent a %i bytes with length of %i bytes and crc of %u. ", ret, response_len, crc);
+                    ESP_LOGI(i2c_log_prefix, "I2C Slave - >> Sent a %i bytes with length of %i bytes and crc of %u. ", ret, response_len, crc);
                 }
             }
             if (ret < 0)
             {
-                ESP_LOGI(TAG, "I2C Slave - << Got an error from receiving data: %i", ret);
+                ESP_LOGI(i2c_log_prefix, "I2C Slave - << Got an error from receiving data: %i", ret);
             }
             vTaskDelay(TEST_DELAY_MS / portTICK_PERIOD_MS);
         }
-        ESP_LOGI(TAG, "I2C Master - Deleting driver");
-        i2c_driver_delete(I2C_NUM);
+        ESP_LOGI(i2c_log_prefix, "I2C Master - Deleting driver");
+        i2c_driver_delete(CONFIG_I2C_CONTROLLER_NUM);
     }
 };
+
+void i2c_init(char * _log_prefix) {
+    i2c_log_prefix = _log_prefix;
+    ESP_LOGI(i2c_log_prefix, "I2C Initializing.");  
+    i2c_start();  
+    ESP_LOGI(i2c_log_prefix, "I2C Initiated.");
+};
+
+void i2c_shutdown() {
+    ESP_LOGI(i2c_log_prefix, "I2C Shutting down.");
+    
+    ESP_LOGI(i2c_log_prefix, "I2C Shut down.");
+};
+
+#endif

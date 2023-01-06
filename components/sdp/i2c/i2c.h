@@ -1,11 +1,8 @@
-#ifndef _I2C__H_
+#ifndef _I2C_H_
 #define _I2C_H_
 
 #include <sdkconfig.h>
 #ifdef CONFIG_SDP_LOAD_I2C
-
-#include <stdbool.h>
-
 
 void i2c_init(char * _log_prefix);
 

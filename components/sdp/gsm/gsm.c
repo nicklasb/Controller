@@ -14,6 +14,8 @@
 #include "gsm_task.h"
 #include "gsm_mqtt.h"
 
+
+
 #include "gsm_worker.h"
 
 #include <esp_timer.h>
@@ -124,8 +126,9 @@ void gsm_reset_rtc() {
 
 void gsm_init(char *_log_prefix)
 {
-    
     gsm_log_prefix = _log_prefix;
+    ESP_LOGI(gsm_log_prefix, "Initiating GSM modem..");
+
     gsm_init_worker(&gsm_do_on_work_cb, NULL, gsm_log_prefix);
     
 

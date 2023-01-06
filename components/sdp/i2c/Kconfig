@@ -1,15 +1,7 @@
 menu "I2C Configuration"
     depends on SDP_LOAD_I2C
-    help 
-        Robusto can use I2C for wired communications. 
-        The method it uses is slightly atypical; all peers are both masters and slaves.
-        Basically, a peer is a master only when it is sending and receiving and acknowlegdements for that. 
-        Then it immitiately goes in to slave mode and listens to the bus for packets with its address.
-        This way is that peers can freely commununicate and adjust communication speeds without interfering with others.
-        Changing modes is relatively quick, especially stopping being the master, which makes the performance impact small.
-        
-        
-
+       
+    
     config I2C_SDA_IO
         int "SDA GPIO Pin"
         default 4
@@ -18,7 +10,7 @@ menu "I2C Configuration"
             Pin number of the SDA (data) line.
     config I2C_SCL_IO
         int "SCL GPIO Pin"
-        default 4
+        default 22
         range 0 40
         help
             Pin number of the SCL (clock) line.
@@ -29,7 +21,7 @@ menu "I2C Configuration"
         help
             The ESP32 have two I2C controllers (sometimes called ports), choose which to use for Robusto.
             Note: You probably want to use one for communication with peripherals (like sensors, screens).
-            If you mix them, they will interfere with each others function. 
+            If you mix them, they will interfere with each others' function. 
 
     config I2C_MAX_FREQ_HZ
         int "Maximum I2C clock frequency"
@@ -50,7 +42,7 @@ menu "I2C Configuration"
         help
             The extra time Robusto will wait for a acknowledgement (not to confuse with I2C ack/nack).
             To minimize the time it hogs the line to optimize throughput, Robusto
-            will predict the time a transmission will take and adjust timeouts to this. 
+            predict the time a transmission will take and adjust timeouts to this. 
             However, it has to wait a short while for the slave to respond with the receipt. 
             This it usually a very short time, but if the slave has enabled heavy logging for example, 
             it might take hundreds of milliseconds. Here this can be taken into account.

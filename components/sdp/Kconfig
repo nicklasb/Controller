@@ -24,13 +24,16 @@ menu "SDP Configuration"
         help
             Set this option to tell SDP to load the LoRa library
             https://en.wikipedia.org/wiki/LoRa
+    
+    rsource "lora/Kconfig"             
+    
     config SDP_LOAD_I2C
         bool "Load I2C libraries"
         help
             Set this option to tell SDP to load the I2C wired library
             https://en.wikipedia.org/wiki/I%C2%B2C
         
-    rsource "lora/Kconfig" 
+    rsource "i2c/Kconfig" 
 
     config SDP_LOAD_UMTS
         bool "Load GSM/UMTS libraries"

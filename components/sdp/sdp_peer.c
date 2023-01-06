@@ -4,6 +4,8 @@
 #include <esp_log.h>
 #include <esp32/rom/crc.h>
 
+#include <esp_attr.h>
+
 #include "sdp_helpers.h"
 #include "sdp_messaging.h"
 

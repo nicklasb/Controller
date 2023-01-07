@@ -32,7 +32,7 @@
 
 
 /* The log prefix for all logging */
-char *lora_init_log_prefix;
+char *lora_log_prefix;
 
 /**
  * @brief Initiate LoRa
@@ -40,30 +40,30 @@ char *lora_init_log_prefix;
  */
 void init_lora() {
 
-    ESP_LOGI(lora_init_log_prefix, "Initializing LoRa");
+    ESP_LOGI(lora_log_prefix, "Initializing LoRa");
 	if (lora_init_local() == 0) {
-		ESP_LOGE(lora_init_log_prefix, "Does not recognize the module");
+		ESP_LOGE(lora_log_prefix, "Does not recognize the module");
 		while(1) {
 			vTaskDelay(1);
 		}
 	}
     #if CONFIG_LORA_FREQUENCY_169MHZ
-        ESP_LOGI(lora_init_log_prefix, "Frequency is 169MHz");
+        ESP_LOGI(lora_log_prefix, "Frequency is 169MHz");
         lora_set_frequency(169e6); // 169MHz
     #elif CONFIG_LORA_FREQUENCY_433MHZ
-        ESP_LOGI(lora_init_log_prefix, "Frequency is 433MHz");
+        ESP_LOGI(lora_log_prefix, "Frequency is 433MHz");
         lora_set_frequency(433e6); // 433MHz
     #elif CONFIG_LORA_FREQUENCY_470MHZ
-        ESP_LOGI(lora_init_log_prefix, "Frequency is 470MHz");
+        ESP_LOGI(lora_log_prefix, "Frequency is 470MHz");
         lora_set_frequency(470e6); // 470MHz
     #elif CONFIG_LORA_FREQUENCY_866MHZ
-        ESP_LOGI(lora_init_log_prefix, "Frequency is 866MHz");
+        ESP_LOGI(lora_log_prefix, "Frequency is 866MHz");
         lora_set_frequency(866e6); // 866MHz
     #elif CONFIG_LORA_FREQUENCY_915MHZ
-        ESP_LOGI(lora_init_log_prefix, "Frequency is 915MHz");
+        ESP_LOGI(lora_log_prefix, "Frequency is 915MHz");
         lora_set_frequency(915e6); // 915MHz
     #elif CONFIG_LORA_FREQUENCY_OTHER
-        ESP_LOGI(lora_init_log_prefix, "Frequency is %d MHz", CONFIG_LORA_OTHER_FREQUENCY);
+        ESP_LOGI(lora_log_prefix, "Frequency is %d MHz", CONFIG_LORA_OTHER_FREQUENCY);
         long frequency = CONFIG_LORA_OTHER_FREQUENCY * 1000000;
         lora_set_frequency(frequency);
     #endif
@@ -83,26 +83,26 @@ void init_lora() {
 	lora_set_coding_rate(cr);
 	//lora_set_coding_rate(CONFIG_CODING_RATE);
 	//cr = lora_get_coding_rate();
-	ESP_LOGI(lora_init_log_prefix, "coding_rate=%d", cr);
+	ESP_LOGI(lora_log_prefix, "coding_rate=%d", cr);
 
 	lora_set_bandwidth(bw);
 	//lora_set_bandwidth(CONFIG_BANDWIDTH);
 	//int bw = lora_get_bandwidth();
-	ESP_LOGI(lora_init_log_prefix, "bandwidth=%d", bw);
+	ESP_LOGI(lora_log_prefix, "bandwidth=%d", bw);
 
 	lora_set_spreading_factor(sf);
 	//lora_set_spreading_factor(CONFIG_SF_RATE);
 	//int sf = lora_get_spreading_factor();
-	ESP_LOGI(lora_init_log_prefix, "spreading_factor=%d", sf);
+	ESP_LOGI(lora_log_prefix, "spreading_factor=%d", sf);
 
 }
 
 
 
 void lora_shutdown() {
-    ESP_LOGI(lora_init_log_prefix, "Shutting down LoRa:");
+    ESP_LOGI(lora_log_prefix, "Shutting down LoRa:");
     //TODO: Something needed here?
-    ESP_LOGI(lora_init_log_prefix, "ESP-NOW shut down.");
+    ESP_LOGI(lora_log_prefix, "ESP-NOW shut down.");
 }
 
 /**
@@ -112,19 +112,19 @@ void lora_shutdown() {
 
  */
 void lora_init(char * _log_prefix) {
-    lora_init_log_prefix = _log_prefix;
-    ESP_LOGI(lora_init_log_prefix, "Initializing LoRa");
-    lora_messaging_init(lora_init_log_prefix);
+    lora_log_prefix = _log_prefix;
+    ESP_LOGI(lora_log_prefix, "Initializing LoRa");
+    lora_messaging_init(lora_log_prefix);
     init_lora();
-    if (lora_init_worker(&lora_do_on_work_cb, NULL, &lora_do_on_poll_cb, lora_init_log_prefix) != ESP_OK)
+    if (lora_init_worker(&lora_do_on_work_cb, NULL, &lora_do_on_poll_cb, lora_log_prefix) != ESP_OK)
     {
-       ESP_LOGE(lora_init_log_prefix, "Failed initializing LoRa"); 
+       ESP_LOGE(lora_log_prefix, "Failed initializing LoRa"); 
        return;
     }
     lora_set_queue_blocked(false);
     lora_receive();
 
-    ESP_LOGI(lora_init_log_prefix, "LoRa initialized.");
+    ESP_LOGI(lora_log_prefix, "LoRa initialized.");
 }
 
 #endif

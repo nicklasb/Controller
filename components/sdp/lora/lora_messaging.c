@@ -19,6 +19,8 @@ int lora_send_message(sdp_peer *peer, char *data, int data_length) {
 	// Maximum Payload size of SX1276/77/78/79 is 255
     if (data_length + SDP_MAC_ADDR_LEN > 256) {
 		ESP_LOGE(lora_messaging_log_prefix, ">> Message too long (max 250 bytes): %i", data_length);
+        // TODO: Obviously longer messages have to be possible to send.
+        // Based on settings, Kbits/sec and thus time-to-send should be possible to calculate and figure out if it is too big of a message.
         return SDP_ERR_MESSAGE_TOO_LONG;
     }
     uint8_t *tmp_data;

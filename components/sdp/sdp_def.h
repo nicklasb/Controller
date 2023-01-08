@@ -148,8 +148,9 @@ typedef enum e_media_type
     SDP_MT_BLE = 1,
     SDP_MT_ESPNOW = 2,
     SDP_MT_LoRa = 4,
-    SDP_MT_TCPIP = 8, // TODO: Probably it should not be TCP but something else.
-    SDP_MT_TTL = 16,
+    SDP_MT_TCPIP = 8, // TODO: Not implemented. Probably it should not be TCP but something else(UMTS? WIFI?)
+    SDP_MT_TTL = 16, // TODO: Probably this should be implemented in some way. Or onewire. 
+    SDP_MT_I2C = 32,
     SDP_MT_ANY = 128
 
 } e_media_type;
@@ -252,6 +253,7 @@ typedef struct sdp_peer
     #endif
     #if CONFIG_SDP_LOAD_I2C
     struct sdp_peer_state i2c_state;
+    uint8_t i2c_address;
     #endif
     
     SLIST_ENTRY(sdp_peer)

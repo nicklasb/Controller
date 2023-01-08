@@ -1,6 +1,7 @@
 #ifndef _SDP_MESH_H_
 #define _SDP_MESH_H_
 
+#include <sdkconfig.h>
 #include <stdint.h>
 #include "sdp_peer.h"
 
@@ -18,7 +19,11 @@ int sdp_mesh_init(char *_log_prefix, int max_peers);
 struct sdp_peer *sdp_mesh_find_peer_by_name(const sdp_peer_name name);
 struct sdp_peer *sdp_mesh_find_peer_by_handle(__int16_t peer_handle);
 
-int add_peer(sdp_peer_name peer_name, const sdp_mac_address mac_address, e_media_type media_type);
+int add_peer_by_mac_address(sdp_peer_name peer_name, const sdp_mac_address mac_address, e_media_type media_type);
+
+#ifdef CONFIG_SDP_LOAD_I2C
+int add_peer_by_i2c_address(sdp_peer_name peer_name, uint8_t i2c_address);
+#endif
 sdp_peer *sdp_add_init_new_peer(sdp_peer_name peer_name, const sdp_mac_address mac_address, e_media_type media_type);
 struct sdp_peer *sdp_mesh_find_peer_by_base_mac_address(sdp_mac_address mac_address);
 

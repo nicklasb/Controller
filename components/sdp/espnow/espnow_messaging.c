@@ -126,6 +126,7 @@ static void espnow_deinit(espnow_send_param_t *send_param)
  */
 int espnow_send_message(sdp_mac_address *dest_mac_address, void *data, int data_length)
 {
+    // TODO: Check if this actually needs a worker and a queue.
     int rc = esp_now_send(dest_mac_address, data, data_length);
     if (rc != ESP_OK)
     {

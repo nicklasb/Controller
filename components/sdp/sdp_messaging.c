@@ -1,3 +1,19 @@
+/**
+ * @file sdp_messaging.c
+ * @author Nicklas Börjesson (nicklasb@gmail.com)
+ * @brief Handles incoming and outgoing messaging
+ * 
+ * @version 0.1
+ * @date 2023-01-07
+ * 
+ * @copyright Copyright (c) 2023
+ * 
+ */
+
+/** TODO: 
+* We should probably split this into an incoming and an outgoing part. 
+* The incoming part could then be unaware/uncaring of what media is the source, and the sending could contain all the media specific #ifdefs 
+*/ 
 #include "sdp_messaging.h"
 #include <esp_log.h>
 #include <esp32/rom/crc.h>
@@ -22,6 +38,10 @@
 #endif
 #ifdef CONFIG_SDP_LOAD_LORA
 #include "lora/lora_worker.h"
+#endif
+
+#ifdef CONFIG_SDP_LOAD_I2C
+#include "i2c/i2c_worker.h"
 #endif
 
 #define CONFIG_SDP_MAX_PEERS 20
@@ -288,7 +308,7 @@ int handle_incoming(sdp_peer *peer, const uint8_t *data, int data_len, e_media_t
         /* This is likely to be some kind of problem report or alarm,
         immidiately respond with CRC32 to tell the
         reporter that the information has reached the controller. */
-
+        // TODO: Consider if the response perhaps whould be unblocking
         sdp_send_message(new_item->peer, &(new_item->crc32), 2);
 
         /* Do NOT add the work item to the queue, it will be immidiately adressed in the callback */
@@ -376,6 +396,7 @@ int broadcast_message(uint16_t conversation_id,
 #endif
 
 #ifdef CONFIG_SDP_LOAD_BLE
+// TODO: It seems slightly strange that this is here
 void report_ble_connection_error(int conn_handle, int code)
 {
     struct ble_peer *b_peer = ble_peer_find(conn_handle);
@@ -404,6 +425,7 @@ void report_ble_connection_error(int conn_handle, int code)
  */
 int sdp_send_message(struct sdp_peer *peer, void *data, int data_length)
 {
+    
     int rc = 0;
     e_media_type preferred = SDP_MT_NONE;
     ESP_LOGI(messaging_log_prefix, ">> peer->supported_media_types: %hhx ", peer->supported_media_types);
@@ -482,12 +504,36 @@ int sdp_send_message(struct sdp_peer *peer, void *data, int data_length)
         {
             ESP_LOGE(messaging_log_prefix, ">> Sending using Lora failed.");
             return -SDP_ERR_SEND_FAIL;
-            // report_ble_connection_error(peer->ble_conn_handle, rc);
-            //  TODO: Add start general QoS monitoring, stop using some technologies if they are failing
+            //  TODO: Add start general QoS monitoring, stop using medias if they are failing
         }
     }
 #endif
+#ifdef CONFIG_SDP_LOAD_I2C
 
+    if ((peer->supported_media_types & SDP_MT_I2C) &&
+        (
+            ((preferred == SDP_MT_NONE) && (peer->i2c_state.initial_media)) || 
+            (preferred == SDP_MT_I2C)
+        )
+    )
+    {
+        ESP_LOGI(messaging_log_prefix, ">> I2C sending to I2C host: %hhu ", peer->i2c_address);
+        ESP_LOGI(messaging_log_prefix, ">> Data (including 4 bytes preamble): ");
+        ESP_LOG_BUFFER_HEXDUMP(messaging_log_prefix, data, data_length, ESP_LOG_INFO);
+
+        rc = i2c_safe_add_work_queue(peer, data, data_length);
+        if (rc == 0)
+        {
+            return SDP_MT_I2C;
+        }
+        else
+        {
+            ESP_LOGE(messaging_log_prefix, ">> Sending using Lora failed.");
+            return -SDP_ERR_SEND_FAIL;
+            //  TODO: Add start general QoS monitoring, stop using a medium if it is failing
+        }
+    }
+#endif
     return SDP_MT_NONE;
 }
 /**

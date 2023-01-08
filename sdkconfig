@@ -1647,6 +1647,7 @@ CONFIG_ESPNOW_SEND_LEN=10
 # end of ESP-NOW-configuration
 
 # CONFIG_SDP_LOAD_LORA is not set
+# CONFIG_SDP_LOAD_I2C is not set
 CONFIG_SDP_LOAD_UMTS=y
 
 #

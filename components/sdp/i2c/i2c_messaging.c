@@ -20,6 +20,8 @@ void i2c_receive() {
 
 int i2c_send_message(sdp_peer *peer, char *data, int data_length) {
 
+    ESP_LOGE(i2c_messaging_log_prefix, ">> In send message: %i", data_length);
+
 #if 0
 	// Maximum Payload size of SX1276/77/78/79 is 255
     if (data_length + SDP_MAC_ADDR_LEN > 256) {
@@ -83,11 +85,16 @@ void i2c_do_on_work_cb(i2c_queue_item_t *work_item) {
 }
 
 void i2c_do_on_poll_cb(queue_context *q_context) {
+
+
+    ESP_LOGE(i2c_messaging_log_prefix, ">> In I2Cdo on poll");
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
+    #if 0
+    
     // TODO: Should the delay here should be related to the speed of the connection? 
     // Wait a moment to let any response in.
-    vTaskDelay(100 / portTICK_PERIOD_MS);
-	#if 0
-    if (i2c_received()) {
+    
+	if (i2c_received()) {
         uint8_t buf[256]; // Maximum Payload size of SX1276/77/78/79 is 256 bytes   
         int message_length = 0;
         int receive_len = 0;

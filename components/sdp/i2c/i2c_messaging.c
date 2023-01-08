@@ -2,7 +2,7 @@
 #include <sdkconfig.h>
 
 #include "driver/i2c.h"
-
+#include "esp32/rom/crc.h"
 #include <esp_log.h>
 #include <esp_timer.h>
 #include <sdp_mesh.h>
@@ -108,7 +108,15 @@ void i2c_receive() {
 
 int i2c_send_message(sdp_peer *peer, char *data, int data_length) {
 
-    ESP_LOGE(i2c_messaging_log_prefix, ">> I2C send message to %hhu,  %i bytes.", peer->i2c_address, data_length);
+    ESP_LOGI(i2c_messaging_log_prefix, ">> I2C send message to %hhu,  %i bytes.", peer->i2c_address, data_length);
+    
+    esp_err_t ret = ESP_FAIL;
+    
+    ret = i2c_driver_delete(CONFIG_I2C_CONTROLLER_NUM);
+    if (ret == ESP_ERR_INVALID_ARG) {
+        ESP_LOGE(i2c_messaging_log_prefix, ">> Deleting driver caused an invalid arg-error.");
+
+    }
 
     // Init as a master.
     ESP_ERROR_CHECK(i2c_driver_init(true));
@@ -122,7 +130,7 @@ int i2c_send_message(sdp_peer *peer, char *data, int data_length) {
     i2c_master_write(cmd, (uint8_t *)data, data_length, ACK_CHECK_EN);
     i2c_master_stop(cmd);
 
-    esp_err_t ret = ESP_FAIL;
+    
     int retries = 0;
     // Check if SDA is HIGH (then we can send)
     if (gpio_get_level(CONFIG_I2C_SDA_IO) == 1)
@@ -202,14 +210,72 @@ void i2c_do_on_work_cb(i2c_queue_item_t *work_item) {
 
     // TODO: Should we add a check for received here, or is it close enough after the poll?
     i2c_send_message(work_item->peer, work_item->data, work_item->data_length);
-    i2c_receive();
+
 }
 
 void i2c_do_on_poll_cb(queue_context *q_context) {
 
-
+    //ESP_ERROR_CHECK(i2c_driver_init(false));
+        
     ESP_LOGE(i2c_messaging_log_prefix, ">> In I2Cdo on poll");
-    vTaskDelay(1000 / portTICK_PERIOD_MS);
+   
+    int ret;
+
+    ESP_LOGI(i2c_messaging_log_prefix, "I2C Slave - Reading the buffer_");
+
+    uint8_t *rcv_data = malloc(I2C_RX_BUF_KB);
+
+    int read_so_far = 0;
+    do
+    {
+        ret = i2c_slave_read_buffer(CONFIG_I2C_CONTROLLER_NUM, rcv_data + read_so_far, I2C_RX_BUF_KB - read_so_far,
+                                    I2C_TIMEOUT_MS / portTICK_PERIOD_MS);
+        if (ret < 0) {
+            ESP_LOGE(i2c_messaging_log_prefix, "I2C Slave - << Error %i reading buffer", ret);
+        } 
+        read_so_far = read_so_far + ret;
+        if (read_so_far > I2C_RX_BUF_KB)
+        {
+            // TODO: Add another buffer, chain them or something, obviously we need to be able to receive much more data
+            ESP_LOGE(i2c_messaging_log_prefix, "I2C Slave - << Got too much data: %i bytes", read_so_far);
+        }
+        vTaskDelay(10 / portTICK_PERIOD_MS);
+    } while (ret > 0); // Continue as long as there is a result.
+
+    if (read_so_far > 0)
+    {
+        unsigned int crc = crc32_be(0, rcv_data, read_so_far);
+        ESP_LOGI(i2c_messaging_log_prefix, "I2C Slave - << Got %i bytes of data. crc32 : %u", read_so_far, crc);
+
+        ESP_LOGI(i2c_messaging_log_prefix, "I2C Slave - >> Creating a response:");
+
+        int response_len = read_so_far;
+        unsigned int response_buf[2];
+        response_buf[0] = crc;
+        response_buf[1] = (unsigned int)read_so_far;
+        ESP_LOG_BUFFER_HEXDUMP(i2c_messaging_log_prefix, &response_buf, 8, ESP_LOG_INFO);
+        
+        ret = i2c_slave_write_buffer(CONFIG_I2C_CONTROLLER_NUM, &response_buf, 8,
+                                        I2C_TIMEOUT_MS / portTICK_PERIOD_MS);
+        if (ret < 0)
+        {
+            ESP_LOGE(i2c_messaging_log_prefix, "I2C Slave - >> Got an error from sending back data: %i", ret);
+        }
+        else
+        {
+            ESP_LOGI(i2c_messaging_log_prefix, "I2C Slave - >> Sent a %i bytes with length of %i bytes and crc of %u. ", ret, response_len, crc);
+        }
+    }
+    if (ret < 0)
+    {
+        ESP_LOGI(i2c_messaging_log_prefix, "I2C Slave - << Got an error from receiving data: %i", ret);
+    }
+    free(rcv_data);
+    vTaskDelay(TEST_DELAY_MS / portTICK_PERIOD_MS);
+    //ESP_LOGI(i2c_messaging_log_prefix, "I2C Master - Deleting driver");
+   // i2c_driver_delete(CONFIG_I2C_CONTROLLER_NUM);
+
+
     #if 0
     
     // TODO: Should the delay here should be related to the speed of the connection? 
@@ -283,4 +349,5 @@ finish:
 
 void i2c_messaging_init(char * _log_prefix){
     i2c_messaging_log_prefix = _log_prefix;
+    ESP_ERROR_CHECK(i2c_driver_init(false));
 }

@@ -139,22 +139,29 @@ typedef enum e_work_type
 /**
  * @brief Supported media types
  * These are the media types, "ALL" is used as a way to broadcast over all types
- *
+ * Note: If more are needed, perhaps this could be split. 
  */
 
 typedef enum e_media_type
 {
     SDP_MT_NONE = 0,
+    /* Wireless */
     SDP_MT_BLE = 1,
     SDP_MT_ESPNOW = 2,
     SDP_MT_LoRa = 4,
-    SDP_MT_TCPIP = 8, // TODO: Not implemented. Probably it should not be TCP but something else(UMTS? WIFI?)
-    SDP_MT_TTL = 16, // TODO: Probably this should be implemented in some way. Or onewire. 
-    SDP_MT_I2C = 32,
+    SDP_MT_UMTS = 8, // TODO: Only implemented as a service. However UTMS isn't really a thing. PPP?
+    
+    /* Wired */
+    SDP_MT_I2C = 16,
+    SDP_MT_CANBUS = 32, // TODO: Not implemented
+    SDP_MT_TTL = 64, // TODO: Probably this should be implemented in some way. Or onewire. 
     SDP_MT_ANY = 128
-
 } e_media_type;
 
+/**
+ * TODO: UMTS is not implemented really. Probably it should not be TCP but something else(UMTS?) 
+ * 
+*/
 /**
  * @brief This is a byte representing the medias supported
  * It is or'ed from the e_media_type enum values

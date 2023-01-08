@@ -216,7 +216,20 @@ int add_peer_by_mac_address(sdp_peer_name peer_name, const sdp_mac_address mac_a
  * @return int Returns a negative value if it failed to send the message, a positive if it succeeded
  */
 int add_peer_by_i2c_address(sdp_peer_name peer_name, uint8_t i2c_address) {
-    return ESP_OK;
+
+    int peer_handle = sdp_mesh_peer_add(peer_name);
+    sdp_peer *peer = sdp_mesh_find_peer_by_handle(peer_handle);
+    if (peer != NULL)
+    {
+        peer->i2c_address = i2c_address;
+        peer->supported_media_types = SDP_MT_I2C;
+        peer->i2c_state.initial_media = true;
+    }
+    else
+    {
+        ESP_LOGE(mesh_log_prefix, "Failed to add the %s", peer_name);
+    }
+    return sdp_peer_send_hi_message(peer, false);
 }
 
 #endif

@@ -3,7 +3,7 @@
 
 #include "i2c.h"
 #include "esp_log.h"
-#include "driver/i2c.h"
+
 #include "string.h"
 #include "esp32/rom/crc.h"
 #include "inttypes.h"
@@ -13,12 +13,8 @@
 #define I2C_TIMEOUT_MS 80
 
 // TODO: What is the point of WRITE_BIT?
-#define WRITE_BIT I2C_MASTER_WRITE /*!< I2C master write */
-#define READ_BIT I2C_MASTER_READ   /*!< I2C master read */
-#define ACK_CHECK_EN 0x1           /*!< I2C master will check ack from slave*/
-#define ACK_CHECK_DIS 0x0          /*!< I2C master will not check ack from slave */
-#define ACK_VAL 0x0                /*!< I2C ack value */
-#define NACK_VAL 0x1               /*!< I2C nack value */
+
+
 
 #define TEST_DATA_LENGTH_KB 10
 #define TEST_DATA_MULTIPLIER 100
@@ -37,61 +33,8 @@
 
 const char * i2c_log_prefix;
 
-/**
- * @brief i2c initialization
- */
-static esp_err_t i2c_driver_init(bool is_master)
-{
-    ESP_LOGI("sdfsdf", "I2C Master ");
-    if (is_master)
-    {
 
-        i2c_config_t conf = {
-            .mode = I2C_MODE_MASTER,
-            .sda_io_num = CONFIG_I2C_SDA_IO,
-            .scl_io_num = CONFIG_I2C_SCL_IO,
-            .sda_pullup_en = GPIO_PULLUP_ENABLE,
-            .scl_pullup_en = GPIO_PULLUP_ENABLE,
-            .master.clk_speed = CONFIG_I2C_MAX_FREQ_HZ,
-            .clk_flags = I2C_SCLK_SRC_FLAG_FOR_NOMAL,
-        };
-        ESP_ERROR_CHECK(i2c_param_config(CONFIG_I2C_CONTROLLER_NUM, &conf));
-
-        ESP_LOGI(i2c_log_prefix, "I2C Master - Installing driver");
-        return i2c_driver_install(CONFIG_I2C_CONTROLLER_NUM, conf.mode, I2C_TX_BUF_KB * 2, I2C_RX_BUF_KB * 2, 0);
-    }
-    else
-    {
-
-        i2c_config_t conf = {
-            .mode = I2C_MODE_SLAVE,
-            .sda_io_num = CONFIG_I2C_SDA_IO,
-            .scl_io_num = CONFIG_I2C_SCL_IO,
-            .sda_pullup_en = GPIO_PULLUP_ENABLE,
-            .scl_pullup_en = GPIO_PULLUP_ENABLE,
-            //.master.clk_speed = I2C_FREQ_HZ,
-            .slave.slave_addr = CONFIG_I2C_ADDR,
-            .clk_flags = I2C_SCLK_SRC_FLAG_FOR_NOMAL,
-        };
-        ESP_ERROR_CHECK(i2c_param_config(CONFIG_I2C_CONTROLLER_NUM, &conf));
-
-        ESP_LOGI(i2c_log_prefix, "I2C Slave - Installing driver");
-        return i2c_driver_install(CONFIG_I2C_CONTROLLER_NUM, conf.mode, I2C_TX_BUF_KB * 2, I2C_RX_BUF_KB * 2, 0);
-    }
-}
-/**
- * @brief  Calculate a reasonable wait time in milliseconds 
- * based on I2C frequency and expected response timeout
- * Note that looging may cause this to be too short
- * @param data_length Length of data to be transmitted
- * @return int The timeout needed.
- */
-int calc_timeout_ms(uint32_t data_length) {
-    int timeout_ms = (data_length / (CONFIG_I2C_MAX_FREQ_HZ/16*10000)) + CONFIG_I2C_ACKNOWLEGMENT_TIMEOUT_MS;
-    ESP_LOGI(i2c_log_prefix, "I2C - Timeout calculated to %i ms.", timeout_ms);
-    return timeout_ms;
-}
-
+#if 0
 void i2c_start()
 {
     uint32_t send_len = TEST_DATA_LENGTH_KB * TEST_DATA_MULTIPLIER;
@@ -258,7 +201,7 @@ void i2c_start()
         i2c_driver_delete(CONFIG_I2C_CONTROLLER_NUM);
     }
 };
-
+#endif
 
 void i2c_shutdown() {
     ESP_LOGI(i2c_log_prefix, "Shutting down i2c:");

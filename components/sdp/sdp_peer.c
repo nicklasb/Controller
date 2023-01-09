@@ -57,6 +57,9 @@ int sdp_peer_send_hi_message(sdp_peer *peer, bool is_reply) {
     #ifdef CONFIG_SDP_LOAD_LORA
     + SDP_MT_LoRa
     #endif
+     #ifdef CONFIG_SDP_LOAD_I2C
+    + SDP_MT_I2C
+    #endif   
     ;
 
     int pv = SDP_PROTOCOL_VERSION;

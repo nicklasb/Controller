@@ -234,7 +234,7 @@ void i2c_init(char * _log_prefix) {
        ESP_LOGE(i2c_log_prefix, "Failed initializing i2c"); 
        return;
     }
-    
+    i2c_set_queue_blocked(false);
     
 
     //i2c_receive();

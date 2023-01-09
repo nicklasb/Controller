@@ -157,7 +157,7 @@ static void sdp_worker(queue_context *q_context)
         {
             q_context->on_poll_cb(q_context);
         }
-        vTaskDelay(100/ portTICK_PERIOD_MS);
+        vTaskDelay(10/ portTICK_PERIOD_MS);
         // TODO: Use event loop to wait instead?
         
     }

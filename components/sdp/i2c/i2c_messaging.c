@@ -117,6 +117,7 @@ int i2c_send_message(sdp_peer *peer, char *data, int data_length) {
     i2c_cmd_handle_t cmd = i2c_cmd_link_create();
     i2c_master_start(cmd);
     i2c_master_write_byte(cmd, (peer->i2c_address << 1) | I2C_MASTER_WRITE, ACK_CHECK_EN);
+    i2c_master_write_byte(cmd, CONFIG_I2C_ADDR, ACK_CHECK_EN);
     i2c_master_write(cmd, (uint8_t *)data, data_length, ACK_CHECK_EN);
     i2c_master_stop(cmd);
     
@@ -211,15 +212,8 @@ void i2c_do_on_work_cb(i2c_queue_item_t *work_item) {
 
 void i2c_do_on_poll_cb(queue_context *q_context) {
 
-    //ESP_ERROR_CHECK(i2c_driver_init(false));
-        
-    //ESP_LOGE(i2c_messaging_log_prefix, ">> In I2Cdo on poll");
-   
+
     int ret;
-
-    //ESP_LOGI(i2c_messaging_log_prefix, "I2C Slave - Reading the buffer_");
-
-    
 
     int read_so_far = 0;
     do
@@ -237,16 +231,14 @@ void i2c_do_on_poll_cb(queue_context *q_context) {
             ESP_LOGE(i2c_messaging_log_prefix, "I2C Slave - << Got too much data: %i bytes", read_so_far);
         }
     } while (ret > 0); // Continue as long as there is a result.
+    
+    int response_len = read_so_far;
 
-    if (read_so_far > 0)
+    if (response_len > 1)
     {
-        unsigned int crc = crc32_be(0, rcv_data, read_so_far);
-        ESP_LOGI(i2c_messaging_log_prefix, "I2C Slave - << Got %i bytes of data. crc32 : %u", read_so_far, crc);
-
-        ESP_LOGI(i2c_messaging_log_prefix, "I2C Slave - >> Creating a response:");
-
-        int response_len = read_so_far;
-
+        uint8_t i2c_address = (uint8_t)rcv_data[0];
+        unsigned int crc = crc32_be(0, rcv_data +1, read_so_far -1);
+        ESP_LOGI(i2c_messaging_log_prefix, "I2C Slave - << Got %i bytes of data from %hhu. crc32 : %u, create response.", read_so_far, i2c_address, crc);
         ESP_LOG_BUFFER_HEXDUMP(i2c_messaging_log_prefix, &crc, 4, ESP_LOG_INFO);
         
         ret = i2c_slave_write_buffer(CONFIG_I2C_CONTROLLER_NUM, &crc, 4,
@@ -259,89 +251,27 @@ void i2c_do_on_poll_cb(queue_context *q_context) {
         {
             ESP_LOGI(i2c_messaging_log_prefix, "I2C Slave - >> Sent a %i bytes with length of %i bytes and crc of %u. ", ret, response_len, crc);
         }
+       
+
+        sdp_peer *peer = sdp_mesh_find_peer_by_i2c_address(i2c_address);
+        if (!peer) {
+            char *new_name;
+            asprintf(&new_name, "UNKNOWN_%i", i2c_unknown_counter++);
+            
+            peer = add_peer_by_i2c_address(new_name, i2c_address);
+            
+        }
+        handle_incoming(peer, rcv_data + 1, response_len -1, SDP_MT_I2C);    
     }
     if (ret < 0)
     {
         ESP_LOGI(i2c_messaging_log_prefix, "I2C Slave - << Got an error from receiving data: %i", ret);
     }
-
-    //ESP_LOGI(i2c_messaging_log_prefix, "I2C Master - Deleting driver");
-   // i2c_driver_delete(CONFIG_I2C_CONTROLLER_NUM);
-
-
-    #if 0
-    
-    // TODO: Should the delay here should be related to the speed of the connection? 
-    // Wait a moment to let any response in.
-    
-	if (i2c_received()) {
-        uint8_t buf[256]; // Maximum Payload size of SX1276/77/78/79 is 256 bytes   
-        int message_length = 0;
-        int receive_len = 0;
-        bool more_data = true;
-        while (more_data) {
-            receive_len = i2c_receive_packet(&buf + message_length, sizeof(buf));
-            message_length += receive_len;
-            // TODO: Here, the delay here should certainly be related to the speed of the connection
-            // TODO: Test without retries, this entire while might be pointless as its always full packets?
-            vTaskDelay(100/portTICK_PERIOD_MS);
-            more_data = receive_len > 0;
-        }
-        
-        ESP_LOGI(i2c_messaging_log_prefix, "<< In i2c POLL callback;i2c_received %i bytes.", message_length);
-        ESP_LOGI(i2c_messaging_log_prefix, "<< Received data (including all) preamble): ");
-        ESP_LOG_BUFFER_HEXDUMP(i2c_messaging_log_prefix, &buf,message_length, ESP_LOG_INFO);  
-        ESP_LOGI(i2c_messaging_log_prefix, "<< sdp_host.base_mac_address: ");
-        ESP_LOG_BUFFER_HEX(i2c_messaging_log_prefix, &sdp_host.base_mac_address,SDP_MAC_ADDR_LEN);
-        
-        // TODO: Do some kind of better non-hardcoded length check. Perhaps it just has to be longer then the mac address?
-        if (message_length > 9) {
-            
-            sdp_mac_address *src_mac_addr = NULL;
-            uint8_t data_start = 0;
-            // TODO: Add a near match on long ranges (all bits but two needs to match, emergency messaging?) 
-            if (memcmp(&sdp_host.base_mac_address, &buf, SDP_MAC_ADDR_LEN) == 0)
-            {
-                // So, the first 
-                src_mac_addr = buf + SDP_MAC_ADDR_LEN;
-                data_start = (SDP_MAC_ADDR_LEN *2);
-            } else {
-                uint32_t relation_id = malloc(4);
-                memcpy(&relation_id, buf, 4);
-                ESP_LOGI(i2c_messaging_log_prefix, "Relation id in first bytes %u", relation_id);
-                src_mac_addr = relation_id_to_mac_address(relation_id);
-                if (src_mac_addr == NULL) {
-                    ESP_LOGI(i2c_messaging_log_prefix, "<< %d byte packet to someone else received:[%.*s], RSSI %i", 
-                        message_length, message_length, (char *)&buf , i2c_packet_rssi());
-                    goto finish;
-                }
-                data_start = sizeof(uint32_t);
-            }
-
-            ESP_LOGI(i2c_messaging_log_prefix, "<< %d byte packet received:[%.*s], RSSI %i", 
-            message_length, message_length, (char *)&buf , i2c_packet_rssi());
-
-            sdp_peer *peer = sdp_mesh_find_peer_by_base_mac_address(src_mac_addr);
-            if (!peer) {
-                char *new_name;
-                asprintf(&new_name, "UNKNOWN_%i", i2c_unknown_counter++);
-                
-                peer = sdp_add_init_new_peer(new_name, src_mac_addr, SDP_MT_i2c);
-                
-            }
-            handle_incoming(peer, buf + data_start, message_length - data_start, SDP_MT_i2c);    
-  
-        }
-        
-    }
-
-finish:
-    i2c_receive(); 
-     #endif   
 }
 
 void i2c_messaging_init(char * _log_prefix){
     i2c_messaging_log_prefix = _log_prefix;
-    rcv_data = malloc(I2C_RX_BUF);
+    rcv_data = malloc(I2C_RX_BUF); 
+    // TODO: Were should rcv_data be freed? Should be spend time freeing if shutting down?
     ESP_ERROR_CHECK(i2c_driver_init(false));
 }

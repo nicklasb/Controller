@@ -14,12 +14,15 @@
 
 int sdp_mesh_delete_peer(uint16_t peer_handle);
 int sdp_mesh_peer_add(sdp_peer_name name);
+
 int sdp_mesh_init(char *_log_prefix, int max_peers);
 
 struct sdp_peer *sdp_mesh_find_peer_by_name(const sdp_peer_name name);
 struct sdp_peer *sdp_mesh_find_peer_by_handle(__int16_t peer_handle);
+struct sdp_peer *sdp_mesh_find_peer_by_i2c_address(uint8_t i2c_address);
 
 int add_peer_by_mac_address(sdp_peer_name peer_name, const sdp_mac_address mac_address, e_media_type media_type);
+int add_peer_by_i2c_address(sdp_peer_name peer_name, uint8_t i2c_address);
 
 #ifdef CONFIG_SDP_LOAD_I2C
 int add_peer_by_i2c_address(sdp_peer_name peer_name, uint8_t i2c_address);

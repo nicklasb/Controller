@@ -15,6 +15,9 @@ char *peer_log_prefix;
 struct relation {
     uint32_t relation_id;
     sdp_mac_address mac_address;
+    #ifdef CONFIG_SDP_LOAD_I2C
+    uint8_t i2c_address;
+    #endif
 };
 
 /**
@@ -81,10 +84,13 @@ int sdp_peer_send_hi_message(sdp_peer *peer, bool is_reply) {
         memcpy(tmp_crc_data, peer->base_mac_address, SDP_MAC_ADDR_LEN);
         memcpy(tmp_crc_data+SDP_MAC_ADDR_LEN, sdp_host.base_mac_address, SDP_MAC_ADDR_LEN);
         // TODO: Why big endian? Change to little endian everywhere unless BLE have other ideas
+
         peer->relation_id = crc32_be(0, tmp_crc_data, SDP_MAC_ADDR_LEN * 2);
         free(tmp_crc_data);
     }
+
     add_relation(peer->base_mac_address, peer->relation_id);
+    
     
     uint8_t *hi_msg = NULL;
     int hi_length = add_to_message(&hi_msg, strcat(fmt_str, "|%u|%u|%s|%hhu|%u|%b6"), 
@@ -156,7 +162,11 @@ sdp_mac_address *relation_id_to_mac_address(uint32_t relation_id) {
     return NULL;
 }
 
-bool add_relation(sdp_mac_address mac_address, uint32_t relation_id) {
+bool add_relation(sdp_mac_address mac_address, uint32_t relation_id
+    #ifdef CONFIG_SDP_LOAD_I2C
+    , uint8_t i2c_address
+    #endif
+    ) {
     /* Is it already there? */
     int rel_idx = 0;
     while (rel_idx <= rel_end) {
@@ -174,6 +184,9 @@ bool add_relation(sdp_mac_address mac_address, uint32_t relation_id) {
         
         relations[rel_end].relation_id = relation_id;
         memcpy(relations[rel_end].mac_address, mac_address, SDP_MAC_ADDR_LEN);
+        #ifdef CONFIG_SDP_LOAD_I2C
+            relations[rel_end].i2c_address = i2c_address
+        #endif
         ESP_LOGI(peer_log_prefix, "Relation added at %hhu", rel_end);
         rel_end++;
         

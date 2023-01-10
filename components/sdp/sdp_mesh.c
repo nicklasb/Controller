@@ -78,6 +78,28 @@ sdp_mesh_find_peer_by_base_mac_address(sdp_mac_address mac_address)
     return NULL;
 }
 
+#ifdef CONFIG_SDP_LOAD_I2C
+struct sdp_peer *
+sdp_mesh_find_peer_by_i2c_address(uint8_t i2c_address)
+{
+    struct sdp_peer *peer;
+
+    ESP_LOGI(mesh_log_prefix, "sdp_mesh_find_peer_by_i2c_address: %hhu", i2c_address);
+
+    SLIST_FOREACH(peer, &sdp_peers, next)
+    {
+        
+
+
+        if (peer->i2c_address == i2c_address)
+        {
+            return peer;
+        }
+    }
+
+    return NULL;
+}
+#endif
 int sdp_mesh_delete_peer(uint16_t peer_handle)
 {
     struct sdp_peer *peer;

@@ -190,6 +190,9 @@ void log_peer_info(char * _log_prefix, sdp_peer *peer) {
     ESP_LOGI(_log_prefix, "Name:                  %s", peer->name);
     ESP_LOGI(_log_prefix, "Base Mac address:      %02X:%02X:%02X:%02X:%02X:%02X", peer->base_mac_address[0],
     peer->base_mac_address[1],peer->base_mac_address[2],peer->base_mac_address[3],peer->base_mac_address[4],peer->base_mac_address[5]);
+    #ifdef CONFIG_SDP_LOAD_I2C
+    ESP_LOGI(_log_prefix, "I2C address:           %hhu", peer->i2c_address);
+    #endif
     ESP_LOGI(_log_prefix, "State:                 %hhx", peer->state);
     ESP_LOGI(_log_prefix, "Supported media types: %hhx", peer->supported_media_types);
     ESP_LOGI(_log_prefix, "Relation id:           %u", peer->relation_id);

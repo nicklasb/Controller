@@ -17,11 +17,11 @@
 #include "espnow/espnow_peer.h"
 #endif
 
-
 /* Used for creating new peer handles*/
 uint16_t _peer_handle_incrementor_ = 0;
 
-SLIST_HEAD(, sdp_peer) sdp_peers;
+SLIST_HEAD(, sdp_peer)
+sdp_peers;
 
 /* The log prefix for all logging */
 char *mesh_log_prefix;
@@ -88,8 +88,6 @@ sdp_mesh_find_peer_by_i2c_address(uint8_t i2c_address)
 
     SLIST_FOREACH(peer, &sdp_peers, next)
     {
-        
-
 
         if (peer->i2c_address == i2c_address)
         {
@@ -128,6 +126,7 @@ int sdp_mesh_delete_peer(uint16_t peer_handle)
 
 int sdp_mesh_peer_add(sdp_peer_name name)
 {
+    // TODO: Why not return the peer? Why use handles at all? Some
     struct sdp_peer *peer;
 
     ESP_LOGI(mesh_log_prefix, "sdp_mesh_peer_add() - adding SDP peer, name: %s", name);
@@ -159,9 +158,6 @@ int sdp_mesh_peer_add(sdp_peer_name name)
 
     return peer->peer_handle;
 }
-
-
-
 
 /**
  * @brief Add and initialize a new peer (does not contact it, see add_peer for that)
@@ -205,7 +201,6 @@ sdp_peer *sdp_add_init_new_peer(sdp_peer_name peer_name, const sdp_mac_address m
             peer->lora_state.initial_media = true;
         }
 #endif
-
     }
     else
     {
@@ -217,27 +212,31 @@ sdp_peer *sdp_add_init_new_peer(sdp_peer_name peer_name, const sdp_mac_address m
 
 /**
  * @brief Adds a new peer, locates it via its mac address, and contacts it and exchanges information
- * 
- * @param peer_name The name of the peer, if we want to call it something 
+ *
+ * @param peer_name The name of the peer, if we want to call it something
  * @param mac_address The mac_address of the peer
  * @param media_type The way we want to contact the peer
- * @return int Returns a negative value if it failed to send the message, a positive if it succeeded
+ * @return Returns a pointer to the peer
  */
-int add_peer_by_mac_address(sdp_peer_name peer_name, const sdp_mac_address mac_address, e_media_type media_type) {
+sdp_peer *add_peer_by_mac_address(sdp_peer_name peer_name, const sdp_mac_address mac_address, e_media_type media_type)
+{
     sdp_peer *peer = sdp_add_init_new_peer(peer_name, mac_address, media_type);
-    return sdp_peer_send_hi_message(peer, false);
+    sdp_peer_send_hi_message(peer, false);
+    return peer;
 }
 
 #ifdef CONFIG_SDP_LOAD_I2C
+
+
 /**
- * @brief Adds a new peer, contacts it using I2C and its I2C address it and exchanges information
- * @note To find I2C peers, one has to either loop all 256 addresses or *know* the address, therefor one cannot go by macaddres. 
- * Howerver, it could be done, and here is a question on how the network should work in general. As it is also routing..
- * @param peer_name The name of the peer, if we want to call it something 
- * @param i2c_address The I2C address of the peer
- * @return int Returns a negative value if it failed to send the message, a positive if it succeeded
+ * @brief Add and initialize a new peer (does not contact it, see add_peer for that)
+ *
+ * @param peer_name The peer name
+ * @param i2c_address The i2c adress
+ * @return sdp_peer* An initialized peer
  */
-int add_peer_by_i2c_address(sdp_peer_name peer_name, uint8_t i2c_address) {
+sdp_peer *sdp_add_init_new_peer_i2c(sdp_peer_name peer_name, const uint8_t i2c_address)
+{
 
     int peer_handle = sdp_mesh_peer_add(peer_name);
     sdp_peer *peer = sdp_mesh_find_peer_by_handle(peer_handle);
@@ -246,16 +245,32 @@ int add_peer_by_i2c_address(sdp_peer_name peer_name, uint8_t i2c_address) {
         peer->i2c_address = i2c_address;
         peer->supported_media_types = SDP_MT_I2C;
         peer->i2c_state.initial_media = true;
+
     }
     else
     {
         ESP_LOGE(mesh_log_prefix, "Failed to add the %s", peer_name);
+        return NULL;
     }
-    return sdp_peer_send_hi_message(peer, false);
+
+    return peer;
+}
+/**
+ * @brief Adds a new peer, contacts it using I2C and its I2C address it and exchanges information
+ * @note To find I2C peers, one has to either loop all 256 addresses or *know* the address, therefor one cannot go by macaddres.
+ * Howerver, it could be done, and here is a question on how the network should work in general. As it is also routing..
+ * @param peer_name The name of the peer, if we want to call it something
+ * @param i2c_address The I2C address of the peer
+ * @return Returns a pointer to the peer
+ */
+sdp_peer *add_peer_by_i2c_address(sdp_peer_name peer_name, uint8_t i2c_address)
+{
+    sdp_peer *peer = sdp_add_init_new_peer_i2c(peer_name, i2c_address);
+    sdp_peer_send_hi_message(peer, false);
+    return peer;
 }
 
 #endif
-
 
 int sdp_mesh_init(char *_log_prefix, int max_peers)
 {

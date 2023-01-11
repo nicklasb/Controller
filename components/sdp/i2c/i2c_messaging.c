@@ -98,6 +98,7 @@ int calc_timeout_ms(uint32_t data_length) {
 
 int i2c_send_message(sdp_peer *peer, char *data, int data_length) {
 
+    int retval = ESP_FAIL;
     ESP_LOGI(i2c_messaging_log_prefix, ">> I2C send message to %hhu,  %i bytes.", peer->i2c_address, data_length);
     unsigned int crc_in = crc32_be(0, (uint8_t *)data, data_length);
     esp_err_t ret = ESP_FAIL;
@@ -140,7 +141,7 @@ int i2c_send_message(sdp_peer *peer, char *data, int data_length) {
             retries++;
         } while ((ret != 0) && (retries < 4));
         
-            
+          
         i2c_cmd_link_delete(cmd);
 
         if (ret == ESP_OK)
@@ -164,7 +165,7 @@ int i2c_send_message(sdp_peer *peer, char *data, int data_length) {
                 ret = i2c_master_cmd_begin(CONFIG_I2C_CONTROLLER_NUM, cmd, 1000 / portTICK_PERIOD_MS);
                 if (ret != ESP_OK)
                 {
-                    ESP_LOGE(i2c_messaging_log_prefix, "I2C Master - << Read failure, code %i. Waiting a short while.", ret);
+                    ESP_LOGW(i2c_messaging_log_prefix, "I2C Master - << Read failure, code %i. Waiting a short while.", ret);
                     vTaskDelay(I2C_TIMEOUT_MS / 2 / portTICK_PERIOD_MS);
                 }
                 retries++;
@@ -184,28 +185,37 @@ int i2c_send_message(sdp_peer *peer, char *data, int data_length) {
                     ESP_LOG_BUFFER_HEXDUMP(i2c_messaging_log_prefix, rcv_data, 4, ESP_LOG_ERROR);
                 }
                 
-                
+            } else {
+                ESP_LOGE(i2c_messaging_log_prefix, "I2C Master - >> Send failure after retries! Code: %i", ret);
+                retval = -SDP_ERR_SEND_FAIL; 
+                goto done;           
             }
         }
         else
         {
             ESP_LOGE(i2c_messaging_log_prefix, "I2C Master - >> Send failure after retries! Code: %i", ret);
+            retval = -SDP_ERR_SEND_FAIL; 
+            goto done;
         }
     } else {
         ESP_LOGW(i2c_messaging_log_prefix, "I2C Master - >> SDA was low, seems we have to listen first..");
     }
+
+    retval = ESP_OK;
+
+done:
     ESP_LOGI(i2c_messaging_log_prefix, "I2C Master - Deleting driver");
     i2c_driver_delete(CONFIG_I2C_CONTROLLER_NUM);
-    // Go into slave mode
+    // Always go back into listen (slave) mode
     ESP_ERROR_CHECK(i2c_driver_init(false));
     
-    return ESP_OK;
+    return retval;
 }
 
 void i2c_do_on_work_cb(i2c_queue_item_t *work_item) {
     ESP_LOGI(i2c_messaging_log_prefix, ">> In i2c work callback.");
 
-    // TODO: Should we add a check for received here, or is it close enough after the poll?
+    // TODO: Register failures (negative return values)
     i2c_send_message(work_item->peer, work_item->data, work_item->data_length);
 
 }
@@ -257,9 +267,9 @@ void i2c_do_on_poll_cb(queue_context *q_context) {
         if (!peer) {
             char *new_name;
             asprintf(&new_name, "UNKNOWN_%i", i2c_unknown_counter++);
-            
-            peer = add_peer_by_i2c_address(new_name, i2c_address);
-            
+            ESP_LOGI(i2c_messaging_log_prefix, "I2C Slave - >> New peer, adding.");
+            peer = sdp_add_init_new_peer_i2c(new_name, i2c_address);
+     
         }
         handle_incoming(peer, rcv_data + 1, response_len -1, SDP_MT_I2C);    
     }

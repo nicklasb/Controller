@@ -46,8 +46,6 @@ int sdp_peer_send_hi_message(sdp_peer *peer, bool is_reply) {
     ESP_LOGI(peer_log_prefix, ">> Send a HI or HIR-message with information.");
 
     int retval;
-    // TODO: Use CONFIG_SDP_NAME
-    // char *sdf_name = CONFIG_SDP_NAME;
 
     /* Gather the configured protocol support*/
     uint8_t supported_media_types = 0
@@ -89,7 +87,11 @@ int sdp_peer_send_hi_message(sdp_peer *peer, bool is_reply) {
         free(tmp_crc_data);
     }
 
-    add_relation(peer->base_mac_address, peer->relation_id);
+    add_relation(peer->base_mac_address, peer->relation_id
+    #ifdef CONFIG_SDP_LOAD_I2C
+    , peer->i2c_address
+    #endif   
+    );
     
     
     uint8_t *hi_msg = NULL;
@@ -109,7 +111,10 @@ int sdp_peer_send_hi_message(sdp_peer *peer, bool is_reply) {
 int sdp_peer_inform(work_queue_item_t *queue_item) {
 
     ESP_LOGI(peer_log_prefix, "<< Got a HI or HIR-message with information.");
-
+    if (!queue_item->peer) {
+        ESP_LOGE(peer_log_prefix, "<< ..but queue_item->peer is not set, internal error!");
+        return ESP_FAIL;
+    } 
     /* Set the protocol versions*/
     queue_item->peer->protocol_version = (uint8_t)atoi(queue_item->parts[1]);
     queue_item->peer->min_protocol_version = (uint8_t)atoi(queue_item->parts[2]);
@@ -125,17 +130,16 @@ int sdp_peer_inform(work_queue_item_t *queue_item) {
     /* Set supported media types*/
     queue_item->peer->supported_media_types = (uint8_t)atoi(queue_item->parts[4]);
     queue_item->peer->relation_id = atoi(queue_item->parts[5]);
-
     /* Set base MAC address*/ 
     memcpy(&queue_item->peer->base_mac_address, queue_item->parts[6], SDP_MAC_ADDR_LEN);
-    
+         
     ESP_LOGI(peer_log_prefix, "<< Peer %s now more informed ",queue_item->peer->name);
     log_peer_info(peer_log_prefix, queue_item->peer);
     
 
     // TODO: Check protocol version for highest matching protocol version.
     
-    return 0;
+    return ESP_OK;
 
 }
 
@@ -185,7 +189,7 @@ bool add_relation(sdp_mac_address mac_address, uint32_t relation_id
         relations[rel_end].relation_id = relation_id;
         memcpy(relations[rel_end].mac_address, mac_address, SDP_MAC_ADDR_LEN);
         #ifdef CONFIG_SDP_LOAD_I2C
-            relations[rel_end].i2c_address = i2c_address
+        relations[rel_end].i2c_address = i2c_address;
         #endif
         ESP_LOGI(peer_log_prefix, "Relation added at %hhu", rel_end);
         rel_end++;

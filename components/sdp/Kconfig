@@ -53,7 +53,14 @@ menu "SDP Configuration"
         default "UNNAMEDPEER"
         help
             The name of the peer 
-           
+            
+    config SDP_SIM
+        bool "Run in simulation mode"
+        help
+            This causes the library to run in simulation mode, 
+            it cause simulation settings to become visible.
+            The mode is used to simulate and create problematic situations, 
+            like glitching cables, radio interference or jamming (the bad kind)
 
 endmenu
 

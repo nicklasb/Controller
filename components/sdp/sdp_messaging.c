@@ -2,18 +2,18 @@
  * @file sdp_messaging.c
  * @author Nicklas Börjesson (nicklasb@gmail.com)
  * @brief Handles incoming and outgoing messaging
- * 
+ *
  * @version 0.1
  * @date 2023-01-07
- * 
+ *
  * @copyright Copyright (c) 2023
- * 
+ *
  */
 
-/** TODO: 
-* We should probably split this into an incoming and an outgoing part. 
-* The incoming part could then be unaware/uncaring of what media is the source, and the sending could contain all the media specific #ifdefs 
-*/ 
+/** TODO:
+ * We should probably split this into an incoming and an outgoing part.
+ * The incoming part could then be unaware/uncaring of what media is the source, and the sending could contain all the media specific #ifdefs
+ */
 #include "sdp_messaging.h"
 #include <esp_log.h>
 #include <esp32/rom/crc.h>
@@ -82,16 +82,19 @@ int sdp_send_message(struct sdp_peer *peer, void *data, int data_length);
 void *sdp_add_preamble(e_work_type work_type, uint16_t conversation_id, const void *data, int data_length)
 {
     char *new_data = malloc(data_length + SDP_PREAMBLE_LENGTH);
-    new_data[0] = (uint8_t)work_type;
-    new_data[1] = (uint8_t)(&conversation_id)[0];
-    new_data[2] = (uint8_t)(&conversation_id)[1];
-    memcpy(&(new_data[SDP_PREAMBLE_LENGTH]), data, (size_t)data_length);
+
+    new_data[4] = (uint8_t)work_type;
+    new_data[5] = (uint8_t)(&conversation_id)[0];
+    new_data[6] = (uint8_t)(&conversation_id)[1];
+    memcpy(new_data + SDP_PREAMBLE_LENGTH, data, (size_t)data_length);
+    unsigned int crc32 = crc32_be(0, (uint8_t *)new_data + 4, data_length + SDP_PREAMBLE_LENGTH - 4);
+    memcpy(new_data, &crc32, 4);
+
     return new_data;
 }
 
 void parse_message(work_queue_item_t *queue_item)
 {
-
     /* Check that the data ends with a NULL value to avoid having to
     check later (there should always be one there) */
     if (queue_item->raw_data[queue_item->raw_data_length - 1] != 0)
@@ -183,8 +186,9 @@ int handle_incoming(sdp_peer *peer, const uint8_t *data, int data_len, e_media_t
     {
         // TODO: Change malloc to something more optimized?
         new_item = malloc(sizeof(work_queue_item_t));
-        new_item->work_type = data[0];    
-        new_item->conversation_id = (uint16_t)data[1];
+        new_item->crc32 = (uint32_t)data[0];
+        new_item->work_type = (uint8_t)data[4];
+        new_item->conversation_id = (uint16_t)data[5];
         new_item->raw_data_length = data_len - SDP_PREAMBLE_LENGTH;
         new_item->raw_data = malloc(new_item->raw_data_length);
         memcpy(new_item->raw_data, &(data[SDP_PREAMBLE_LENGTH]), new_item->raw_data_length);
@@ -197,7 +201,7 @@ int handle_incoming(sdp_peer *peer, const uint8_t *data, int data_len, e_media_t
         safe_add_conversation(peer, "external", new_item->conversation_id);
 
         ESP_LOGI(messaging_log_prefix, "<< Message info : Work type: %u, Conv.id: %u, Media type: %u,Data len: %u, Message parts: %i.",
-                 new_item->work_type, new_item->conversation_id, 
+                 new_item->work_type, new_item->conversation_id,
                  new_item->media_type, new_item->raw_data_length, new_item->partcount);
     }
     else
@@ -274,16 +278,17 @@ int handle_incoming(sdp_peer *peer, const uint8_t *data, int data_len, e_media_t
         break;
 
     case HANDSHAKE:
-        
+
         // TODO: Are there security considerations here?
         // Should this not happen if a peer isn't already on some list
-        // A peer says HI, and tells us a little about itself. 
+        // A peer says HI, and tells us a little about itself.
         if ((strncmp(new_item->parts[0], "HI", 2) == 0))
         {
             // We have already added it as a peer, lets get any information
             sdp_peer_inform(new_item);
             // If its wasn't a reply, we reply with our information
-            if (strcmp(new_item->parts[0], "HIR") != 0) {
+            if (strcmp(new_item->parts[0], "HIR") != 0)
+            {
                 if (sdp_peer_send_hi_message(peer, true) == SDP_MT_NONE)
                 {
                     ESP_LOGE(messaging_log_prefix, "handle_incoming() - Failed to send HIR-message %s", new_item->peer->name);
@@ -425,7 +430,7 @@ void report_ble_connection_error(int conn_handle, int code)
  */
 int sdp_send_message(struct sdp_peer *peer, void *data, int data_length)
 {
-    
+
     int rc = 0;
     e_media_type preferred = SDP_MT_NONE;
     ESP_LOGI(messaging_log_prefix, ">> peer->supported_media_types: %hhx ", peer->supported_media_types);
@@ -434,11 +439,8 @@ int sdp_send_message(struct sdp_peer *peer, void *data, int data_length)
 
     // Send message using BLE
     if ((peer->ble_conn_handle >= 0) && (peer->supported_media_types & SDP_MT_BLE) &&
-        (
-            (preferred == SDP_MT_NONE && (peer->lora_stats.initial_media)) ||
-            (preferred == SDP_MT_BLE)
-        )
-    )
+        ((preferred == SDP_MT_NONE && (peer->lora_stats.initial_media)) ||
+         (preferred == SDP_MT_BLE)))
     {
         rc = ble_send_message(peer->ble_conn_handle, data, data_length);
         if (rc == 0)
@@ -450,20 +452,17 @@ int sdp_send_message(struct sdp_peer *peer, void *data, int data_length)
             report_ble_connection_error(peer->ble_conn_handle, rc);
             // TODO: Add start general QoS monitoring, stop using some technologies if they are failing
         }
-    } 
+    }
 #endif
 #ifdef CONFIG_SDP_LOAD_ESP_NOW
-    if ((peer->supported_media_types & SDP_MT_ESPNOW) && 
-        (
-            ((preferred == SDP_MT_NONE) && (peer->espnow_state.initial_media)) ||
-            (preferred == SDP_MT_ESPNOW)
-        )
-    )
+    if ((peer->supported_media_types & SDP_MT_ESPNOW) &&
+        (((preferred == SDP_MT_NONE) && (peer->espnow_state.initial_media)) ||
+         (preferred == SDP_MT_ESPNOW)))
     {
         ESP_LOGI(messaging_log_prefix, ">> ESP-NOW sending to: ");
         ESP_LOG_BUFFER_HEX(messaging_log_prefix, peer->base_mac_address, SDP_MAC_ADDR_LEN);
         ESP_LOGI(messaging_log_prefix, ">> Data (including 4 bytes preamble): ");
-        ESP_LOG_BUFFER_HEXDUMP(messaging_log_prefix, data, data_length, ESP_LOG_INFO);        
+        ESP_LOG_BUFFER_HEXDUMP(messaging_log_prefix, data, data_length, ESP_LOG_INFO);
         rc = espnow_send_message(peer->base_mac_address, data, data_length);
         if (rc == 0)
         {
@@ -478,17 +477,14 @@ int sdp_send_message(struct sdp_peer *peer, void *data, int data_length)
         }
     }
 
-        // if (peer->base_mac_address) {}
+    // if (peer->base_mac_address) {}
 
 #endif
 #ifdef CONFIG_SDP_LOAD_LORA
 
     if ((peer->supported_media_types & SDP_MT_LoRa) &&
-        (
-            ((preferred == SDP_MT_NONE) && (peer->lora_state.initial_media)) || 
-            (preferred == SDP_MT_LoRa)
-        )
-    )
+        (((preferred == SDP_MT_NONE) && (peer->lora_state.initial_media)) ||
+         (preferred == SDP_MT_LoRa)))
     {
         ESP_LOGI(messaging_log_prefix, ">> LoRa sending to: ");
         ESP_LOG_BUFFER_HEX(messaging_log_prefix, peer->base_mac_address, SDP_MAC_ADDR_LEN);
@@ -511,11 +507,8 @@ int sdp_send_message(struct sdp_peer *peer, void *data, int data_length)
 #ifdef CONFIG_SDP_LOAD_I2C
 
     if ((peer->supported_media_types & SDP_MT_I2C) &&
-        (
-            ((preferred == SDP_MT_NONE) && (peer->i2c_state.initial_media)) || 
-            (preferred == SDP_MT_I2C)
-        )
-    )
+        (((preferred == SDP_MT_NONE) && (peer->i2c_state.initial_media)) ||
+         (preferred == SDP_MT_I2C)))
     {
         ESP_LOGI(messaging_log_prefix, ">> I2C sending to I2C host: %hhu ", peer->i2c_address);
         ESP_LOGI(messaging_log_prefix, ">> Data (including 4 bytes preamble): ");

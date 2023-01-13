@@ -39,6 +39,9 @@ typedef struct i2c_queue_item
 esp_err_t i2c_safe_add_work_queue(sdp_peer *peer, char *data, int data_length);
 
 esp_err_t i2c_init_worker(work_callback work_cb, work_callback priority_cb, poll_callback poll_cb, char *_log_prefix);
+
+queue_context *i2c_get_queue_context();
+
 void i2c_set_queue_blocked(bool blocked);
 void i2c_shutdown_worker();
 void i2c_cleanup_queue_task(i2c_queue_item_t *queue_item);

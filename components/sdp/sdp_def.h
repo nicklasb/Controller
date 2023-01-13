@@ -28,7 +28,7 @@ enum sdp_states
 #define SDP_PROTOCOL_VERSION_MIN 0
 
 /* The length, in bytes of the SDP preamble. */
-#define SDP_PREAMBLE_LENGTH 3
+#define SDP_PREAMBLE_LENGTH 7
 
 /* Define all the reasonable time */
 #define SECOND 1000000
@@ -203,11 +203,20 @@ struct sdp_peer_state
     bool initial_media;
 
     /* Last time heard from the peer*/
-    uint64_t last_time;
+    uint64_t last_time_in;
     /* Last time we tried to contact the  peer*/
     uint64_t last_time_out;
-    /* Last time a  */
+    /* Last time a we had a successful communication */
     uint64_t last_success;
+    /* Last time a we had a failed communication */
+    uint64_t last_failure;    
+    /* Number of crc mismatches from the peer */
+    uint32_t crc_failures;
+    /* Number of times we have failed communicating with the peer since last check */
+    uint32_t send_failures;
+    /* Number of times we have successfully communicated with the peer since last check  */
+    uint32_t send_successes;
+
 };
 /* This is the maximum number of peers */
 /* NOTE: A list of relations, it relations+mac_addresses (4 + 6 * SDP_MAX_PEERS) is stored
@@ -284,7 +293,7 @@ typedef struct work_queue_item
     enum e_work_type work_type;
 
     /* Hash of indata */
-    uint16_t crc32;
+    uint32_t crc32;
     /* The conversation it belongs to */
     uint16_t conversation_id;
     /* The data */

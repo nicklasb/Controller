@@ -57,5 +57,29 @@ menu "I2C Configuration"
             IMPORTANT: This must be actively set to a value between 0 and 256 or the build will fail. 
             Note: It is possible that this address might become dynamically assigned in later versions.
             In that case this setting will force that address to be used, and -1 will no longer stop builds.
-
+     config I2C_ADDR
+        int "I2C Address"
+        default -1
+        range -1 256
+        help
+            When a peer listens, it is put in I2C slave mode by Robusto, and listens for request that matches a given address.
+            This is that address. 
+            IMPORTANT: This must be actively set to a value between 0 and 256 or the build will fail. 
+            Note: It is possible that this address might become dynamically assigned in later versions.
+            In that case this setting will force that address to be used, and -1 will no longer stop builds.        
+    config I2C_RESEND_COUNT
+        int "I2C Resend count"
+        default 2
+        range 0 256
+        help
+            Number of times the library tries to re-send through I2C before it considers it a failure.
+    config SDP_SIM_I2C_BAD_CRC
+        int "| SIM | The number of times I2C will get a bad CRC32 on all requests"
+        default 0
+        depends on SDP_SIM   
+        range 0 256
+        help
+            When a peer returns with a CRC32 on the message, this will intervene and set the wrong
+            value, causing all crc checks to fail SDP_SIM_I2C_BAD_CRC number of times.
+    
 endmenu

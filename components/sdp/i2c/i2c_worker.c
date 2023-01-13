@@ -56,6 +56,10 @@ void i2c_cleanup_queue_task(i2c_queue_item_t *queue_item) {
     cleanup_queue_task(&i2c_queue_context);
 }
 
+queue_context *i2c_get_queue_context() {
+    return &i2c_queue_context;
+}
+
 void i2c_set_queue_blocked(bool blocked) {
     set_queue_blocked(&i2c_queue_context,blocked);
 }

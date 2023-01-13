@@ -13,7 +13,7 @@
 
 #include <esp_log.h>
 
-#include "sdkconfig.h"
+#include <sdkconfig.h>
 #include "string.h"
 
 #include <nvs.h>
@@ -97,10 +97,21 @@ void delete_task_if_shutting_down()
     }
 }
 
+void warn_if_simulating() {
+    #ifdef CONFIG_SDP_SIM
+    ESP_LOGE(sdp_log_prefix, "-----------------------------------------------");
+    ESP_LOGE(sdp_log_prefix, "-------- S I M U L A T I O N - M O D E --------");
+    ESP_LOGE(sdp_log_prefix, "-----------------------------------------------");
+    #endif
+}
+
 int sdp_init(work_callback *work_cb, work_callback *priority_cb, before_sleep *before_sleep_cb, char *_log_prefix, bool is_conductor)
 {
     sdp_log_prefix = _log_prefix;
     // Begin with initialising the monitor to capture initial memory state.
+
+    warn_if_simulating();
+
     sdp_init_monitor(sdp_log_prefix);
     
     // Then initialize sleep functionality  

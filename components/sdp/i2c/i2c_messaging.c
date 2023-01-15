@@ -100,6 +100,7 @@ int calc_timeout_ms(uint32_t data_length) {
 }
 
 
+
 int i2c_send_message(sdp_peer *peer, char *data, int data_length) {
 
     int retval = ESP_FAIL;
@@ -133,10 +134,10 @@ int i2c_send_message(sdp_peer *peer, char *data, int data_length) {
         gpio_set_level(CONFIG_I2C_SDA_IO, 0);
         
         ESP_LOGI(i2c_messaging_log_prefix, "I2C Master - >> SDA was high, now set to low.");
-        int read_retries = 0;
+        int send_retries = 0;
         esp_err_t send_ret = ESP_FAIL;
         do {
-            ESP_LOGI(i2c_messaging_log_prefix, "I2C Master - >> Sending, try %i.", read_retries);
+            ESP_LOGI(i2c_messaging_log_prefix, "I2C Master - >> Sending, try %i.", send_retries + 1);
             send_ret = i2c_master_cmd_begin(CONFIG_I2C_CONTROLLER_NUM, cmd, 1000 / portTICK_PERIOD_MS);
             if (send_ret != ESP_OK)
             {
@@ -146,8 +147,8 @@ int i2c_send_message(sdp_peer *peer, char *data, int data_length) {
                 peer->i2c_state.last_time_out = esp_timer_get_time();
             }
             
-            read_retries++;
-        } while ((send_ret != 0) && (read_retries < 4));
+            send_retries++;
+        } while ((send_ret != 0) && (send_retries < 4));
         
         
         i2c_cmd_link_delete(cmd);
@@ -269,9 +270,7 @@ void i2c_do_on_poll_cb(queue_context *q_context) {
         memcpy(&crc32_in, rcv_data + 1, 4);
         unsigned int crc_calc = crc32_be(0, rcv_data +5, data_len -5);
 
-        if (crc32_in == crc_calc) {
-            ESP_LOGI(i2c_messaging_log_prefix, "I2C Slave - << CRC MATCH !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");  
-        } else {
+        if (crc32_in != crc_calc) {
             ESP_LOGI(i2c_messaging_log_prefix, "I2C Slave - << CRC Mismatch crc32_in: %u,crc_calc: %u", crc32_in, crc_calc);  
         }
 
@@ -331,6 +330,7 @@ void i2c_do_on_work_cb(i2c_queue_item_t *work_item) {
 void i2c_messaging_init(char * _log_prefix){
     i2c_messaging_log_prefix = _log_prefix;
     rcv_data = malloc(I2C_RX_BUF); 
+
     // TODO: Were should rcv_data be freed? Should be spend time freeing if shutting down?
     ESP_ERROR_CHECK(i2c_driver_init(false));
 }

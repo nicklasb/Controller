@@ -138,6 +138,10 @@ void memory_monitoring() {
     
 }
 
+void run_monitors() {
+        memory_monitoring();
+}
+
 /**
  * @brief The monitor tasks periodically takes sampes of the current state
  * It uses that history data to perform some simple statistical calculations,
@@ -151,7 +155,7 @@ void monitor_task(void *arg)
 {
     if (!shutdown) {
         // Call different monitors
-        memory_monitoring();
+        run_monitors();
 
         // TODO: Add an SLIST of external monitors
         // TODO: Add problem and warning callbacks to make it possible to raise the alarm if .
@@ -172,6 +176,10 @@ void sdp_init_monitor(char *_log_prefix)
 {   
     monitor_log_prefix = _log_prefix;
     /* Init the monitor */
+    ESP_LOGI(monitor_log_prefix, "Launching monitor, activate every %.2f seconds, history length: %i samples.", (float)CONFIG_SDP_MONITOR_DELAY/500000, CONFIG_SDP_MONITOR_HISTORY_LENGTH);
+    // First run once immidiately to capture initial (to include the monitors themselfves if monitored)
+    run_monitors();
+
     const esp_timer_create_args_t monitor_timer_args = {
         .callback = &monitor_task,
         .name = "monitor"
@@ -180,8 +188,8 @@ void sdp_init_monitor(char *_log_prefix)
     ESP_ERROR_CHECK(esp_timer_create(&monitor_timer_args, &monitor_timer));
 
     // TODO: Loop list of external monitors 
+    
 
-    ESP_LOGI(monitor_log_prefix, "Launching monitor, activate every %.2f seconds, history length: %i samples.", (float)CONFIG_SDP_MONITOR_DELAY/500000, CONFIG_SDP_MONITOR_HISTORY_LENGTH);
     monitor_task(NULL);
 }
 

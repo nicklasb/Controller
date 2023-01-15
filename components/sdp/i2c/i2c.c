@@ -229,7 +229,7 @@ void i2c_init(char * _log_prefix) {
     ESP_LOGI(i2c_log_prefix, "Initializing i2c");
     i2c_messaging_init(i2c_log_prefix);
     init_i2c();
-    if (i2c_init_worker(&i2c_do_on_work_cb, NULL, &i2c_do_on_poll_cb, i2c_log_prefix) != ESP_OK)
+    if (i2c_init_worker(&i2c_do_on_work_cb, &i2c_do_on_poll_cb, i2c_log_prefix) != ESP_OK)
     {
        ESP_LOGE(i2c_log_prefix, "Failed initializing i2c"); 
        return;

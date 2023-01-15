@@ -43,8 +43,6 @@ typedef struct queue_context
   /* Mandatory callback that handles incoming work items */
   work_callback *on_work_cb;
 
-  /* Mandatory callback that handles incoming priority request immidiately - TODO: This should not be here*/
-  work_callback *on_priority_cb;
   /* Optional callback that is called each poll period. T
   Note: This is run in the queue task, and might conflict with multitasking. */
   poll_callback *on_poll_cb;

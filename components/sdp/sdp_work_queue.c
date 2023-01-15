@@ -90,7 +90,6 @@ static void sdp_worker(queue_context *q_context)
 {
     ESP_LOGI(spd_work_queue_log_prefix, "Worker task %s now running, context: ", q_context->worker_task_name);
     ESP_LOGI(spd_work_queue_log_prefix, "on_work_cb: %p", q_context->on_work_cb);
-    ESP_LOGI(spd_work_queue_log_prefix, "on_priority_cb: %p", q_context->on_priority_cb);
     ESP_LOGI(spd_work_queue_log_prefix, "max_task_count: %i", q_context->max_task_count);
     ESP_LOGI(spd_work_queue_log_prefix, "first_queue_item_cb: %p", q_context->first_queue_item_cb);
     ESP_LOGI(spd_work_queue_log_prefix, "insert_tail_cb: %p", q_context->insert_tail_cb);
@@ -202,6 +201,7 @@ esp_err_t init_work_queue(queue_context *q_context, char *_log_prefix, const cha
      * traditionally (cores are basically the same now)
      * Feels more reasonable to focus on comms on 0 and
      * applications on 1, traditionally called APP
+     * TODO: Should we try to allocate these tasks statically using xTaskCreateStatic or/and xTaskCreateRestrictedStatic?
      */
 
     ESP_LOGI(spd_work_queue_log_prefix, "Register the worker task. Name: %s", q_context->worker_task_name);

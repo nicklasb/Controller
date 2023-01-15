@@ -140,8 +140,8 @@ int sdp_init(work_callback *work_cb, work_callback *priority_cb, before_sleep *b
     }
     ESP_ERROR_CHECK(ret);
     
-    sdp_init_worker(work_cb, priority_cb, _log_prefix);
-    sdp_init_messaging(_log_prefix);
+    sdp_init_worker(work_cb, _log_prefix);
+    sdp_init_messaging(_log_prefix, priority_cb);
     // Create the default event loop (almost all technologies use it    )
     ESP_ERROR_CHECK(esp_event_loop_create_default());
 

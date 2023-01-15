@@ -313,7 +313,7 @@ int handle_incoming(sdp_peer *peer, const uint8_t *data, int data_len, e_media_t
         /* This is likely to be some kind of problem report or alarm,
         immidiately respond with CRC32 to tell the
         reporter that the information has reached the controller. */
-        // TODO: Consider if the response perhaps whould be unblocking
+        // TODO: Consider if the response perhaps whould be nonblocking
         sdp_send_message(new_item->peer, &(new_item->crc32), 2);
 
         /* Do NOT add the work item to the queue, it will be immidiately adressed in the callback */
@@ -639,10 +639,11 @@ struct conversation_list_item *find_conversation(sdp_peer *peer, uint16_t conver
     return NULL;
 }
 
-void sdp_init_messaging(char *_log_prefix)
+void sdp_init_messaging(char *_log_prefix, work_callback *priority_cb)
 {
 
     messaging_log_prefix = _log_prefix;
+    on_priority_cb = priority_cb;
 
     sdp_mesh_init(messaging_log_prefix, CONFIG_SDP_MAX_PEERS);
 

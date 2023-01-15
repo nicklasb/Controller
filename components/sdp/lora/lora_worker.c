@@ -65,7 +65,7 @@ void lora_shutdown_worker() {
     lora_queue_context.shutdown = true;
 }
 
-esp_err_t lora_init_worker(work_callback work_cb, work_callback priority_cb, poll_callback poll_cb, char *_log_prefix)
+esp_err_t lora_init_worker(work_callback work_cb, poll_callback poll_cb, char *_log_prefix)
 {
     lora_worker_log_prefix = _log_prefix;
     // Initialize the work queue
@@ -75,7 +75,6 @@ esp_err_t lora_init_worker(work_callback work_cb, work_callback priority_cb, pol
     lora_queue_context.remove_first_queueitem_cb = &lora_remove_first_queue_item; 
     lora_queue_context.insert_tail_cb = &lora_insert_tail;
     lora_queue_context.on_work_cb = work_cb; 
-    lora_queue_context.on_priority_cb = priority_cb;
     lora_queue_context.on_poll_cb = poll_cb;
     lora_queue_context.max_task_count = 1;
     // This queue cannot start processing items until lora is initialized

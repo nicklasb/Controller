@@ -116,7 +116,7 @@ void lora_init(char * _log_prefix) {
     ESP_LOGI(lora_log_prefix, "Initializing LoRa");
     lora_messaging_init(lora_log_prefix);
     init_lora();
-    if (lora_init_worker(&lora_do_on_work_cb, NULL, &lora_do_on_poll_cb, lora_log_prefix) != ESP_OK)
+    if (lora_init_worker(&lora_do_on_work_cb, &lora_do_on_poll_cb, lora_log_prefix) != ESP_OK)
     {
        ESP_LOGE(lora_log_prefix, "Failed initializing LoRa"); 
        return;

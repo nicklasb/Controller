@@ -129,8 +129,7 @@ void gsm_init(char *_log_prefix)
     gsm_log_prefix = _log_prefix;
     ESP_LOGI(gsm_log_prefix, "Initiating GSM modem..");
 
-    gsm_init_worker(&gsm_do_on_work_cb, NULL, gsm_log_prefix);
-    
+    gsm_init_worker(&gsm_do_on_work_cb, gsm_log_prefix);
 
     /* Create the event group, this is used for all event handling, initiate in main thread */
     gsm_event_group = xEventGroupCreate();

@@ -66,7 +66,7 @@ void sdp_shutdown_worker()
     sdp_queue_context.shutdown = true;
 }
 
-esp_err_t sdp_init_worker(work_callback *work_cb, work_callback *priority_cb, char *_log_prefix)
+esp_err_t sdp_init_worker(work_callback *work_cb, char *_log_prefix)
 {
     spd_worker_log_prefix = _log_prefix;
     // Initialize the work queue
@@ -76,7 +76,6 @@ esp_err_t sdp_init_worker(work_callback *work_cb, work_callback *priority_cb, ch
     sdp_queue_context.remove_first_queueitem_cb = &sdp_remove_first_queue_item;
     sdp_queue_context.insert_tail_cb = &sdp_insert_tail;
     sdp_queue_context.on_work_cb = work_cb,
-    sdp_queue_context.on_priority_cb = priority_cb;
     sdp_queue_context.max_task_count = 0;
     sdp_queue_context.multitasking = true;
 

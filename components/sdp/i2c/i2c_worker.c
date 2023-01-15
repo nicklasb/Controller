@@ -69,7 +69,7 @@ void i2c_shutdown_worker() {
     i2c_queue_context.shutdown = true;
 }
 
-esp_err_t i2c_init_worker(work_callback work_cb, work_callback priority_cb, poll_callback poll_cb, char *_log_prefix)
+esp_err_t i2c_init_worker(work_callback work_cb, poll_callback poll_cb, char *_log_prefix)
 {
     i2c_worker_log_prefix = _log_prefix;
     // Initialize the work queue
@@ -79,7 +79,6 @@ esp_err_t i2c_init_worker(work_callback work_cb, work_callback priority_cb, poll
     i2c_queue_context.remove_first_queueitem_cb = &i2c_remove_first_queue_item; 
     i2c_queue_context.insert_tail_cb = &i2c_insert_tail;
     i2c_queue_context.on_work_cb = work_cb; 
-    i2c_queue_context.on_priority_cb = priority_cb;
     i2c_queue_context.on_poll_cb = poll_cb;
     i2c_queue_context.max_task_count = 1;
     // This queue cannot start processing items until i2c is initialized

@@ -52,7 +52,7 @@ struct conversation_list_item *find_conversation(sdp_peer *peer, uint16_t conver
 
 int sdp_reply(work_queue_item_t queue_item, enum e_work_type work_type, const void *data, int data_length);
 
-void sdp_init_messaging(char *_log_prefix);
+void sdp_init_messaging(char *_log_prefix, work_callback *priority_cb);
 
 
 #endif

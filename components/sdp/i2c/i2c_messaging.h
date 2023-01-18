@@ -4,7 +4,11 @@
 #include "../sdp_def.h"
 #include "i2c_worker.h"
 
+
+
 int i2c_send_message(sdp_peer *peer, char *data, int data_length);
+float i2c_score_peer(struct sdp_peer *peer, int data_length);
+
 void i2c_do_on_work_cb(i2c_queue_item_t *work_item);
 void i2c_do_on_poll_cb(queue_context *q_context);
 

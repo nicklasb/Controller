@@ -155,7 +155,7 @@ typedef enum e_media_type
     SDP_MT_I2C = 16,
     SDP_MT_CANBUS = 32, // TODO: Not implemented
     SDP_MT_TTL = 64, // TODO: Probably this should be implemented in some way. Or onewire. 
-    SDP_MT_ANY = 128
+    SDP_MT_ANY = 256
 } e_media_type;
 
 /**
@@ -196,26 +196,37 @@ typedef uint8_t sdp_mac_address[SDP_MAC_ADDR_LEN];
 
 /* A peer name in SDP */
 typedef char sdp_peer_name[CONFIG_SDP_PEER_NAME_LEN];
-
-struct sdp_peer_state
+/**
+ * @brief Media 
+ * This is used by the adaptive transmission to find the optimal media
+ * 
+ */
+struct sdp_peer_media_stats
 {
     /* V 1.0, just save if it has been working at all */
     bool initial_media;
 
-    /* Last time heard from the peer*/
-    uint64_t last_time_in;
-    /* Last time we tried to contact the  peer*/
-    uint64_t last_time_out;
-    /* Last time a we had a successful communication */
-    uint64_t last_success;
-    /* Last time a we had a failed communication */
-    uint64_t last_failure;    
+    /* Last time peer was checked */
+    uint64_t last_check;
+    
     /* Number of crc mismatches from the peer */
-    uint32_t crc_failures;
-    /* Number of times we have failed communicating with the peer since last check */
+    uint32_t crc_mismatches;
+        
+    /* Supported speed bit/s */
+    uint32_t theoretical_speed;
+    /* Actual speed bit/s. 
+    NOTE: Always lower than theoretical, and with small payloads; *much* lower */
+    uint32_t actual_speed;
+
+    /* Number of times we have failed sending to a peer since last check */
     uint32_t send_failures;
-    /* Number of times we have successfully communicated with the peer since last check  */
+    /* Number of times we have failed receiving data from a peer since last check */
+    uint32_t receive_failures;    
+    /* Number of times we have succeeded sending to a peer since last check */
     uint32_t send_successes;
+    /* Number of times we have succeeed eceiving data from a peer since last check */
+    uint32_t receive_successes;    
+    
 
 };
 /* This is the maximum number of peers */
@@ -244,7 +255,7 @@ typedef struct sdp_peer
     uint8_t protocol_version;
     /* Minimum supported protocol version*/
     uint8_t min_protocol_version;
-     /** A generated 32-bit crc32 of the peer's mac address and this peer
+     /** A generated 32-bit crc32 of the peers and this peers mac addresses
       * Used by non-addressed and low-bandwith medias (LoRa) to economically resolve peers w
       */
     uint32_t relation_id;   
@@ -255,20 +266,20 @@ typedef struct sdp_peer
     /* Next availability (measured in mikroseconds from first boot)*/
     uint64_t next_availability;
 
-    /* Media-specific statistics*/
+    /* Media-specific statistics, used by transmission optimizer */
     #if CONFIG_SDP_LOAD_BLE
-    struct sdp_peer_state ble_stats;
+    struct sdp_peer_media_stats ble_stats;
     #endif
 
     #if CONFIG_SDP_LOAD_ESP_NOW
-    struct sdp_peer_state espnow_state;
+    struct sdp_peer_media_stats espnow_stats;
     #endif
 
     #if CONFIG_SDP_LOAD_LORA
-    struct sdp_peer_state lora_state;
+    struct sdp_peer_media_stats lora_stats;
     #endif
     #if CONFIG_SDP_LOAD_I2C
-    struct sdp_peer_state i2c_state;
+    struct sdp_peer_media_stats i2c_stats;
     uint8_t i2c_address;
     #endif
     

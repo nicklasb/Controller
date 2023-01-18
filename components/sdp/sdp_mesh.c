@@ -180,7 +180,7 @@ sdp_peer *sdp_add_init_new_peer(sdp_peer_name peer_name, const sdp_mac_address m
         if (media_type & SDP_MT_BLE)
         {
             //(mac_address);
-            peer->ble_state.initial_media = true;
+            peer->ble_stats.initial_media = true;
         }
         // TODO: Usually BLE sort of finds each other, however we might wan't to do something here
 #endif
@@ -190,7 +190,7 @@ sdp_peer *sdp_add_init_new_peer(sdp_peer_name peer_name, const sdp_mac_address m
         {
             ESP_LOGI(mesh_log_prefix, "Adding espnow peer at:");
             ESP_LOG_BUFFER_HEX(mesh_log_prefix, peer->base_mac_address, SDP_MAC_ADDR_LEN);
-            peer->espnow_state.initial_media = true;
+            peer->espnow_stats.initial_media = true;
             int rc = espnow_add_peer(peer->base_mac_address);
         }
 #endif
@@ -198,7 +198,7 @@ sdp_peer *sdp_add_init_new_peer(sdp_peer_name peer_name, const sdp_mac_address m
 #ifdef CONFIG_SDP_LOAD_LORA
         if (media_type & SDP_MT_LoRa)
         {
-            peer->lora_state.initial_media = true;
+            peer->lora_stats.initial_media = true;
         }
 #endif
     }
@@ -244,7 +244,7 @@ sdp_peer *sdp_add_init_new_peer_i2c(sdp_peer_name peer_name, const uint8_t i2c_a
     {
         peer->i2c_address = i2c_address;
         peer->supported_media_types = SDP_MT_I2C;
-        peer->i2c_state.initial_media = true;
+        peer->i2c_stats.initial_media = true;
 
     }
     else

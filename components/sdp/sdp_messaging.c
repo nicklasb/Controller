@@ -423,18 +423,68 @@ void report_ble_connection_error(int conn_handle, int code)
     ESP_LOGE(messaging_log_prefix, "Unregistered peer (!) at conn handle %i encountered a BLE error. Code: %i.", conn_handle, code);
 }
 #endif
+/**
+ * @brief 
+ * 
+ * @param peer 
+ * @param data_length 
+ * @return e_media_type 
+ */
+e_media_type select_media(struct sdp_peer *peer, int data_length) {
+    
+    //Loop media types and find the highest scoring
+    
+    e_media_type top_media_type = 0;
+    float top_score, curr_score = 0;
+    for (unsigned int curr_media_type= 1; curr_media_type < SDP_MT_ANY; curr_media_type = curr_media_type * 2) {
+        if (peer->supported_media_types & curr_media_type) {
+            #ifdef CONFIG_SDP_LOAD_BLE   
+                if (curr_media_type = SDP_MT_BLE) {
+                    curr_score = 1;
+                }
+                #warning "BLE doesn't have a proper media scoring implementation"
+                
+            #endif 
+            #ifdef CONFIG_SDP_LOAD_I2C   
+                if (curr_media_type = SDP_MT_I2C) {
+                    curr_score = i2c_score_peer(peer,data_length);
+                }
+            #endif 
+            #ifdef CONFIG_SDP_LOAD_ESPNOW
+                if (curr_media_type = SDP_MT_ESPNOW) {
+                    curr_score = 1;
+                }
+                #warning "ESPNOW doesn't have a proper media scoring implementation"
+                
+            #endif             
+
+        }
+        // TODO: Warn if we are forced to use an obviously unsuitable media (or fail if we go below minimum scores)
+        // For example if someone wants to send a video stream and the only available connection is LoRa.
+    
+    }
+    
+
+
+}
+
 
 /**
- * @brief Sends to one specified peer using first available media type.
+ * @brief Sends to a specified peer
 
  */
 int sdp_send_message(struct sdp_peer *peer, void *data, int data_length)
 {
 
     int rc = 0;
+    int result = ESP_FAIL;
     e_media_type preferred = SDP_MT_NONE;
     ESP_LOGI(messaging_log_prefix, ">> peer->supported_media_types: %hhx ", peer->supported_media_types);
-
+   
+    do {
+        // For each try, we need to reevalue what media we are selecting.
+        e_media_type selected_media_type = select_media(peer, data_length);
+    
 #ifdef CONFIG_SDP_LOAD_BLE
 
     // Send message using BLE
@@ -445,18 +495,19 @@ int sdp_send_message(struct sdp_peer *peer, void *data, int data_length)
         rc = ble_send_message(peer->ble_conn_handle, data, data_length);
         if (rc == 0)
         {
-            return SDP_MT_BLE;
+            result = SDP_MT_BLE;
         }
         else
         {
             report_ble_connection_error(peer->ble_conn_handle, rc);
+            result = -SDP_MT_BLE
             // TODO: Add start general QoS monitoring, stop using some technologies if they are failing
         }
     }
 #endif
 #ifdef CONFIG_SDP_LOAD_ESP_NOW
     if ((peer->supported_media_types & SDP_MT_ESPNOW) &&
-        (((preferred == SDP_MT_NONE) && (peer->espnow_state.initial_media)) ||
+        (((preferred == SDP_MT_NONE) && (peer->espnow_stats.initial_media)) ||
          (preferred == SDP_MT_ESPNOW)))
     {
         ESP_LOGI(messaging_log_prefix, ">> ESP-NOW sending to: ");
@@ -466,12 +517,12 @@ int sdp_send_message(struct sdp_peer *peer, void *data, int data_length)
         rc = espnow_send_message(peer->base_mac_address, data, data_length);
         if (rc == 0)
         {
-            return SDP_MT_ESPNOW;
+            result SDP_MT_ESPNOW;
         }
         else
         {
             ESP_LOGE(messaging_log_prefix, ">> Sending using ESP-NOW failed.");
-            return -SDP_ERR_SEND_FAIL;
+            result = -SDP_MT_ESPNOW;
             // report_ble_connection_error(peer->ble_conn_handle, rc);
             //  TODO: Add start general QoS monitoring, stop using some technologies if they are failing
         }
@@ -483,7 +534,7 @@ int sdp_send_message(struct sdp_peer *peer, void *data, int data_length)
 #ifdef CONFIG_SDP_LOAD_LORA
 
     if ((peer->supported_media_types & SDP_MT_LoRa) &&
-        (((preferred == SDP_MT_NONE) && (peer->lora_state.initial_media)) ||
+        (((preferred == SDP_MT_NONE) && (peer->lora_stats.initial_media)) ||
          (preferred == SDP_MT_LoRa)))
     {
         ESP_LOGI(messaging_log_prefix, ">> LoRa sending to: ");
@@ -494,12 +545,12 @@ int sdp_send_message(struct sdp_peer *peer, void *data, int data_length)
         rc = lora_safe_add_work_queue(peer, data, data_length);
         if (rc == 0)
         {
-            return SDP_MT_LoRa;
+            result = SDP_MT_LoRa;
         }
         else
         {
             ESP_LOGE(messaging_log_prefix, ">> Sending using Lora failed.");
-            return -SDP_ERR_SEND_FAIL;
+            result = -SDP_MT_LoRa;
             //  TODO: Add start general QoS monitoring, stop using medias if they are failing
         }
     }
@@ -507,7 +558,7 @@ int sdp_send_message(struct sdp_peer *peer, void *data, int data_length)
 #ifdef CONFIG_SDP_LOAD_I2C
 
     if ((peer->supported_media_types & SDP_MT_I2C) &&
-        (((preferred == SDP_MT_NONE) && (peer->i2c_state.initial_media)) ||
+        (((preferred == SDP_MT_NONE) && (peer->i2c_stats.initial_media)) ||
          (preferred == SDP_MT_I2C)))
     {
         ESP_LOGI(messaging_log_prefix, ">> I2C sending to I2C host: %hhu ", peer->i2c_address);
@@ -517,17 +568,25 @@ int sdp_send_message(struct sdp_peer *peer, void *data, int data_length)
         rc = i2c_safe_add_work_queue(peer, data, data_length);
         if (rc == 0)
         {
-            return SDP_MT_I2C;
+            result = SDP_MT_I2C;
         }
         else
         {
             ESP_LOGE(messaging_log_prefix, ">> Sending using Lora failed.");
-            return -SDP_ERR_SEND_FAIL;
+            result = -SDP_MT_I2C;
             //  TODO: Add start general QoS monitoring, stop using a medium if it is failing
         }
     }
 #endif
-    return SDP_MT_NONE;
+    if (result < 0) {
+        ESP_LOGE(messaging_log_prefix, ">> Failed to send. Analyzing. ");
+
+        
+    }
+
+    } while (result > 0)
+
+    return result;
 }
 /**
  * @brief Replies to the sender in the queue item

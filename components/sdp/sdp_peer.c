@@ -115,6 +115,10 @@ int sdp_peer_inform(work_queue_item_t *queue_item) {
         ESP_LOGE(peer_log_prefix, "<< ..but queue_item->peer is not set, internal error!");
         return ESP_FAIL;
     } 
+     if (queue_item->partcount < 6) {
+        ESP_LOGE(peer_log_prefix, "<< ..but there is not enough parts!");
+        return ESP_FAIL;
+    }    
     /* Set the protocol versions*/
     queue_item->peer->protocol_version = (uint8_t)atoi(queue_item->parts[1]);
     queue_item->peer->min_protocol_version = (uint8_t)atoi(queue_item->parts[2]);

@@ -284,23 +284,30 @@ float i2c_score_peer(struct sdp_peer *peer, int data_length) {
 #endif
     // -50 if its way too long, +50 if its below 1000 bytes
     // TODO: Obviously, the length score should go down if we are forced to slow down, with a low actual speed.
-    float length_score = 50 -((data_length - 1000) * 0,05);
+    float length_score = 50 -((data_length - 1000) * 0.05);
     if (length_score < -50) {
         length_score = -50;
     }
     
     // Success score
-    // Neutral if failures are lower than 0.01 of tries.
-
-    float failure_fraction = (peer->i2c_stats.send_failures + peer->i2c_stats.receive_failures) /
-    (peer->i2c_stats.send_successes + peer->i2c_stats.receive_successes);
+    
+    float failure_fraction = 0;
+    
+    if (peer->i2c_stats.send_successes + peer->i2c_stats.receive_successes > 0) {
+        // Neutral if failures are lower than 0.01 of tries.         
+        failure_fraction = (peer->i2c_stats.send_failures + peer->i2c_stats.receive_failures) /
+        (peer->i2c_stats.send_successes + peer->i2c_stats.receive_successes);
+    } if (peer->i2c_stats.send_failures + peer->i2c_stats.receive_failures > 0) {
+        // If there are only failures, that causes a 1 as a failure fraction
+        failure_fraction = 1;
+    }
 
     // A failure fraction of 0.1 - 0. No failures - 25. Anything over 0.5 returns -100. 
-    float success_score = 25 - (failure_part * 250)
+    float success_score = 25 - (failure_fraction * 250);
     if (success_score < -100) {
         success_score = -100;
     }
-    
+
     float total_score = length_score + success_score;
     if (total_score < 100) {
         total_score = -100;

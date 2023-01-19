@@ -42,6 +42,7 @@
 
 #ifdef CONFIG_SDP_LOAD_I2C
 #include "i2c/i2c_worker.h"
+#include "i2c/i2c_messaging.h"
 #endif
 
 #define CONFIG_SDP_MAX_PEERS 20
@@ -313,7 +314,7 @@ int handle_incoming(sdp_peer *peer, const uint8_t *data, int data_len, e_media_t
         /* This is likely to be some kind of problem report or alarm,
         immidiately respond with CRC32 to tell the
         reporter that the information has reached the controller. */
-        // TODO: Consider if the response perhaps whould be nonblocking
+        // TODO: Consider if the response perhaps whould be nonblocking (perhaps this is not needed if all media have queues)
         sdp_send_message(new_item->peer, &(new_item->crc32), 2);
 
         /* Do NOT add the work item to the queue, it will be immidiately adressed in the callback */
@@ -338,7 +339,7 @@ int handle_incoming(sdp_peer *peer, const uint8_t *data, int data_len, e_media_t
     return 0;
 }
 
-// TODO: The follow is inactivated for two reasons:
+// TODO: The following is inactivated for two reasons:
 // 1. I don't properly understand how *declare* the sdp_peers list in a way that can be share using the extern keyword
 // 2. This might not be how to broadcast as it is not thread safe if a peer disconnects and the memory is freed, we will crash
 #if 0
@@ -424,73 +425,80 @@ void report_ble_connection_error(int conn_handle, int code)
 }
 #endif
 /**
- * @brief 
- * 
- * @param peer 
- * @param data_length 
- * @return e_media_type 
+ * @brief
+ *
+ * @param peer
+ * @param data_length
+ * @return e_media_type
  */
-e_media_type select_media(struct sdp_peer *peer, int data_length) {
-    
-    //Loop media types and find the highest scoring
-    
-    e_media_type top_media_type = 0;
-    float top_score, curr_score = 0;
-    for (unsigned int curr_media_type= 1; curr_media_type < SDP_MT_ANY; curr_media_type = curr_media_type * 2) {
-        if (peer->supported_media_types & curr_media_type) {
-            #ifdef CONFIG_SDP_LOAD_BLE   
-                if (curr_media_type = SDP_MT_BLE) {
-                    curr_score = 1;
-                }
-                #warning "BLE doesn't have a proper media scoring implementation"
-                
-            #endif 
-            #ifdef CONFIG_SDP_LOAD_I2C   
-                if (curr_media_type = SDP_MT_I2C) {
-                    curr_score = i2c_score_peer(peer,data_length);
-                }
-            #endif 
-            #ifdef CONFIG_SDP_LOAD_ESPNOW
-                if (curr_media_type = SDP_MT_ESPNOW) {
-                    curr_score = 1;
-                }
-                #warning "ESPNOW doesn't have a proper media scoring implementation"
-                
-            #endif             
+e_media_type select_media(struct sdp_peer *peer, int data_length)
+{
 
+    // Loop media types and find the highest scoring
+
+    // TODO: If this is slow, perhaps we could have a short-lived selection cache?
+
+    e_media_type top_media_type = 0;
+    float top_score  = 0;
+    float curr_score = 0;
+    for (unsigned int curr_media_type = 1; curr_media_type < SDP_MT_ANY; curr_media_type = curr_media_type * 2)
+    {
+        if (peer->supported_media_types & curr_media_type)
+        {
+#ifdef CONFIG_SDP_LOAD_BLE
+
+            if (curr_media_type == SDP_MT_BLE)
+            {
+                curr_score = 1;
+            }
+
+#endif
+#ifdef CONFIG_SDP_LOAD_I2C
+            if (curr_media_type == SDP_MT_I2C)
+            {
+                curr_score = i2c_score_peer(peer, data_length);
+            }
+#endif
+#ifdef CONFIG_SDP_LOAD_ESPNOW
+
+            if (curr_media_type == SDP_MT_ESPNOW)
+            {
+                curr_score = 1;
+            }
+
+#endif
+            if (curr_score > top_score)
+            {
+                top_score = curr_score;
+                top_media_type = curr_media_type;
+            }
         }
         // TODO: Warn if we are forced to use an obviously unsuitable media (or fail if we go below minimum scores)
         // For example if someone wants to send a video stream and the only available connection is LoRa.
-    
     }
-    
 
-
+    return top_media_type;
 }
-
 
 /**
  * @brief Sends to a specified peer
 
  */
-int sdp_send_message(struct sdp_peer *peer, void *data, int data_length)
+int sdp_send_message_media_type(struct sdp_peer *peer, void *data, int data_length, e_media_type media_type)
 {
-
+    // Should this function also be put in a separate file? Perhaps along with other #ifs? To simplify and clean up this one?
     int rc = 0;
     int result = ESP_FAIL;
-    e_media_type preferred = SDP_MT_NONE;
-    ESP_LOGI(messaging_log_prefix, ">> peer->supported_media_types: %hhx ", peer->supported_media_types);
-   
-    do {
-        // For each try, we need to reevalue what media we are selecting.
-        e_media_type selected_media_type = select_media(peer, data_length);
-    
-#ifdef CONFIG_SDP_LOAD_BLE
+    ESP_LOGI(messaging_log_prefix, ">> sdp_send_message_media_type called, media type: %hhx ", media_type);
 
+    // TODO: Fix the calls below to just go by media type, they *should* not have to think about it.
+    // All these considerations *should* have been made in the scoring.
+    // The BLE-connection handle stuff feels like it needs to be reworked. If it has a connection handle should be sorted when becoming a peer, right?
+
+#ifdef CONFIG_SDP_LOAD_BLE
+    // (peer->ble_conn_handle >= 0) && (peer->supported_media_types &
     // Send message using BLE
-    if ((peer->ble_conn_handle >= 0) && (peer->supported_media_types & SDP_MT_BLE) &&
-        ((preferred == SDP_MT_NONE && (peer->lora_stats.initial_media)) ||
-         (preferred == SDP_MT_BLE)))
+    if (media_type == SDP_MT_BLE)
     {
         rc = ble_send_message(peer->ble_conn_handle, data, data_length);
         if (rc == 0)
@@ -505,10 +513,9 @@ int sdp_send_message(struct sdp_peer *peer, void *data, int data_length)
         }
     }
 #endif
+
 #ifdef CONFIG_SDP_LOAD_ESP_NOW
-    if ((peer->supported_media_types & SDP_MT_ESPNOW) &&
-        (((preferred == SDP_MT_NONE) && (peer->espnow_stats.initial_media)) ||
-         (preferred == SDP_MT_ESPNOW)))
+    if (media_type == SDP_MT_ESPNOW)
     {
         ESP_LOGI(messaging_log_prefix, ">> ESP-NOW sending to: ");
         ESP_LOG_BUFFER_HEX(messaging_log_prefix, peer->base_mac_address, SDP_MAC_ADDR_LEN);
@@ -517,7 +524,7 @@ int sdp_send_message(struct sdp_peer *peer, void *data, int data_length)
         rc = espnow_send_message(peer->base_mac_address, data, data_length);
         if (rc == 0)
         {
-            result SDP_MT_ESPNOW;
+            result = SDP_MT_ESPNOW;
         }
         else
         {
@@ -528,14 +535,12 @@ int sdp_send_message(struct sdp_peer *peer, void *data, int data_length)
         }
     }
 
-    // if (peer->base_mac_address) {}
+
 
 #endif
 #ifdef CONFIG_SDP_LOAD_LORA
 
-    if ((peer->supported_media_types & SDP_MT_LoRa) &&
-        (((preferred == SDP_MT_NONE) && (peer->lora_stats.initial_media)) ||
-         (preferred == SDP_MT_LoRa)))
+    if (media_type == SDP_MT_LoRa)
     {
         ESP_LOGI(messaging_log_prefix, ">> LoRa sending to: ");
         ESP_LOG_BUFFER_HEX(messaging_log_prefix, peer->base_mac_address, SDP_MAC_ADDR_LEN);
@@ -557,9 +562,7 @@ int sdp_send_message(struct sdp_peer *peer, void *data, int data_length)
 #endif
 #ifdef CONFIG_SDP_LOAD_I2C
 
-    if ((peer->supported_media_types & SDP_MT_I2C) &&
-        (((preferred == SDP_MT_NONE) && (peer->i2c_stats.initial_media)) ||
-         (preferred == SDP_MT_I2C)))
+    if (media_type == SDP_MT_I2C)
     {
         ESP_LOGI(messaging_log_prefix, ">> I2C sending to I2C host: %hhu ", peer->i2c_address);
         ESP_LOGI(messaging_log_prefix, ">> Data (including 4 bytes preamble): ");
@@ -578,15 +581,34 @@ int sdp_send_message(struct sdp_peer *peer, void *data, int data_length)
         }
     }
 #endif
-    if (result < 0) {
-        ESP_LOGE(messaging_log_prefix, ">> Failed to send. Analyzing. ");
-
-        
-    }
-
-    } while (result > 0)
-
     return result;
+}
+
+/**
+ * @brief Sends to a specified peer
+
+ */
+int sdp_send_message(struct sdp_peer *peer, void *data, int data_length)
+{
+
+    int rc = ESP_FAIL;
+
+    e_media_type preferred = SDP_MT_NONE;
+    ESP_LOGI(messaging_log_prefix, ">> peer->supported_media_types: %hhx ", peer->supported_media_types);
+
+    do
+    {
+        // For each try, we need to reevalue what media we are selecting.
+        e_media_type selected_media_type = select_media(peer, data_length);
+        rc = sdp_send_message_media_type(peer, data, data_length, selected_media_type);
+        if (rc < 0)
+        {
+            ESP_LOGE(messaging_log_prefix, ">> Failed to send. Analyzing. ");
+        }
+    } while (rc < 0); // We need to have a general retry limit here? Or is it even at this level we retry?
+        
+
+    return rc;
 }
 /**
  * @brief Replies to the sender in the queue item

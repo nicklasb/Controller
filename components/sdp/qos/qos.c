@@ -14,7 +14,7 @@
 
 /**
 * @brief 
-* TODO: 
+* TODO: This might instead be a feature of the selection mechanisim
 * Re-send functionality. Or should this be a responsible of the sender? Maybe inside a connection?
 * Or is retries and trying with other media on different levels?
 * Actually; don't one have to retry to conclude that something perhaps need to change?

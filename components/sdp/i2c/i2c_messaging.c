@@ -288,7 +288,9 @@ float i2c_score_peer(struct sdp_peer *peer, int data_length) {
     if (length_score < -50) {
         length_score = -50;
     }
-    
+    ESP_LOGI(i2c_messaging_log_prefix, "ss: %i, rs: %i, sf: %i, rf: %i,  ", 
+    peer->i2c_stats.send_successes, peer->i2c_stats.receive_successes, 
+    peer->i2c_stats.send_failures, peer->i2c_stats.receive_failures);
     // Success score
     
     float failure_fraction = 0;
@@ -301,7 +303,7 @@ float i2c_score_peer(struct sdp_peer *peer, int data_length) {
         // If there are only failures, that causes a 1 as a failure fraction
         failure_fraction = 1;
     }
-
+    
     // A failure fraction of 0.1 - 0. No failures - 25. Anything over 0.5 returns -100. 
     float success_score = 25 - (failure_fraction * 250);
     if (success_score < -100) {
@@ -386,6 +388,16 @@ void i2c_do_on_poll_cb(queue_context *q_context)
             ret = ESP_FAIL;
         }  else {
             ESP_LOGI(i2c_messaging_log_prefix, "I2C Slave - << Got %i bytes of data from %hhu. crc32 : %u, create response.", data_len, i2c_address, crc_calc);
+            
+            if (!peer)
+            {
+                char *new_name;
+                asprintf(&new_name, "UNKNOWN_%i", i2c_unknown_counter++);
+                ESP_LOGI(i2c_messaging_log_prefix, "I2C Slave - >> New peer, adding.");
+                peer = sdp_add_init_new_peer_i2c(new_name, i2c_address);
+            }
+            peer->i2c_stats.receive_successes++;
+            
             response[0] = 0xff;
             response[1] = 0x00;   
         }
@@ -397,6 +409,9 @@ void i2c_do_on_poll_cb(queue_context *q_context)
         if (ret < 0)
         {
             ESP_LOGE(i2c_messaging_log_prefix, "I2C Slave - >> Got an error from sending back data: %i", ret);
+            if (peer) {
+                peer->i2c_stats.send_failures++; // TODO: Not sure how this should count, but probably it should
+            }
             return ESP_FAIL;
         }
         else
@@ -404,13 +419,7 @@ void i2c_do_on_poll_cb(queue_context *q_context)
             ESP_LOGI(i2c_messaging_log_prefix, "I2C Slave - >> Sent a %i bytes with length of %i bytes and crc of %u. ", ret, data_len, crc_calc);
         }
 
-        if (!peer)
-        {
-            char *new_name;
-            asprintf(&new_name, "UNKNOWN_%i", i2c_unknown_counter++);
-            ESP_LOGI(i2c_messaging_log_prefix, "I2C Slave - >> New peer, adding.");
-            peer = sdp_add_init_new_peer_i2c(new_name, i2c_address);
-        }
+
         handle_incoming(peer, rcv_data + 1, data_len - 1, SDP_MT_I2C);
     }
     else if (data_len > 0)

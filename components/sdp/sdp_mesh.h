@@ -26,6 +26,7 @@ sdp_peer *add_peer_by_mac_address(sdp_peer_name peer_name, const sdp_mac_address
 sdp_peer *add_peer_by_i2c_address(sdp_peer_name peer_name, uint8_t i2c_address);
 sdp_peer *sdp_add_init_new_peer_i2c(sdp_peer_name peer_name, const uint8_t i2c_address);
 #endif
+void init_supported_media_types_mac_address(sdp_peer *peer);
 sdp_peer *sdp_add_init_new_peer(sdp_peer_name peer_name, const sdp_mac_address mac_address, e_media_type media_type);
 struct sdp_peer *sdp_mesh_find_peer_by_base_mac_address(sdp_mac_address mac_address);
 

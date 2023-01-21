@@ -8,6 +8,7 @@
 
 #include "sdp_helpers.h"
 #include "sdp_messaging.h"
+#include "sdp_mesh.h"
 
 char *peer_log_prefix;
 
@@ -134,9 +135,17 @@ int sdp_peer_inform(work_queue_item_t *queue_item) {
     /* Set supported media types*/
     queue_item->peer->supported_media_types = (uint8_t)atoi(queue_item->parts[4]);
     queue_item->peer->relation_id = atoi(queue_item->parts[5]);
-    /* Set base MAC address*/ 
-    memcpy(&queue_item->peer->base_mac_address, queue_item->parts[6], SDP_MAC_ADDR_LEN);
-         
+    /* If we haven't before or it's updated; set base MAC address*/ 
+    if (memcmp(&queue_item->peer->base_mac_address, queue_item->parts[6], SDP_MAC_ADDR_LEN) != 0) {
+        memcpy(&queue_item->peer->base_mac_address, queue_item->parts[6], SDP_MAC_ADDR_LEN);    
+        // Also init any other supported media type
+        // TODO: sdp_mesh and sdp_pee
+        init_supported_media_types_mac_address(queue_item->peer);
+        ESP_LOGI(peer_log_prefix, "<< Initiated other supported medias");
+    }
+    
+    
+
     ESP_LOGI(peer_log_prefix, "<< Peer %s now more informed ",queue_item->peer->name);
     log_peer_info(peer_log_prefix, queue_item->peer);
     

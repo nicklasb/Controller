@@ -210,10 +210,13 @@ int i2c_send_message(sdp_peer *peer, char *data, int data_length)
                 } else if ((rcv_data[0] == 0x0) && (rcv_data[1] == 0xff)) {
                     ESP_LOGI(i2c_messaging_log_prefix, "I2C Master - << Slave says it was wrong ");
                     ESP_LOG_BUFFER_HEXDUMP(i2c_messaging_log_prefix, rcv_data, 6, ESP_LOG_INFO);
+                    retval = -SDP_ERR_SEND_FAIL;
                 } else {
                     ESP_LOGE(i2c_messaging_log_prefix, "I2C Master - << We need look a bit closer ");
                     ESP_LOG_BUFFER_HEXDUMP(i2c_messaging_log_prefix, rcv_data, 6, ESP_LOG_ERROR);
                     // TODO: Analyze the responses
+                    // For now return send failed but later be more detailed, perhaps lower the speed.
+                    retval = -SDP_ERR_SEND_FAIL;
 
                 }
             }
@@ -445,15 +448,17 @@ void i2c_do_on_work_cb(i2c_queue_item_t *work_item)
     do
     {
         retval = i2c_send_message(work_item->peer, work_item->data, work_item->data_length);
-        if ((retval != ESP_OK) && (send_retries < CONFIG_I2C_RESEND_COUNT + 2))
+        if ((retval != ESP_OK) && (send_retries < CONFIG_I2C_RESEND_COUNT))
         {
             // Call the poll function as it was called by the queue to listen for response before retrying
-            ESP_LOGI(i2c_messaging_log_prefix, ">> Calling poll before trying to send again.");
+            // TODO: There is no special reason why poll needs to have been called by the queue. 
+            // We should probably remove queue context.
+            ESP_LOGI(i2c_messaging_log_prefix, ">> Calling poll after retry %i.", send_retries + 1);
             i2c_do_on_poll_cb(i2c_get_queue_context());
         }
         send_retries++;
 
-    } while ((retval != ESP_OK) && (send_retries < CONFIG_I2C_RESEND_COUNT + 2));
+    } while ((retval != ESP_OK) && (send_retries < CONFIG_I2C_RESEND_COUNT));
 }
 
 

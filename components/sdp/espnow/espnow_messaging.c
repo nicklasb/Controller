@@ -74,6 +74,7 @@ static void espnow_recv_cb(const uint8_t *mac_addr, const uint8_t *data, int len
         espnow_peer->encrypt = false;
         espnow_peer->ifidx = ESP_IF_WIFI_STA;
         memcpy(espnow_peer->peer_addr, mac_addr, SDP_MAC_ADDR_LEN);
+        /* TODO: The espnow_peer structure is never used?? */
 
         char *new_name;
         asprintf(&new_name, "UNKNOWN_%i", unknown_counter);

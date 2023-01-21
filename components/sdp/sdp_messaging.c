@@ -459,7 +459,7 @@ e_media_type select_media(struct sdp_peer *peer, int data_length)
                 curr_score = i2c_score_peer(peer, data_length);
             }
 #endif
-#ifdef CONFIG_SDP_LOAD_ESPNOW
+#ifdef CONFIG_SDP_LOAD_ESP_NOW
 
             if (curr_media_type == SDP_MT_ESPNOW)
             {
@@ -592,7 +592,7 @@ int sdp_send_message(struct sdp_peer *peer, void *data, int data_length)
 {
 
     int rc = ESP_FAIL;
-
+    int retries = 0;
     e_media_type preferred = SDP_MT_NONE;
     ESP_LOGI(messaging_log_prefix, ">> peer->supported_media_types: %hhx ", peer->supported_media_types);
 
@@ -604,8 +604,13 @@ int sdp_send_message(struct sdp_peer *peer, void *data, int data_length)
         if (rc < 0)
         {
             ESP_LOGE(messaging_log_prefix, ">> Failed to send. Analyzing. ");
+            if (retries < 4) {
+                retries++;
+                ESP_LOGE(messaging_log_prefix, ">> Retrying for the %ith time ", retries);
+            }
         }
-    } while (rc < 0); // We need to have a general retry limit here? Or is it even at this level we retry?
+        
+    } while ((rc < 0) && (retries < 4)); // We need to have a general retry limit here? Or is it even at this level we retry?
         
 
     return rc;

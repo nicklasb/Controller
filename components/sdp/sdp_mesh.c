@@ -159,6 +159,38 @@ int sdp_mesh_peer_add(sdp_peer_name name)
     return peer->peer_handle;
 }
 
+void init_supported_media_types_mac_address(sdp_peer *peer) {
+
+
+#ifdef CONFIG_SDP_LOAD_BLE
+        if (peer->supported_media_types & SDP_MT_BLE)
+        {
+            //(mac_address);
+            peer->ble_stats.initial_media = true;
+        }
+        // TODO: Usually BLE sort of finds each other, however we might wan't to do something here
+#endif
+
+#ifdef CONFIG_SDP_LOAD_ESP_NOW
+        if (peer->supported_media_types & SDP_MT_ESPNOW)
+        {
+            ESP_LOGI(mesh_log_prefix, "Adding espnow peer at:");
+            ESP_LOG_BUFFER_HEX(mesh_log_prefix, peer->base_mac_address, SDP_MAC_ADDR_LEN);
+            peer->espnow_stats.initial_media = true;
+            int rc = espnow_add_peer(peer->base_mac_address);
+        }
+#endif
+
+#ifdef CONFIG_SDP_LOAD_LORA
+        if (peer->supported_media_types & SDP_MT_LoRa)
+        {
+            peer->lora_stats.initial_media = true;
+        }
+#endif
+
+}
+
+
 /**
  * @brief Add and initialize a new peer (does not contact it, see add_peer for that)
  *
@@ -175,32 +207,8 @@ sdp_peer *sdp_add_init_new_peer(sdp_peer_name peer_name, const sdp_mac_address m
     {
         memcpy(peer->base_mac_address, mac_address, SDP_MAC_ADDR_LEN);
         peer->supported_media_types = media_type;
+        init_supported_media_types_mac_address(peer);
 
-#ifdef CONFIG_SDP_LOAD_BLE
-        if (media_type & SDP_MT_BLE)
-        {
-            //(mac_address);
-            peer->ble_stats.initial_media = true;
-        }
-        // TODO: Usually BLE sort of finds each other, however we might wan't to do something here
-#endif
-
-#ifdef CONFIG_SDP_LOAD_ESP_NOW
-        if (media_type & SDP_MT_ESPNOW)
-        {
-            ESP_LOGI(mesh_log_prefix, "Adding espnow peer at:");
-            ESP_LOG_BUFFER_HEX(mesh_log_prefix, peer->base_mac_address, SDP_MAC_ADDR_LEN);
-            peer->espnow_stats.initial_media = true;
-            int rc = espnow_add_peer(peer->base_mac_address);
-        }
-#endif
-
-#ifdef CONFIG_SDP_LOAD_LORA
-        if (media_type & SDP_MT_LoRa)
-        {
-            peer->lora_stats.initial_media = true;
-        }
-#endif
     }
     else
     {

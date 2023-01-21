@@ -184,6 +184,35 @@ float sdp_read_battery()
     return battery_voltage;
 }
 
+void log_media_types(sdp_media_types media_types, char * log_str) {
+    // Assume log string is long enough
+    if (media_types & SDP_MT_TTL) {
+        strcat(log_str, " TTL,");
+    }
+    if (media_types & SDP_MT_BLE) {
+        strcat(log_str, " BLE,");
+    }
+    if (media_types & SDP_MT_ESPNOW) {
+        strcat(log_str, " ESP-NOW,");
+    }
+    if (media_types & SDP_MT_LoRa) {
+        strcat(log_str, " LoRa,");
+    }
+    if (media_types & SDP_MT_I2C) {
+        strcat(log_str, " I2C,");
+    }
+    if (media_types & SDP_MT_CANBUS) {
+        strcat(log_str, " CAN bus,");
+    }
+    if (media_types & SDP_MT_UMTS) {
+        strcat(log_str, " UMTS,");
+    }
+    if (media_types > 0) {
+        // Remove last ","
+        log_str[strlen(log_str)-1] = 0;
+    }
+    
+}
 
 void log_peer_info(char * _log_prefix, sdp_peer *peer) {
     ESP_LOGI(_log_prefix, "Peer info:");
@@ -194,7 +223,9 @@ void log_peer_info(char * _log_prefix, sdp_peer *peer) {
     ESP_LOGI(_log_prefix, "I2C address:           %hhu", peer->i2c_address);
     #endif
     ESP_LOGI(_log_prefix, "State:                 %hhx", peer->state);
-    ESP_LOGI(_log_prefix, "Supported media types: %hhx", peer->supported_media_types);
+    char mt_log[1000] = "";
+    log_media_types(peer->supported_media_types, &mt_log);
+    ESP_LOGI(_log_prefix, "Supported media types:%s", mt_log);
     ESP_LOGI(_log_prefix, "Relation id:           %u", peer->relation_id);
     ESP_LOGI(_log_prefix, "Protocol version:      %i", peer->protocol_version);
     ESP_LOGI(_log_prefix, "Next availability:     %lli", peer->next_availability);

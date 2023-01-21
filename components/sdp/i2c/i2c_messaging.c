@@ -143,7 +143,7 @@ int i2c_send_message(sdp_peer *peer, char *data, int data_length)
             }
 
             send_retries++;
-        } while ((send_ret != 0) && (send_retries < 4));
+        } while ((send_ret != ESP_OK) && (send_retries < 4));
 
         i2c_cmd_link_delete(cmd);
 
@@ -453,9 +453,10 @@ void i2c_do_on_work_cb(i2c_queue_item_t *work_item)
             // Call the poll function as it was called by the queue to listen for response before retrying
             // TODO: There is no special reason why poll needs to have been called by the queue. 
             // We should probably remove queue context.
-            ESP_LOGI(i2c_messaging_log_prefix, ">> Calling poll after retry %i.", send_retries + 1);
-            i2c_do_on_poll_cb(i2c_get_queue_context());
+            ESP_LOGI(i2c_messaging_log_prefix, ">> Retri %i failed.", send_retries + 1);
+            
         }
+        i2c_do_on_poll_cb(i2c_get_queue_context());
         send_retries++;
 
     } while ((retval != ESP_OK) && (send_retries < CONFIG_I2C_RESEND_COUNT));

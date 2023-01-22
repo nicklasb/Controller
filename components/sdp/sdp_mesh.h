@@ -3,7 +3,12 @@
 
 #include <sdkconfig.h>
 #include <stdint.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+
 #include "sdp_peer.h"
+
+
 
 /**
  * @brief Construct the peer list
@@ -11,11 +16,14 @@
  * TODO: Perhaps this should be hidden. 
  */
 
+SLIST_HEAD(sdp_peers_t, sdp_peer);
 
 int sdp_mesh_delete_peer(uint16_t peer_handle);
 int sdp_mesh_peer_add(sdp_peer_name name);
 
 int sdp_mesh_init(char *_log_prefix, int max_peers);
+
+struct sdp_peers_t * get_peer_list();
 
 struct sdp_peer *sdp_mesh_find_peer_by_name(const sdp_peer_name name);
 struct sdp_peer *sdp_mesh_find_peer_by_handle(__int16_t peer_handle);

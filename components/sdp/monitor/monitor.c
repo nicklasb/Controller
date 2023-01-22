@@ -15,6 +15,9 @@
 #include <freertos/semphr.h>
 
 #include <esp_timer.h>
+
+#include "monitor_relations.h"
+
 /* How often should we look */
 #define CONFIG_SDP_MONITOR_DELAY 10000000
 
@@ -140,6 +143,8 @@ void memory_monitoring() {
 
 void run_monitors() {
         memory_monitoring();
+        monitor_relations();
+        
 }
 
 /**

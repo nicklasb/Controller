@@ -29,7 +29,8 @@ enum sdp_states
 
 /* The length, in bytes of the SDP preamble. */
 #define SDP_PREAMBLE_LENGTH 7
-
+/* The length, in bytes of the SDP preamble. */
+#define SDP_CRC_LENGTH 4
 /* Define all the reasonable time */
 #define SECOND 1000000
 #define MINUTE 60000000
@@ -133,7 +134,8 @@ typedef enum e_work_type
     REPLY = 2,
     DATA = 3,
     PRIORITY = 4,
-    ORCHESTRATION = 5
+    ORCHESTRATION = 5,
+    QOS = 6
 } e_work_type;
 
 /**
@@ -206,9 +208,12 @@ struct sdp_peer_media_stats
     /* V 1.0, just save if it has been working at all */
     bool initial_media;
 
-    /* Last time peer was checked */
-    uint64_t last_check;
-    
+    /* Last time peer was scored TODO: Unclear if this is used*/
+    uint64_t last_score_time;
+    /* Last score */
+    float last_score;
+    /* How many times score has been calculated since reset */
+    float score_count;    
     /* Number of crc mismatches from the peer */
     uint32_t crc_mismatches;
         

@@ -76,7 +76,7 @@ int sdp_peer_send_hi_message(sdp_peer *peer, bool is_reply) {
      * supported  media types: A byte describing the what communication technologies the peer supports.
      * adresses: A list of addresses in the order of the bits in the media types byte.
      */
-    char fmt_str[22] = "HIR";
+    char fmt_str[27] = "HIR";
     if (!is_reply) {
         strcpy(fmt_str, "HI");
         uint8_t *tmp_crc_data = malloc(12);
@@ -93,11 +93,15 @@ int sdp_peer_send_hi_message(sdp_peer *peer, bool is_reply) {
     , peer->i2c_address
     #endif   
     );
-    
+    #ifdef CONFIG_SDP_LOAD_I2C
+    uint8_t i2c_address = CONFIG_I2C_ADDR;
+    #else
+    uint8_t i2c_address = 0;
+    #endif   
     
     uint8_t *hi_msg = NULL;
-    int hi_length = add_to_message(&hi_msg, strcat(fmt_str, "|%u|%u|%s|%hhu|%u|%b6"), 
-        pv, pvm, sdp_host.name, supported_media_types, peer->relation_id, sdp_host.base_mac_address);
+    int hi_length = add_to_message(&hi_msg, strcat(fmt_str, "|%u|%u|%s|%hhu|%u|%hhu|%b6"), 
+        pv, pvm, sdp_host.name, supported_media_types, peer->relation_id, i2c_address,sdp_host.base_mac_address);
     if (hi_length > 0) {
         void *new_data = sdp_add_preamble(HANDSHAKE, 0, hi_msg, hi_length);
         retval = sdp_send_message(peer, new_data, hi_length+ SDP_PREAMBLE_LENGTH);
@@ -112,8 +116,8 @@ int sdp_peer_send_hi_message(sdp_peer *peer, bool is_reply) {
 int sdp_peer_inform(work_queue_item_t *queue_item) {
 
     ESP_LOGI(peer_log_prefix, "<< Got a HI or HIR-message with information.");
-    if (!queue_item->peer) {
-        ESP_LOGE(peer_log_prefix, "<< ..but queue_item->peer is not set, internal error!");
+    if (queue_item->peer == NULL) {
+        ESP_LOGE(peer_log_prefix, "<< ..but queue_item->peer is NULL, internal error!");
         return ESP_FAIL;
     } 
      if (queue_item->partcount < 6) {
@@ -135,14 +139,20 @@ int sdp_peer_inform(work_queue_item_t *queue_item) {
     /* Set supported media types*/
     queue_item->peer->supported_media_types = (uint8_t)atoi(queue_item->parts[4]);
     queue_item->peer->relation_id = atoi(queue_item->parts[5]);
+    #ifdef CONFIG_SDP_LOAD_I2C
+    queue_item->peer->i2c_address = atoi(queue_item->parts[6]);
+    #endif
+    
     /* If we haven't before or it's updated; set base MAC address*/ 
-    if (memcmp(&queue_item->peer->base_mac_address, queue_item->parts[6], SDP_MAC_ADDR_LEN) != 0) {
-        memcpy(&queue_item->peer->base_mac_address, queue_item->parts[6], SDP_MAC_ADDR_LEN);    
+    if (memcmp(&queue_item->peer->base_mac_address, queue_item->parts[7], SDP_MAC_ADDR_LEN) != 0) {
+        memcpy(&queue_item->peer->base_mac_address, queue_item->parts[7], SDP_MAC_ADDR_LEN);    
         // Also init any other supported media type
         // TODO: sdp_mesh and sdp_pee
         init_supported_media_types_mac_address(queue_item->peer);
         ESP_LOGI(peer_log_prefix, "<< Initiated other supported medias");
     }
+
+    if (queue_item->parts[6]+SDP_MAC_ADDR_LEN +1)
     
     
 

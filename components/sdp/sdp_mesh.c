@@ -6,8 +6,7 @@
 #include "sdp_peer.h"
 #include "sdkconfig.h"
 
-#include <freertos/FreeRTOS.h>
-#include <freertos/task.h>
+
 
 #ifdef CONFIG_SDP_LOAD_BLE
 #include "ble/ble_spp.h"
@@ -19,9 +18,7 @@
 
 /* Used for creating new peer handles*/
 uint16_t _peer_handle_incrementor_ = 0;
-
-SLIST_HEAD(, sdp_peer)
-sdp_peers;
+struct sdp_peers_t sdp_peers;
 
 /* The log prefix for all logging */
 char *mesh_log_prefix;
@@ -279,6 +276,10 @@ sdp_peer *add_peer_by_i2c_address(sdp_peer_name peer_name, uint8_t i2c_address)
 }
 
 #endif
+
+struct sdp_peers_t * get_peer_list() {
+    return &sdp_peers;
+}
 
 int sdp_mesh_init(char *_log_prefix, int max_peers)
 {

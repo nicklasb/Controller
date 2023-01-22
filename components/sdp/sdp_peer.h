@@ -15,6 +15,8 @@ bool add_relation(sdp_mac_address mac_address, uint32_t relation_id
     #endif
 ); 
 
+// TODO: Add add_external_relation - to add a relation between to external peers
+
 int sdp_peer_send_hi_message(sdp_peer *peer, bool is_reply);
 int sdp_peer_inform(work_queue_item_t *queue_item);
 void sdp_peer_init(char *_log_prefix);

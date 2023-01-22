@@ -197,6 +197,7 @@ int i2c_send_message(sdp_peer *peer, char *data, int data_length)
                     if (crc_msg == crc_response)
                     {
                         ESP_LOGI(i2c_messaging_log_prefix, "I2C Master - << Got a matching crc %u.", crc_response);
+                        ESP_LOGI(i2c_messaging_log_prefix, "I2C Master - II %i", peer->i2c_stats.send_successes);
                         retval = ESP_OK;
                     }
                     else
@@ -242,10 +243,12 @@ int i2c_send_message(sdp_peer *peer, char *data, int data_length)
     {
         // We have failed sending data to this peer, report it.
         peer->i2c_stats.send_failures++;
+        
     }
     else
     {
         peer->i2c_stats.send_successes++;
+        ESP_LOGI(i2c_messaging_log_prefix, "I2C Master Peer name: %s - II 2 %i", peer->name, peer->i2c_stats.send_successes);
     }
 
     ESP_LOGI(i2c_messaging_log_prefix, "I2C Master - Deleting driver");
@@ -255,6 +258,25 @@ int i2c_send_message(sdp_peer *peer, char *data, int data_length)
 
     return retval;
 }
+
+/**
+ * @brief Reset stat down to a failing but recoverable number.
+ * 
+ * @param peer 
+ */
+void i2c_stat_reset(sdp_peer *peer) {
+
+    
+    i2c_unknown_failures = 0;
+    i2c_crc_failures = 0;
+    peer->i2c_stats.send_successes = 1;
+    peer->i2c_stats.send_failures = 1;
+    peer->i2c_stats.receive_successes = 1;
+    peer->i2c_stats.receive_failures = 1;
+    peer->i2c_stats.score_count = 0;
+    
+}
+
 /**
  * @brief Returns a connection score for the peer
  * 
@@ -291,7 +313,7 @@ float i2c_score_peer(struct sdp_peer *peer, int data_length) {
     if (length_score < -50) {
         length_score = -50;
     }
-    ESP_LOGI(i2c_messaging_log_prefix, "ss: %i, rs: %i, sf: %i, rf: %i,  ", 
+    ESP_LOGI(i2c_messaging_log_prefix, "peer: %s ss: %i, rs: %i, sf: %i, rf: %i,  ", peer->name,
     peer->i2c_stats.send_successes, peer->i2c_stats.receive_successes, 
     peer->i2c_stats.send_failures, peer->i2c_stats.receive_failures);
     // Success score
@@ -300,27 +322,36 @@ float i2c_score_peer(struct sdp_peer *peer, int data_length) {
     
     if (peer->i2c_stats.send_successes + peer->i2c_stats.receive_successes > 0) {
         // Neutral if failures are lower than 0.01 of tries.         
-        failure_fraction = (peer->i2c_stats.send_failures + peer->i2c_stats.receive_failures) /
-        (peer->i2c_stats.send_successes + peer->i2c_stats.receive_successes);
-    } if (peer->i2c_stats.send_failures + peer->i2c_stats.receive_failures > 0) {
+        failure_fraction = ((float)peer->i2c_stats.send_failures + (float)peer->i2c_stats.receive_failures) /
+        ((float)peer->i2c_stats.send_successes + (float)peer->i2c_stats.receive_successes);
+    } else if (peer->i2c_stats.send_failures + peer->i2c_stats.receive_failures > 0) {
         // If there are only failures, that causes a 1 as a failure fraction
         failure_fraction = 1;
     }
     
     // A failure fraction of 0.1 - 0. No failures - 25. Anything over 0.5 returns -100. 
-    float success_score = 25 - (failure_fraction * 250);
+    float success_score = 25 -(failure_fraction * 250);
     if (success_score < -100) {
         success_score = -100;
     }
 
     float total_score = length_score + success_score;
-    if (total_score < 100) {
+    if (total_score < -100) {
         total_score = -100;
     }
-    ESP_LOGE(i2c_messaging_log_prefix, "I2C - Scoring peer %s:\nLength  : %f\nSuccess : %f\nTotal  = %f", 
-        peer->name, length_score, success_score, total_score);
+    ESP_LOGE(i2c_messaging_log_prefix, "I2C - Scoring - peer: %s ff: %f:\nLength  : %f\nSuccess : %f\nTotal  = %f", peer->name,
+    failure_fraction, length_score, success_score, total_score);
+    
+    peer->i2c_stats.last_score = (total_score + peer->i2c_stats.last_score)/2;
+    peer->i2c_stats.last_score_time = esp_timer_get_time();
 
-    return total_score;
+    if ((total_score < -40) && (peer->i2c_stats.score_count > 10)) {
+        ESP_LOGE(i2c_messaging_log_prefix, "I2C - Scoring - peer %s scored very low %f (report avg2 : %f), resetting history.", 
+        peer->name, total_score, peer->i2c_stats.last_score);
+        i2c_stat_reset(peer);
+    }
+
+    return peer->i2c_stats.last_score ;
 
 
 }
@@ -420,6 +451,7 @@ void i2c_do_on_poll_cb(queue_context *q_context)
         else
         {
             ESP_LOGI(i2c_messaging_log_prefix, "I2C Slave - >> Sent a %i bytes with length of %i bytes and crc of %u. ", ret, data_len, crc_calc);
+            peer->i2c_stats.send_successes++;       
         }
 
 
@@ -453,7 +485,7 @@ void i2c_do_on_work_cb(i2c_queue_item_t *work_item)
             // Call the poll function as it was called by the queue to listen for response before retrying
             // TODO: There is no special reason why poll needs to have been called by the queue. 
             // We should probably remove queue context.
-            ESP_LOGI(i2c_messaging_log_prefix, ">> Retri %i failed.", send_retries + 1);
+            ESP_LOGI(i2c_messaging_log_prefix, ">> Retry %i failed.", send_retries + 1);
             
         }
         i2c_do_on_poll_cb(i2c_get_queue_context());
@@ -463,11 +495,7 @@ void i2c_do_on_work_cb(i2c_queue_item_t *work_item)
 }
 
 
-void i2c_stat_cycle() {
-    // TODO: Some stats are specific to techniques
-    i2c_unknown_failures = 0;
-    i2c_crc_failures = 0;
-}
+
 
 void i2c_messaging_init(char *_log_prefix)
 {

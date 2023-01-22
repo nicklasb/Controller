@@ -2,7 +2,7 @@ FILE(GLOB sdp_sources
 "./*.c" "./*.h"
 "sleep/sleep.h" "sleep/sleep.c"
 "orchestration/orchestration.h" "orchestration/orchestration.c"
-"monitor/monitor.h" "monitor/monitor.c"
+"monitor/*.h" "monitor/*.c"
 )
 
 if (CONFIG_SDP_LOAD_UMTS)

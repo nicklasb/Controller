@@ -71,27 +71,31 @@ SemaphoreHandle_t x_conversation_list_semaphore;
 int sdp_send_message(struct sdp_peer *peer, void *data, int data_length);
 
 /**
- * @brief Add a preamble with general info in the beginning of a message
- *
- * @param work_type
- * @param conversation_id
- * @param data
- * @param data_length
+ * @brief Create a complete message structure by adding a preamble with crc32 of the data, work type and conversation 
+ * NOTE: This makes it possible to free() the original data memory. This could be a good idea if its a large amount.
+ * TODO: This should probably be called create message or something like that.
+ * @param work_type The type of work
+ * @param conversation_id The conversation id
+ * @param data The data to be sent
+ * @param data_length The length of the data
  * @return void*
  */
 
 void *sdp_add_preamble(e_work_type work_type, uint16_t conversation_id, const void *data, int data_length)
 {
-    char *new_data = malloc(data_length + SDP_PREAMBLE_LENGTH);
+    char *preambled_data = malloc(data_length + SDP_PREAMBLE_LENGTH);
 
-    new_data[4] = (uint8_t)work_type;
-    new_data[5] = (uint8_t)(&conversation_id)[0];
-    new_data[6] = (uint8_t)(&conversation_id)[1];
-    memcpy(new_data + SDP_PREAMBLE_LENGTH, data, (size_t)data_length);
-    unsigned int crc32 = crc32_be(0, (uint8_t *)new_data + 4, data_length + SDP_PREAMBLE_LENGTH - 4);
-    memcpy(new_data, &crc32, 4);
+    preambled_data[SDP_CRC_LENGTH] = (uint8_t)work_type;
+    preambled_data[SDP_CRC_LENGTH + 1] = (uint8_t)(&conversation_id)[0];
+    preambled_data[SDP_CRC_LENGTH + 2] = (uint8_t)(&conversation_id)[1];
+    memcpy(preambled_data + SDP_PREAMBLE_LENGTH, data, (size_t)data_length);
+    // Calc crc on the entire message
+    unsigned int crc32 = crc32_be(0, (uint8_t *)preambled_data + SDP_CRC_LENGTH, 
+        data_length + SDP_PREAMBLE_LENGTH - SDP_CRC_LENGTH);
+    // Put it first in the message
+    memcpy(preambled_data, &crc32, SDP_CRC_LENGTH);
 
-    return new_data;
+    return preambled_data;
 }
 
 void parse_message(work_queue_item_t *queue_item)
@@ -331,6 +335,9 @@ int handle_incoming(sdp_peer *peer, const uint8_t *data, int data_len, e_media_t
             sdp_safe_add_work_queue(new_item);
         }
         break;
+    case QOS:
+        // Don't do much here, usually
+        break;
 
     default:
         ESP_LOGE(messaging_log_prefix, "<< ERROR: Invalid work type (%i)!", new_item->work_type);
@@ -341,6 +348,7 @@ int handle_incoming(sdp_peer *peer, const uint8_t *data, int data_len, e_media_t
 
 // TODO: The following is inactivated for two reasons:
 // 1. I don't properly understand how *declare* the sdp_peers list in a way that can be share using the extern keyword
+// 1. FIX: This has now been understood, see mesh.h for the new solution
 // 2. This might not be how to broadcast as it is not thread safe if a peer disconnects and the memory is freed, we will crash
 #if 0
 /**

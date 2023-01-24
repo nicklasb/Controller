@@ -43,6 +43,7 @@
 #ifdef CONFIG_SDP_LOAD_I2C
 #include "i2c/i2c_worker.h"
 #include "i2c/i2c_messaging.h"
+#include "i2c/i2c_peer.h"
 #endif
 
 #define CONFIG_SDP_MAX_PEERS 20

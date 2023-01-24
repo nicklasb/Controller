@@ -8,6 +8,7 @@
 #include <sdp_mesh.h>
 #include <sdp_peer.h>
 #include <sdp_messaging.h>
+#include "i2c_peer.h"
 
 #include <string.h>
 
@@ -33,9 +34,7 @@
 /* The log prefix for all logging */
 char *i2c_messaging_log_prefix;
 
-int i2c_unknown_counter = 0;
-int i2c_unknown_failures = 0;
-int i2c_crc_failures = 0;
+
 
 uint8_t *rcv_data;
 
@@ -259,102 +258,8 @@ int i2c_send_message(sdp_peer *peer, char *data, int data_length)
     return retval;
 }
 
-/**
- * @brief Reset stat down to a failing but recoverable number.
- * 
- * @param peer 
- */
-void i2c_stat_reset(sdp_peer *peer) {
-
-    
-    i2c_unknown_failures = 0;
-    i2c_crc_failures = 0;
-    peer->i2c_stats.send_successes = 1;
-    peer->i2c_stats.send_failures = 1;
-    peer->i2c_stats.receive_successes = 1;
-    peer->i2c_stats.receive_failures = 1;
-    peer->i2c_stats.score_count = 0;
-    
-}
-
-/**
- * @brief Returns a connection score for the peer
- * 
- * @param peer The peer to analyze
- * @param data_length The length of data to send
- * @return float The score = -100 don't use, +100 use
- */
-float i2c_score_peer(struct sdp_peer *peer, int data_length) {
-
-    // I2C is not very fast, but not super-slow. 
-    // If there are many peers, per
-    // Is there a level of usage that is "too much"
-    // TODO: Add different demands, like "wired"? "secure", "fast", "roundtrip", or similar?
-
-#if 0
-    /* Supported speed bit/s */
-    uint32_t theoretical_speed;
-    /* Actual speed bit/s. 
-    NOTE: Always lower than theoretical, and with small payloads; *much* lower */
-    uint32_t actual_speed;
-
-    /* Number of times we have failed sending to a peer since last check */
-    uint32_t send_failures;
-    /* Number of times we have failed receiving data from a peer since last check */
-    uint32_t receive_failures;    
-    /* Number of times we have succeeded sending to a peer since last check */
-    uint32_t send_successes;
-    /* Number of times we have succeeed eceiving data from a peer since last check */
-    uint32_t receive_successes;    
-#endif
-    // -50 if its way too long, +50 if its below 1000 bytes
-    // TODO: Obviously, the length score should go down if we are forced to slow down, with a low actual speed.
-    float length_score = 50 -((data_length - 1000) * 0.05);
-    if (length_score < -50) {
-        length_score = -50;
-    }
-    ESP_LOGI(i2c_messaging_log_prefix, "peer: %s ss: %i, rs: %i, sf: %i, rf: %i,  ", peer->name,
-    peer->i2c_stats.send_successes, peer->i2c_stats.receive_successes, 
-    peer->i2c_stats.send_failures, peer->i2c_stats.receive_failures);
-    // Success score
-    
-    float failure_fraction = 0;
-    
-    if (peer->i2c_stats.send_successes + peer->i2c_stats.receive_successes > 0) {
-        // Neutral if failures are lower than 0.01 of tries.         
-        failure_fraction = ((float)peer->i2c_stats.send_failures + (float)peer->i2c_stats.receive_failures) /
-        ((float)peer->i2c_stats.send_successes + (float)peer->i2c_stats.receive_successes);
-    } else if (peer->i2c_stats.send_failures + peer->i2c_stats.receive_failures > 0) {
-        // If there are only failures, that causes a 1 as a failure fraction
-        failure_fraction = 1;
-    }
-    
-    // A failure fraction of 0.1 - 0. No failures - 25. Anything over 0.5 returns -100. 
-    float success_score = 25 -(failure_fraction * 250);
-    if (success_score < -100) {
-        success_score = -100;
-    }
-
-    float total_score = length_score + success_score;
-    if (total_score < -100) {
-        total_score = -100;
-    }
-    ESP_LOGE(i2c_messaging_log_prefix, "I2C - Scoring - peer: %s ff: %f:\nLength  : %f\nSuccess : %f\nTotal  = %f", peer->name,
-    failure_fraction, length_score, success_score, total_score);
-    
-    peer->i2c_stats.last_score = (total_score + peer->i2c_stats.last_score)/2;
-    peer->i2c_stats.last_score_time = esp_timer_get_time();
-
-    if ((total_score < -40) && (peer->i2c_stats.score_count > 10)) {
-        ESP_LOGE(i2c_messaging_log_prefix, "I2C - Scoring - peer %s scored very low %f (report avg2 : %f), resetting history.", 
-        peer->name, total_score, peer->i2c_stats.last_score);
-        i2c_stat_reset(peer);
-    }
-
-    return peer->i2c_stats.last_score ;
 
 
-}
 
 
 void i2c_do_on_poll_cb(queue_context *q_context)

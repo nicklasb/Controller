@@ -149,6 +149,8 @@ int sdp_mesh_peer_add(sdp_peer_name name)
     peer->state = PEER_UNKNOWN;
     strcpy(peer->name, name);
 
+    sdp_peer_init_peer(peer);
+
     SLIST_INSERT_HEAD(&sdp_peers, peer, next);
 
     ESP_LOGI(mesh_log_prefix, "sdp_mesh_peer_add() - Peer added: %s", peer->name);

@@ -1,5 +1,6 @@
 #include "sdp_peer.h"
 
+
 #include <string.h>
 #include <esp_log.h>
 #include <esp32/rom/crc.h>
@@ -9,6 +10,10 @@
 #include "sdp_helpers.h"
 #include "sdp_messaging.h"
 #include "sdp_mesh.h"
+
+#ifdef CONFIG_SDP_LOAD_I2C
+#include "i2c/i2c_peer.h"
+#endif
 
 char *peer_log_prefix;
 
@@ -20,6 +25,24 @@ struct relation {
     uint8_t i2c_address;
     #endif
 };
+
+float add_to_failure_rate_history(struct sdp_peer_media_stats *stats, float rate) {
+    // Calc average of the current history + rate, start with summarizing
+    float sum = 0;
+    for (int i=0; i< FAILURE_RATE_HISTORY_LENGTH; i++) {
+        sum+= stats->failure_rate_history[i];
+        ESP_LOGI(peer_log_prefix, "FRH %i: fr: %f", i, stats->failure_rate_history[i]);
+    }   
+    sum+=rate;
+    // Move the array one step to the left
+    memmove((void *)(stats->failure_rate_history), (void *)(stats->failure_rate_history) + sizeof(float),  sizeof(float)* (FAILURE_RATE_HISTORY_LENGTH - 1));
+    stats->failure_rate_history[FAILURE_RATE_HISTORY_LENGTH -1] = rate;
+
+    ESP_LOGI(peer_log_prefix, "FRH avg %f", (float)(sum/(FAILURE_RATE_HISTORY_LENGTH + 1)));
+
+    return sum/(FAILURE_RATE_HISTORY_LENGTH + 1);
+}
+
 
 /**
  * @brief  This is an an array with all relations 
@@ -221,6 +244,18 @@ bool add_relation(sdp_mac_address mac_address, uint32_t relation_id
     }
 }
 
+void sdp_peer_init_peer(sdp_peer * peer){
+    #ifdef CONFIG_SDP_LOAD_I2C
+    i2c_peer_init_peer(peer);
+    #endif
+}
+
+
+/**
+ * @brief 
+ * 
+ * @param _log_prefix 
+ */
 void sdp_peer_init(char *_log_prefix) {
     peer_log_prefix = _log_prefix;
     sdp_host.protocol_version = SDP_PROTOCOL_VERSION;

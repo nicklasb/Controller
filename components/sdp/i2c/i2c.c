@@ -10,6 +10,7 @@
 
 #include "i2c_worker.h"
 #include "i2c_messaging.h"
+#include "i2c_peer.h"
 #define I2C_TIMEOUT_MS 80
 
 // TODO: What is the point of WRITE_BIT?
@@ -227,7 +228,9 @@ void init_i2c() {
 void i2c_init(char * _log_prefix) {
     i2c_log_prefix = _log_prefix;
     ESP_LOGI(i2c_log_prefix, "Initializing i2c");
+    i2c_peer_init(i2c_log_prefix);
     i2c_messaging_init(i2c_log_prefix);
+    
     init_i2c();
     if (i2c_init_worker(&i2c_do_on_work_cb, &i2c_do_on_poll_cb, i2c_log_prefix) != ESP_OK)
     {

@@ -198,6 +198,10 @@ typedef uint8_t sdp_mac_address[SDP_MAC_ADDR_LEN];
 
 /* A peer name in SDP */
 typedef char sdp_peer_name[CONFIG_SDP_PEER_NAME_LEN];
+
+
+#define FAILURE_RATE_HISTORY_LENGTH 4
+
 /**
  * @brief Media 
  * This is used by the adaptive transmission to find the optimal media
@@ -213,7 +217,11 @@ struct sdp_peer_media_stats
     /* Last score */
     float last_score;
     /* How many times score has been calculated since reset */
-    float score_count;    
+    float score_count;  
+    // TODO: We really don't need this to be more than bytes. 0-255 is way enough detail.
+    /* Length of the history */
+    float failure_rate_history[FAILURE_RATE_HISTORY_LENGTH];
+
     /* Number of crc mismatches from the peer */
     uint32_t crc_mismatches;
         

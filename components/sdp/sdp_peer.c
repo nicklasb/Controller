@@ -15,6 +15,10 @@
 #include "i2c/i2c_peer.h"
 #endif
 
+#ifdef CONFIG_SDP_LOAD_LORA
+#include "lora/lora_peer.h"
+#endif
+
 char *peer_log_prefix;
 
 
@@ -173,11 +177,7 @@ int sdp_peer_inform(work_queue_item_t *queue_item) {
         // TODO: sdp_mesh and sdp_pee
         init_supported_media_types_mac_address(queue_item->peer);
         ESP_LOGI(peer_log_prefix, "<< Initiated other supported medias");
-    }
-
-    if (queue_item->parts[6]+SDP_MAC_ADDR_LEN +1)
-    
-    
+    }   
 
     ESP_LOGI(peer_log_prefix, "<< Peer %s now more informed ",queue_item->peer->name);
     log_peer_info(peer_log_prefix, queue_item->peer);
@@ -189,10 +189,6 @@ int sdp_peer_inform(work_queue_item_t *queue_item) {
 
 }
 
-/** 
- * Find the relation id through the mac address.
- * Usua
-*/
 
 /**
  * @brief Find the relation id through the mac address.
@@ -244,9 +240,83 @@ bool add_relation(sdp_mac_address mac_address, uint32_t relation_id
     }
 }
 
+float sdp_helper_calc_suitability(int bitrate, int min_offset, int base_offset, float multiplier)
+{
+    float retval = min_offset - ((bitrate - base_offset) * multiplier);
+    if (retval < -50) {
+        retval = -50;
+    }
+    return retval;
+}
+/**
+ * @brief
+ *
+ * @param peer
+ * @param data_length
+ * @return e_media_type
+ */
+e_media_type select_media(struct sdp_peer *peer, int data_length)
+{
+
+    // Loop media types and find the highest scoring
+
+    // TODO: If this is slow, perhaps we could have a short-lived selection cache?
+
+    e_media_type top_media_type = 0;
+    float top_score  = 0;
+    float curr_score = 0;
+    for (unsigned int curr_media_type = 1; curr_media_type < SDP_MT_ANY; curr_media_type = curr_media_type * 2)
+    {
+        if (peer->supported_media_types & curr_media_type)
+        {
+#ifdef CONFIG_SDP_LOAD_BLE
+
+            if (curr_media_type == SDP_MT_BLE)
+            {
+                curr_score = 1;
+            }
+
+#endif
+#ifdef CONFIG_SDP_LOAD_I2C
+            if (curr_media_type == SDP_MT_I2C)
+            {
+                curr_score = i2c_score_peer(peer, data_length);
+            }
+#endif
+#ifdef CONFIG_SDP_LOAD_ESP_NOW
+
+            if (curr_media_type == SDP_MT_ESPNOW)
+            {
+                curr_score = 1;
+            }
+
+#endif
+#ifdef CONFIG_SDP_LOAD_LORA
+            if (curr_media_type == SDP_MT_LoRa)
+            {
+                curr_score = lora_score_peer(peer, data_length);
+            }
+#endif
+
+            if (curr_score > top_score)
+            {
+                top_score = curr_score;
+                top_media_type = curr_media_type;
+            }
+        }
+        // TODO: Warn if we are forced to use an obviously unsuitable media (or fail if we go below minimum scores)
+        // For example if someone wants to send a video stream and the only available connection is LoRa.
+    }
+
+    return top_media_type;
+}
+
 void sdp_peer_init_peer(sdp_peer * peer){
     #ifdef CONFIG_SDP_LOAD_I2C
     i2c_peer_init_peer(peer);
+    #endif
+    #ifdef CONFIG_SDP_LOAD_LORA
+    lora_peer_init_peer(peer);
     #endif
 }
 

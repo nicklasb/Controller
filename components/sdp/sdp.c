@@ -19,6 +19,7 @@
 #include <nvs.h>
 #include <nvs_flash.h>
 #include <esp_event.h>
+#include <esp_mac.h>
 
 #include "monitor/monitor.h"
 #include "sleep/sleep.h"
@@ -125,6 +126,9 @@ int sdp_init(work_callback *work_cb, work_callback *priority_cb, before_sleep *b
         ESP_LOGE(_log_prefix, "Error: Both work_cb and priority_cb are mandatory parameters, \nsdp workers and queues will not work properly!");
         return SDP_ERR_INIT_FAIL;
     }
+
+    // Read the base MAC-address. 
+    esp_read_mac(&(sdp_host.base_mac_address), ESP_IF_WIFI_STA);
 
     sdp_helpers_init(sdp_log_prefix);
     sdp_peer_init(sdp_log_prefix);

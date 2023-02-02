@@ -75,7 +75,7 @@ void espnow_init(char *_log_prefix)
     esp_wifi_get_mac(ESP_IF_WIFI_STA, wifi_mac_addr);
     ESP_LOGI(espnow_log_prefix, "WIFI base MAC address:");
     ESP_LOG_BUFFER_HEX(espnow_log_prefix, wifi_mac_addr, SDP_MAC_ADDR_LEN);
-    memcpy(sdp_host.base_mac_address, wifi_mac_addr, SDP_MAC_ADDR_LEN);
+    
     espnow_messaging_init(_log_prefix);
     espnow_peer_init(_log_prefix);
     ESP_LOGI(espnow_log_prefix, "ESP-NOW initialized.");

@@ -9,10 +9,7 @@
 #include <freertos/task.h>
 #include <driver/adc.h>
 
-
 #include "sdp_def.h"
-
-
 
 #define WHO_LENGTH 4
 
@@ -44,7 +41,7 @@ int add_to_message(uint8_t **message, const char *format, ...)
     va_start(arg, format);
 
     int format_len = strlen(format);
-    
+
     char *loc_format = heap_caps_malloc(format_len + 1, MALLOC_CAP_8BIT);
     strcpy(loc_format, format);
     ESP_LOGD(helpers_log_prefix, "Format string %s len %i", loc_format, format_len);
@@ -78,33 +75,40 @@ int add_to_message(uint8_t **message, const char *format, ...)
     }
     int curr_pos = 0;
     size_t new_length = 0;
-    char *value_str = NULL;   
+    char *value_str = NULL;
     int value_length = 0;
     /* Now loop all formats, and put the message together, reallocating when enlarging */
-    char * curr_format;
+    char *curr_format;
     for (int k = 0; k < format_count; k++)
     {
         curr_format = (char *)(format_array[k]);
         // Is there any formatting at all in the format string?
-        if (strchr(curr_format, '%') != NULL) {
+        if (strchr(curr_format, '%') != NULL)
+        {
             // Fetch the next parameter.
-            void * value = va_arg(arg, void *);
+            void *value = va_arg(arg, void *);
             // Handle fixed length byte arrays "%b"
-            if (curr_format[1] == 'b') {
-                int n=2;
-                while (((int)(curr_format[n]) != 0) && (n < 10)) { n++; }
-                if (n > 9 || n < 3) {
-                    ESP_LOGE(helpers_log_prefix, "Bad byte parameter on location %i, len %i in format string: %s", k, n-2, curr_format);
+            if (curr_format[1] == 'b')
+            {
+                int n = 2;
+                while (((int)(curr_format[n]) != 0) && (n < 10))
+                {
+                    n++;
+                }
+                if (n > 9 || n < 3)
+                {
+                    ESP_LOGE(helpers_log_prefix, "Bad byte parameter on location %i, len %i in format string: %s", k, n - 2, curr_format);
                     new_length = -SDP_ERR_PARSING_FAILED;
-                    goto cleanup;                    
+                    goto cleanup;
                 }
                 ESP_LOGD(helpers_log_prefix, "Found null value at %i in %s", n, curr_format);
                 value_length = atoi((char *)&(curr_format[2]));
                 ESP_LOGD(helpers_log_prefix, "value_length parsed %i", value_length);
                 value_str = malloc(value_length);
-                memcpy(value_str,(void *)value, value_length);
-                
-            } else {
+                memcpy(value_str, (void *)value, value_length);
+            }
+            else
+            {
                 // Used sprintf formatting
                 value_length = asprintf(&value_str, curr_format, (void *)value);
 
@@ -113,21 +117,25 @@ int add_to_message(uint8_t **message, const char *format, ...)
 
                 ESP_LOGI(helpers_log_prefix, "Formatted value = %f with %s, into %s", test, curr_format, value_str);*/
             }
-        } else {
+        }
+        else
+        {
             // If the format string doesn't start with a %-character, just use the format for value
             // TODO: Checking if it *contains* a %-character should be more flexible
             value_length = strlen(curr_format);
             value_str = malloc(value_length);
             strncpy(value_str, curr_format, value_length);
-            
         }
-        new_length+= value_length + 1;
+        new_length += value_length + 1;
 
         // TODO: See if realloc has any significant performance impact, if so an allocations strategy might be useful
-        
-        if (k == 0) {
+
+        if (k == 0)
+        {
             *message = heap_caps_malloc(new_length, MALLOC_CAP_8BIT);
-        } else {
+        }
+        else
+        {
             *message = heap_caps_realloc(*message, new_length, MALLOC_CAP_8BIT);
         }
 
@@ -137,41 +145,38 @@ int add_to_message(uint8_t **message, const char *format, ...)
             new_length = -SDP_ERR_OUT_OF_MEMORY;
             goto cleanup;
         };
-        memcpy((*message) + curr_pos, value_str, value_length);   
-
+        memcpy((*message) + curr_pos, value_str, value_length);
 
         (*message)[new_length - 1] = (uint8_t)0x00;
         ESP_LOGD(helpers_log_prefix, "Message: %s, value_str: %s, new_length: %i.", (char *)*message, value_str, (int)new_length);
         free(value_str);
         value_str = NULL;
         curr_pos = new_length;
-
     }
-    ESP_LOG_BUFFER_HEXDUMP(helpers_log_prefix, (char*)*message, new_length,  ESP_LOG_DEBUG);    
- cleanup:
+    ESP_LOG_BUFFER_HEXDUMP(helpers_log_prefix, (char *)*message, new_length, ESP_LOG_DEBUG);
+cleanup:
     va_end(arg);
-    free(value_str);   
+    free(value_str);
     free(loc_format);
     free(format_array);
     return new_length;
 }
 
-void sdp_blink_led(gpio_num_t gpio_num, uint16_t time_on, uint16_t time_off, uint16_t times) {
+void sdp_blink_led(gpio_num_t gpio_num, uint16_t time_on, uint16_t time_off, uint16_t times)
+{
 
     int count = 0;
     int pre_level = gpio_get_level(gpio_num);
     gpio_set_direction(gpio_num, GPIO_MODE_OUTPUT);
     while (count < times)
     {
-        gpio_set_level(gpio_num, 1); 
+        gpio_set_level(gpio_num, 1);
         vTaskDelay(time_on / portTICK_PERIOD_MS);
-        gpio_set_level(gpio_num, 0); 
-        vTaskDelay(time_off / portTICK_PERIOD_MS);    
-        count++;    
+        gpio_set_level(gpio_num, 0);
+        vTaskDelay(time_off / portTICK_PERIOD_MS);
+        count++;
     }
     gpio_set_level(gpio_num, pre_level);
-
-
 }
 
 float sdp_read_battery()
@@ -180,48 +185,57 @@ float sdp_read_battery()
     int volt;
 
     adc2_get_raw(ADC2_CHANNEL_7, ADC_WIDTH_BIT_12, &volt);
-    float battery_voltage = ((float)volt / 4095.0) * 2.0 * 3.3 ;
+    float battery_voltage = ((float)volt / 4095.0) * 2.0 * 3.3;
     return battery_voltage;
 }
 
-void log_media_types(sdp_media_types media_types, char * log_str) {
+void log_media_types(sdp_media_types media_types, char *log_str)
+{
     // Assume log string is long enough
-    if (media_types & SDP_MT_TTL) {
+    if (media_types & SDP_MT_TTL)
+    {
         strcat(log_str, " TTL,");
     }
-    if (media_types & SDP_MT_BLE) {
+    if (media_types & SDP_MT_BLE)
+    {
         strcat(log_str, " BLE,");
     }
-    if (media_types & SDP_MT_ESPNOW) {
+    if (media_types & SDP_MT_ESPNOW)
+    {
         strcat(log_str, " ESP-NOW,");
     }
-    if (media_types & SDP_MT_LoRa) {
+    if (media_types & SDP_MT_LoRa)
+    {
         strcat(log_str, " LoRa,");
     }
-    if (media_types & SDP_MT_I2C) {
+    if (media_types & SDP_MT_I2C)
+    {
         strcat(log_str, " I2C,");
     }
-    if (media_types & SDP_MT_CANBUS) {
+    if (media_types & SDP_MT_CANBUS)
+    {
         strcat(log_str, " CAN bus,");
     }
-    if (media_types & SDP_MT_UMTS) {
+    if (media_types & SDP_MT_UMTS)
+    {
         strcat(log_str, " UMTS,");
     }
-    if (media_types > 0) {
+    if (media_types > 0)
+    {
         // Remove last ","
-        log_str[strlen(log_str)-1] = 0;
+        log_str[strlen(log_str) - 1] = 0;
     }
-    
 }
 
-void log_peer_info(char * _log_prefix, sdp_peer *peer) {
+void log_peer_info(char *_log_prefix, sdp_peer *peer)
+{
     ESP_LOGI(_log_prefix, "Peer info:");
     ESP_LOGI(_log_prefix, "Name:                  %s", peer->name);
     ESP_LOGI(_log_prefix, "Base Mac address:      %02X:%02X:%02X:%02X:%02X:%02X", peer->base_mac_address[0],
-    peer->base_mac_address[1],peer->base_mac_address[2],peer->base_mac_address[3],peer->base_mac_address[4],peer->base_mac_address[5]);
-    #ifdef CONFIG_SDP_LOAD_I2C
+             peer->base_mac_address[1], peer->base_mac_address[2], peer->base_mac_address[3], peer->base_mac_address[4], peer->base_mac_address[5]);
+#ifdef CONFIG_SDP_LOAD_I2C
     ESP_LOGI(_log_prefix, "I2C address:           %hhu", peer->i2c_address);
-    #endif
+#endif
     ESP_LOGI(_log_prefix, "State:                 %hhx", peer->state);
     char mt_log[1000] = "";
     log_media_types(peer->supported_media_types, &mt_log);
@@ -233,6 +247,7 @@ void log_peer_info(char * _log_prefix, sdp_peer *peer) {
 }
 
 
-void sdp_helpers_init(char * _log_prefix) {
+void sdp_helpers_init(char *_log_prefix)
+{
     helpers_log_prefix = _log_prefix;
 }

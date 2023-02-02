@@ -1,18 +1,22 @@
 #include "lora_messaging.h"
 
-#include "lora_lib.h"
+#ifdef CONFIG_LORA_SX126X
+#include "lora_sx126x_lib.h"
+#endif
+#ifdef CONFIG_LORA_SX127X
+#include "lora_sx127x_lib.h"
+#endif
 #include <esp_log.h>
 #include <esp_timer.h>
 #include <sdp_mesh.h>
 #include <sdp_peer.h>
 #include <sdp_messaging.h>
+#include "lora_peer.h"
 
 #include <string.h>
 
 /* The log prefix for all logging */
 char *lora_messaging_log_prefix;
-
-int lora_unknown_counter = 0;
 
 int lora_send_message(sdp_peer *peer, char *data, int data_length) {
 
@@ -56,14 +60,21 @@ int lora_send_message(sdp_peer *peer, char *data, int data_length) {
 	int tx_count = 0;
 
 	tx_count++;
-	starttime = esp_timer_get_time();
+	
 	ESP_LOGI(lora_messaging_log_prefix, ">> Sending message: \"%.*s\", data is %i, total %i bytes...", data_length-4, data+4, data_length, data_length + (SDP_MAC_ADDR_LEN *2));
 	ESP_LOGI(lora_messaging_log_prefix, ">> Data (including all) preamble): ");
     ESP_LOG_BUFFER_HEX(lora_messaging_log_prefix, (uint8_t *)tmp_data, message_len);  
-    
+    starttime = esp_timer_get_time();
+ 	#ifdef CONFIG_LORA_SX126X
+    ESP_LOGI(lora_messaging_log_prefix, ">> Sending");
+    LoRaSend((uint8_t *)tmp_data, message_len, SX126x_TXMODE_SYNC);
+    ESP_LOGI(lora_messaging_log_prefix, ">> Sent");
+	#endif
+    #ifdef CONFIG_LORA_SX127X
     lora_send_packet((uint8_t *)tmp_data, message_len);
+	#endif
 	
-	ESP_LOGI(lora_messaging_log_prefix, ">> %d byte packet sent...speed %f byte/s", message_len, 
+    ESP_LOGI(lora_messaging_log_prefix, ">> %d byte packet sent...speed %f byte/s", message_len, 
 	(float)(message_len/((float)(esp_timer_get_time()-starttime))*1000000));
 
 	return ESP_OK;
@@ -74,22 +85,47 @@ void lora_do_on_work_cb(lora_queue_item_t *work_item) {
     ESP_LOGI(lora_messaging_log_prefix, ">> In LoRa work callback.");
 
     // TODO: Should we add a check for received here, or is it close enough after the poll?
+
     lora_send_message(work_item->peer, work_item->data, work_item->data_length);
+    #ifdef CONFIG_LORA_SX127X   
     lora_receive();
+    #endif
+
+}
+
+int get_rssi() {
+    #ifdef CONFIG_LORA_SX126X   
+    return GetRssiInst();
+    #endif
+    #ifdef CONFIG_LORA_SX127X   
+    return lora_packet_rssi();
+    #endif  
 }
 
 void lora_do_on_poll_cb(queue_context *q_context) {
     // TODO: Should the delay here should be related to the speed of the connection? 
     // Wait a moment to let any response in.
-    vTaskDelay(100 / portTICK_PERIOD_MS);
-	 
-    if (lora_received()) {
-        uint8_t buf[256]; // Maximum Payload size of SX1276/77/78/79 is 256 bytes   
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
+	ESP_LOGI(lora_messaging_log_prefix, "<< In Lora poll %i", GetIrqStatus());
+    if (
+        #ifdef CONFIG_LORA_SX127X
+        lora_received()
+        #endif
+        #ifdef CONFIG_LORA_SX126X
+        GetIrqStatus()  & SX126X_IRQ_RX_DONE 
+        #endif
+        ) {
+        uint8_t buf[256]; // Maximum Payload size of SX126x/SX127x is 255/256 bytes
         int message_length = 0;
         int receive_len = 0;
         bool more_data = true;
         while (more_data) {
+            #ifdef CONFIG_LORA_SX126X
+            receive_len = LoRaReceive(&buf + message_length, 255);
+            #endif
+            #ifdef CONFIG_LORA_SX127X
             receive_len = lora_receive_packet(&buf + message_length, sizeof(buf));
+            #endif            
             message_length += receive_len;
             // TODO: Here, the delay here should certainly be related to the speed of the connection
             // TODO: Test without retries, this entire while might be pointless as its always full packets?
@@ -121,14 +157,14 @@ void lora_do_on_poll_cb(queue_context *q_context) {
                 src_mac_addr = relation_id_to_mac_address(relation_id);
                 if (src_mac_addr == NULL) {
                     ESP_LOGI(lora_messaging_log_prefix, "<< %d byte packet to someone else received:[%.*s], RSSI %i", 
-                        message_length, message_length, (char *)&buf , lora_packet_rssi());
+                        message_length, message_length, (char *)&buf , get_rssi());
                     goto finish;
                 }
                 data_start = sizeof(uint32_t);
             }
 
             ESP_LOGI(lora_messaging_log_prefix, "<< %d byte packet received:[%.*s], RSSI %i", 
-            message_length, message_length, (char *)&buf , lora_packet_rssi());
+            message_length, message_length, (char *)&buf , get_rssi());
 
             sdp_peer *peer = sdp_mesh_find_peer_by_base_mac_address(src_mac_addr);
             if (!peer) {
@@ -144,7 +180,10 @@ void lora_do_on_poll_cb(queue_context *q_context) {
         
     }
 finish:
+#ifdef CONFIG_LORA_SX127X
     lora_receive(); 
+#endif
+    return;
 }
 
 void lora_messaging_init(char * _log_prefix){

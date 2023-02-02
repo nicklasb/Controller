@@ -4,6 +4,7 @@
 
 
 #include "sdp_def.h"
+
 #include "esp_timer.h"
 
 #include <string.h>
@@ -51,29 +52,10 @@ float i2c_score_peer(sdp_peer *peer, int data_length)
     // Is there a level of usage that is "too much"
     // TODO: Add different demands, like "wired"? "secure", "fast", "roundtrip", or similar?
 
-#if 0
-    /* Supported speed bit/s */
-    uint32_t theoretical_speed;
-    /* Actual speed bit/s. 
-    NOTE: Always lower than theoretical, and with small payloads; *much* lower */
-    uint32_t actual_speed;
 
-    /* Number of times we have failed sending to a peer since last check */
-    uint32_t send_failures;
-    /* Number of times we have failed receiving data from a peer since last check */
-    uint32_t receive_failures;    
-    /* Number of times we have succeeded sending to a peer since last check */
-    uint32_t send_successes;
-    /* Number of times we have succeeed eceiving data from a peer since last check */
-    uint32_t receive_successes;
-#endif
-    // -50 if its way too long, +50 if its below 1000 bytes
     // TODO: Obviously, the length score should go down if we are forced to slow down, with a low actual speed.
-    float length_score = 50 - ((data_length - 1000) * 0.05);
-    if (length_score < -50)
-    {
-        length_score = -50;
-    }
+    float length_score = sdp_helper_calc_suitability(data_length, 50, 1000, 0.005);
+ 
     ESP_LOGI(i2c_peer_log_prefix, "peer: %s ss: %i, rs: %i, sf: %i, rf: %i ", peer->name,
              peer->i2c_stats.send_successes, peer->i2c_stats.receive_successes,
              peer->i2c_stats.send_failures, peer->i2c_stats.receive_failures);

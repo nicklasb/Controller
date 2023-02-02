@@ -22,7 +22,13 @@
 //#include "../secret/local_settings.h"
 
 #include <esp_log.h>
-#include "lora_lib.h"
+#ifdef CONFIG_LORA_SX127X
+#include "lora_sx127x_lib.h"
+#endif
+#ifdef CONFIG_LORA_SX126X
+#include "lora_sx126x_lib.h"
+#endif
+#include "lora_peer.h"
 #include <sdp_def.h>
 #include <sdp_peer.h>
 #include "lora_messaging.h"
@@ -41,31 +47,38 @@ char *lora_log_prefix;
 void init_lora() {
 
     ESP_LOGI(lora_log_prefix, "Initializing LoRa");
+    
+    #ifdef CONFIG_LORA_SX126X
+    LoRaInit();
+    #endif
+	
+    #ifdef CONFIG_LORA_SX127X
 	if (lora_init_local() == 0) {
 		ESP_LOGE(lora_log_prefix, "Does not recognize the module");
 		while(1) {
 			vTaskDelay(1);
 		}
 	}
+    #endif
     #if CONFIG_LORA_FREQUENCY_169MHZ
         ESP_LOGI(lora_log_prefix, "Frequency is 169MHz");
-        lora_set_frequency(169e6); // 169MHz
+        lora_compat_set_frequency(169e6); // 169MHz
     #elif CONFIG_LORA_FREQUENCY_433MHZ
         ESP_LOGI(lora_log_prefix, "Frequency is 433MHz");
-        lora_set_frequency(433e6); // 433MHz
+        lora_compat_set_frequency(433e6); // 433MHz
     #elif CONFIG_LORA_FREQUENCY_470MHZ
         ESP_LOGI(lora_log_prefix, "Frequency is 470MHz");
-        lora_set_frequency(470e6); // 470MHz
+        lora_compat_set_frequency(470e6); // 470MHz
     #elif CONFIG_LORA_FREQUENCY_866MHZ
         ESP_LOGI(lora_log_prefix, "Frequency is 866MHz");
-        lora_set_frequency(866e6); // 866MHz
+        lora_compat_set_frequency(866e6); // 866MHz
     #elif CONFIG_LORA_FREQUENCY_915MHZ
         ESP_LOGI(lora_log_prefix, "Frequency is 915MHz");
-        lora_set_frequency(915e6); // 915MHz
+        lora_compat_set_frequency(915e6); // 915MHz
     #elif CONFIG_LORA_FREQUENCY_OTHER
         ESP_LOGI(lora_log_prefix, "Frequency is %d MHz", CONFIG_LORA_OTHER_FREQUENCY);
         long frequency = CONFIG_LORA_OTHER_FREQUENCY * 1000000;
-        lora_set_frequency(frequency);
+  
     #endif
 
 
@@ -75,29 +88,51 @@ void init_lora() {
 	int bw = 7;
 	int sf = 7;
 #if CONFIG_LORA_ADVANCED
+    ESP_LOGI(lora_log_prefix, "Advanced LoRa settings");
 	cr = CONFIG_LORA_CODING_RATE;
 	bw = CONFIG_LORA_BANDWIDTH;
 	sf = CONFIG_LORA_SF_RATE;
 #endif
-	lora_set_tx_power(1);
+
+    #ifdef CONFIG_LORA_SX126X
+	
+    float tcxoVoltage = 3.3; // use TCXO
+	bool useRegulatorLDO = true; // use TCXO
+    int8_t txPowerInDbm = 22;
+    LoRaDebugPrint(true);
+    int ret = LoRaBegin(frequency, txPowerInDbm, tcxoVoltage, useRegulatorLDO);
+	ESP_LOGI(lora_log_prefix, "LoRaBegin=%d", ret);
+	if (ret != 0) {
+		ESP_LOGE(lora_log_prefix, "Does not recognize the module");
+		while(1) {
+			vTaskDelay(1);
+		}
+	}	
+    #endif
+    
+    #ifdef CONFIG_LORA_SX127X    
+    lora_set_frequency(frequency)
+    lora_set_tx_power(1);
 	lora_set_coding_rate(cr);
-	//lora_set_coding_rate(CONFIG_CODING_RATE);
-	//cr = lora_get_coding_rate();
-	ESP_LOGI(lora_log_prefix, "coding_rate=%d", cr);
-
 	lora_set_bandwidth(bw);
-	//lora_set_bandwidth(CONFIG_BANDWIDTH);
-	//int bw = lora_get_bandwidth();
-	ESP_LOGI(lora_log_prefix, "bandwidth=%d", bw);
+	lora_set_spreading_factor(sf);    
+    #endif
 
-	lora_set_spreading_factor(sf);
-	//lora_set_spreading_factor(CONFIG_SF_RATE);
-	//int sf = lora_get_spreading_factor();
+    ESP_LOGI(lora_log_prefix, "coding_rate=%d", cr);
+	ESP_LOGI(lora_log_prefix, "bandwidth=%d", bw);
 	ESP_LOGI(lora_log_prefix, "spreading_factor=%d", sf);
 
+    #ifdef CONFIG_LORA_SX126X
+
+	uint16_t preambleLength = 8;
+	uint8_t payloadLen = 0;
+	bool crcOn = true;
+	bool invertIrq = false;
+    
+	LoRaConfig(sf, bw, cr, preambleLength, payloadLen, crcOn, invertIrq);
+
+    #endif
 }
-
-
 
 void lora_shutdown() {
     ESP_LOGI(lora_log_prefix, "Shutting down LoRa:");
@@ -114,7 +149,9 @@ void lora_shutdown() {
 void lora_init(char * _log_prefix) {
     lora_log_prefix = _log_prefix;
     ESP_LOGI(lora_log_prefix, "Initializing LoRa");
+    lora_peer_init(lora_log_prefix);
     lora_messaging_init(lora_log_prefix);
+
     init_lora();
     if (lora_init_worker(&lora_do_on_work_cb, &lora_do_on_poll_cb, lora_log_prefix) != ESP_OK)
     {
@@ -122,8 +159,11 @@ void lora_init(char * _log_prefix) {
        return;
     }
     lora_set_queue_blocked(false);
+    #ifdef CONFIG_LORA_SX127X
     lora_receive();
-
+    #endif
+    #ifdef CONFIG_LORA_SX126X
+    #endif
     ESP_LOGI(lora_log_prefix, "LoRa initialized.");
 }
 

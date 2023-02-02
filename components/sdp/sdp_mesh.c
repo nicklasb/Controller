@@ -283,7 +283,7 @@ struct sdp_peers_t * get_peer_list() {
     return &sdp_peers;
 }
 
-int sdp_mesh_init(char *_log_prefix, int max_peers)
+int sdp_mesh_init(char *_log_prefix)
 {
 
     mesh_log_prefix = _log_prefix;

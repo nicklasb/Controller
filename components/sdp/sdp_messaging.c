@@ -43,10 +43,9 @@
 #ifdef CONFIG_SDP_LOAD_I2C
 #include "i2c/i2c_worker.h"
 #include "i2c/i2c_messaging.h"
-#include "i2c/i2c_peer.h"
 #endif
 
-#define CONFIG_SDP_MAX_PEERS 20
+
 
 int callcount = 0;
 
@@ -410,84 +409,7 @@ int broadcast_message(uint16_t conversation_id,
 
 #endif
 
-#ifdef CONFIG_SDP_LOAD_BLE
-// TODO: It seems slightly strange that this is here
-void report_ble_connection_error(int conn_handle, int code)
-{
-    struct ble_peer *b_peer = ble_peer_find(conn_handle);
 
-    if (b_peer != NULL)
-    {
-        struct sdp_peer *s_peer = sdp_mesh_find_peer_by_handle(b_peer->sdp_handle);
-        if (s_peer != NULL)
-        {
-            ESP_LOGE(messaging_log_prefix, "Peer %s encountered a BLE error. Code: %i", s_peer->name, code);
-        }
-        else
-        {
-            ESP_LOGE(messaging_log_prefix, "Unresolved BLE peer (no or invalid SDP peer handle), conn handle %i", conn_handle);
-            ESP_LOGE(messaging_log_prefix, "encountered a BLE error. Code: %i.", code);
-        }
-        b_peer->failure_count++;
-    }
-    ESP_LOGE(messaging_log_prefix, "Unregistered peer (!) at conn handle %i encountered a BLE error. Code: %i.", conn_handle, code);
-}
-#endif
-/**
- * @brief
- *
- * @param peer
- * @param data_length
- * @return e_media_type
- */
-e_media_type select_media(struct sdp_peer *peer, int data_length)
-{
-
-    // Loop media types and find the highest scoring
-
-    // TODO: If this is slow, perhaps we could have a short-lived selection cache?
-
-    e_media_type top_media_type = 0;
-    float top_score  = 0;
-    float curr_score = 0;
-    for (unsigned int curr_media_type = 1; curr_media_type < SDP_MT_ANY; curr_media_type = curr_media_type * 2)
-    {
-        if (peer->supported_media_types & curr_media_type)
-        {
-#ifdef CONFIG_SDP_LOAD_BLE
-
-            if (curr_media_type == SDP_MT_BLE)
-            {
-                curr_score = 1;
-            }
-
-#endif
-#ifdef CONFIG_SDP_LOAD_I2C
-            if (curr_media_type == SDP_MT_I2C)
-            {
-                curr_score = i2c_score_peer(peer, data_length);
-            }
-#endif
-#ifdef CONFIG_SDP_LOAD_ESP_NOW
-
-            if (curr_media_type == SDP_MT_ESPNOW)
-            {
-                curr_score = 1;
-            }
-
-#endif
-            if (curr_score > top_score)
-            {
-                top_score = curr_score;
-                top_media_type = curr_media_type;
-            }
-        }
-        // TODO: Warn if we are forced to use an obviously unsuitable media (or fail if we go below minimum scores)
-        // For example if someone wants to send a video stream and the only available connection is LoRa.
-    }
-
-    return top_media_type;
-}
 
 /**
  * @brief Sends to a specified peer
@@ -539,7 +461,6 @@ int sdp_send_message_media_type(struct sdp_peer *peer, void *data, int data_leng
         {
             ESP_LOGE(messaging_log_prefix, ">> Sending using ESP-NOW failed.");
             result = -SDP_MT_ESPNOW;
-            // report_ble_connection_error(peer->ble_conn_handle, rc);
             //  TODO: Add start general QoS monitoring, stop using some technologies if they are failing
         }
     }
@@ -740,7 +661,7 @@ void sdp_init_messaging(char *_log_prefix, work_callback *priority_cb)
     messaging_log_prefix = _log_prefix;
     on_priority_cb = priority_cb;
 
-    sdp_mesh_init(messaging_log_prefix, CONFIG_SDP_MAX_PEERS);
+    sdp_mesh_init(messaging_log_prefix);
 
     /* Create a queue semaphore to ensure thread safety */
     x_conversation_list_semaphore = xSemaphoreCreateMutex();

@@ -21,7 +21,7 @@ SLIST_HEAD(sdp_peers_t, sdp_peer);
 int sdp_mesh_delete_peer(uint16_t peer_handle);
 int sdp_mesh_peer_add(sdp_peer_name name);
 
-int sdp_mesh_init(char *_log_prefix, int max_peers);
+int sdp_mesh_init(char *_log_prefix);
 
 struct sdp_peers_t * get_peer_list();
 

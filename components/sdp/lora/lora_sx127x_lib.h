@@ -1,8 +1,8 @@
-#ifndef _LORA_LIB_H_
-#define _LORA_LIB_H_
+#ifndef _LORA_SX127X_LIB_H
+#define _LORA_SX127X_LIB_H
 
 #include <sdkconfig.h>
-#ifdef CONFIG_SDP_LOAD_LORA
+#ifdef CONFIG_LORA_SX127X
 
 #include <stdint.h>
 

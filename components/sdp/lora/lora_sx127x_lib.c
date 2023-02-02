@@ -1,4 +1,4 @@
-#include "lora_lib.h"
+#include "lora_sx127x_lib.h"
 
 #include <string.h>
 #include "freertos/FreeRTOS.h"

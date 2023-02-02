@@ -15,20 +15,7 @@ menu "Lora Config"
 			help
 				Semtech SX126x (with TCXO): https://github.com/nopnop2002/esp-idf-sx126x
 	endchoice
-	choice LORA_DIRECTION
-		prompt "Communication polarity"
-		default LORA_SENDER
-		help
-			Select Communication polarity.
-		config LORA_SENDER
-			bool "As the sender"
-			help
-				As the sender.
-		config LORA_RECEIVER
-			bool "As the receiver"
-			help
-				As the receiver.
-	endchoice
+
 
 	choice LORA_FREQUENCY
 		prompt "Frequency to use"
@@ -137,7 +124,7 @@ menu "Lora Config"
 			Pin Number to be used as the MOSI SPI signal.
 
 	config LORA_CS_GPIO
-		int "NSS GPIO"
+		int "NSS/CS GPIO"
 		range 0 LORA_GPIO_RANGE_MAX
 		default 15 if IDF_TARGET_ESP32
 		default 34 if IDF_TARGET_ESP32S2
@@ -156,6 +143,32 @@ menu "Lora Config"
 		help
 			Pin Number where the NRST pin of the LoRa module is connected to.
 
+	config BUSY_GPIO
+		depends on LORA_SX126X
+		int "SX126X BUSY GPIO"
+		range 0 LORA_GPIO_RANGE_MAX
+		default 17 if IDF_TARGET_ESP32
+		default 39 if IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32S3
+		default  3 if IDF_TARGET_ESP32C3 || IDF_TARGET_ESP32C2
+		help
+			Pin Number to be used as the BUSY signal.
+
+	config TXEN_GPIO
+		depends on LORA_SX126X
+		int "SX126X TXEN GPIO"
+		range -1 LORA_GPIO_RANGE_MAX
+		default -1
+		help
+			Pin Number to be used as the TXEN signal.
+
+	config RXEN_GPIO
+		depends on LORA_SX126X
+		int "SX126X RXEN GPIO"
+		range -1 LORA_GPIO_RANGE_MAX
+		default -1
+		help
+			Pin Number to be used as the RXEN signal.
+		
 	choice LORA_SPI_HOST
 		prompt "SPI peripheral that controls this bus"
 		default LORA_SPI2_HOST

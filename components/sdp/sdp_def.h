@@ -135,7 +135,7 @@ typedef enum e_work_type
     DATA = 3,
     PRIORITY = 4,
     ORCHESTRATION = 5,
-    QOS = 6
+    QOS = 6 
 } e_work_type;
 
 /**

@@ -103,6 +103,28 @@ int ble_gatt_cb(uint16_t conn_handle,
 }
 
 
+// TODO: It seems slightly strange that this is here
+void report_ble_connection_error(int conn_handle, int code)
+{
+    struct ble_peer *b_peer = ble_peer_find(conn_handle);
+
+    if (b_peer != NULL)
+    {
+        struct sdp_peer *s_peer = sdp_mesh_find_peer_by_handle(b_peer->sdp_handle);
+        if (s_peer != NULL)
+        {
+            ESP_LOGE(messaging_log_prefix, "Peer %s encountered a BLE error. Code: %i", s_peer->name, code);
+        }
+        else
+        {
+            ESP_LOGE(messaging_log_prefix, "Unresolved BLE peer (no or invalid SDP peer handle), conn handle %i", conn_handle);
+            ESP_LOGE(messaging_log_prefix, "encountered a BLE error. Code: %i.", code);
+        }
+        b_peer->failure_count++;
+    }
+    ESP_LOGE(messaging_log_prefix, "Unregistered peer (!) at conn handle %i encountered a BLE error. Code: %i.", conn_handle, code);
+}
+
 
 /**
  * @brief Sends a message through BLE.

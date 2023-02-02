@@ -66,14 +66,12 @@ int lora_send_message(sdp_peer *peer, char *data, int data_length) {
     ESP_LOG_BUFFER_HEX(lora_messaging_log_prefix, (uint8_t *)tmp_data, message_len);  
     starttime = esp_timer_get_time();
  	#ifdef CONFIG_LORA_SX126X
-    ESP_LOGI(lora_messaging_log_prefix, ">> Sending");
     LoRaSend((uint8_t *)tmp_data, message_len, SX126x_TXMODE_SYNC);
-    ESP_LOGI(lora_messaging_log_prefix, ">> Sent");
 	#endif
     #ifdef CONFIG_LORA_SX127X
     lora_send_packet((uint8_t *)tmp_data, message_len);
 	#endif
-	
+
     ESP_LOGI(lora_messaging_log_prefix, ">> %d byte packet sent...speed %f byte/s", message_len, 
 	(float)(message_len/((float)(esp_timer_get_time()-starttime))*1000000));
 
@@ -105,8 +103,8 @@ int get_rssi() {
 void lora_do_on_poll_cb(queue_context *q_context) {
     // TODO: Should the delay here should be related to the speed of the connection? 
     // Wait a moment to let any response in.
-    vTaskDelay(1000 / portTICK_PERIOD_MS);
-	ESP_LOGI(lora_messaging_log_prefix, "<< In Lora poll %i", GetIrqStatus());
+    vTaskDelay(100 / portTICK_PERIOD_MS);
+
     if (
         #ifdef CONFIG_LORA_SX127X
         lora_received()

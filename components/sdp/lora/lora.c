@@ -99,8 +99,9 @@ void init_lora() {
     float tcxoVoltage = 3.3; // use TCXO
 	bool useRegulatorLDO = true; // use TCXO
     int8_t txPowerInDbm = 22;
-    LoRaDebugPrint(true);
+    LoRaDebugPrint(true); // TODO: Check out why this is needed.
     int ret = LoRaBegin(frequency, txPowerInDbm, tcxoVoltage, useRegulatorLDO);
+    LoRaDebugPrint(false);
 	ESP_LOGI(lora_log_prefix, "LoRaBegin=%d", ret);
 	if (ret != 0) {
 		ESP_LOGE(lora_log_prefix, "Does not recognize the module");

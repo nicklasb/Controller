@@ -82,9 +82,17 @@ int lora_send_message(sdp_peer *peer, char *data, int data_length) {
 void lora_do_on_work_cb(lora_queue_item_t *work_item) {
     ESP_LOGI(lora_messaging_log_prefix, ">> In LoRa work callback.");
 
-    // TODO: Should we add a check for received here, or is it close enough after the poll?
+    /* TODO: 
+        0. In I2C, if it fails, resend message using send_message(), as it will re-evaluate media choice
+        1. Add a response in the poll
+        2. Add a check in the send message, model after I2C (can we break out CRC handling and stuff?)
+        3. If we fail, retry sending the message using send_message(), as it will re-evaluate media choice
+
+     */
 
     lora_send_message(work_item->peer, work_item->data, work_item->data_length);
+
+
     #ifdef CONFIG_LORA_SX127X   
     lora_receive();
     #endif

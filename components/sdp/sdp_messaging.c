@@ -415,18 +415,18 @@ int broadcast_message(uint16_t conversation_id,
  * @brief Sends to a specified peer
 
  */
-int sdp_send_message_media_type(struct sdp_peer *peer, void *data, int data_length, e_media_type media_type)
+int sdp_send_message_media_type(struct sdp_peer *peer, void *data, int data_length, e_media_type media_type, bool try_rescore)
 {
     // Should this function also be put in a separate file? Perhaps along with other #ifs? To simplify and clean up this one?
     int rc = 0;
     int result = ESP_FAIL;
     ESP_LOGI(messaging_log_prefix, ">> sdp_send_message_media_type called, media type: %hhx ", media_type);
 
-    // TODO: Fix the calls below to just go by media type, they *should* not have to think about it.
-    // All these considerations *should* have been made in the scoring.
-    // The BLE-connection handle stuff feels like it needs to be reworked. If it has a connection handle should be sorted when becoming a peer, right?
 
 #ifdef CONFIG_SDP_LOAD_BLE
+
+    // TODO; The BLE-connection handle stuff feels like it needs to be reworked. 
+    // If it has a connection handle should be sorted when becoming a peer, right?
     // (peer->ble_conn_handle >= 0) && (peer->supported_media_types &
     // Send message using BLE
     if (media_type == SDP_MT_BLE)
@@ -440,7 +440,7 @@ int sdp_send_message_media_type(struct sdp_peer *peer, void *data, int data_leng
         {
             report_ble_connection_error(peer->ble_conn_handle, rc);
             result = -SDP_MT_BLE
-            // TODO: Add start general QoS monitoring, stop using some technologies if they are failing
+
         }
     }
 #endif
@@ -477,7 +477,7 @@ int sdp_send_message_media_type(struct sdp_peer *peer, void *data, int data_leng
         ESP_LOGI(messaging_log_prefix, ">> Data (including 4 bytes preamble): ");
         ESP_LOG_BUFFER_HEXDUMP(messaging_log_prefix, data, data_length, ESP_LOG_INFO);
 
-        rc = lora_safe_add_work_queue(peer, data, data_length);
+        rc = lora_safe_add_work_queue(peer, data, data_length, try_rescore);
         if (rc == 0)
         {
             result = SDP_MT_LoRa;
@@ -498,7 +498,7 @@ int sdp_send_message_media_type(struct sdp_peer *peer, void *data, int data_leng
         ESP_LOGI(messaging_log_prefix, ">> Data (including 4 bytes preamble): ");
         ESP_LOG_BUFFER_HEXDUMP(messaging_log_prefix, data, data_length, ESP_LOG_INFO);
 
-        rc = i2c_safe_add_work_queue(peer, data, data_length);
+        rc = i2c_safe_add_work_queue(peer, data, data_length, try_rescore);
         if (rc == 0)
         {
             result = SDP_MT_I2C;
@@ -530,7 +530,7 @@ int sdp_send_message(struct sdp_peer *peer, void *data, int data_length)
     {
         // For each try, we need to reevalue what media we are selecting.
         e_media_type selected_media_type = select_media(peer, data_length);
-        rc = sdp_send_message_media_type(peer, data, data_length, selected_media_type);
+        rc = sdp_send_message_media_type(peer, data, data_length, selected_media_type, true);
         if (rc < 0)
         {
             ESP_LOGE(messaging_log_prefix, ">> Failed to send. Analyzing. ");

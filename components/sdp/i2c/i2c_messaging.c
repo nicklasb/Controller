@@ -242,12 +242,12 @@ int i2c_send_message(sdp_peer *peer, char *data, int data_length)
     {
         // We have failed sending data to this peer, report it.
         peer->i2c_stats.send_failures++;
-        
     }
     else
     {
         peer->i2c_stats.send_successes++;
         ESP_LOGI(i2c_messaging_log_prefix, "I2C Master Peer name: %s - II 2 %i", peer->name, peer->i2c_stats.send_successes);
+        
     }
 
     ESP_LOGI(i2c_messaging_log_prefix, "I2C Master - Deleting driver");
@@ -351,7 +351,7 @@ void i2c_do_on_poll_cb(queue_context *q_context)
             if (peer) {
                 peer->i2c_stats.send_failures++; // TODO: Not sure how this should count, but probably it should
             }
-            return ESP_FAIL;
+            
         }
         else
         {
@@ -397,6 +397,10 @@ void i2c_do_on_work_cb(i2c_queue_item_t *work_item)
         send_retries++;
 
     } while ((retval != ESP_OK) && (send_retries < CONFIG_I2C_RESEND_COUNT));
+    // We have failed retrying, if we are supposed to, try resending (and rescoring)
+    if ((retval != ESP_OK) && (work_item->try_rescoring)) {
+        sdp_send_message(work_item->peer, work_item->data, work_item->data_length);
+    }
 }
 
 

@@ -21,7 +21,7 @@
  *********************/
 
 #include <esp_err.h>
-
+// TODO: We should be able to reuse the queue_item types
 typedef struct i2c_queue_item
 {
     /* The data */
@@ -30,13 +30,14 @@ typedef struct i2c_queue_item
     uint16_t data_length;
     /* The peer */  
     struct sdp_peer *peer;
-
+    /* Continue to try using send_message and rescoring */
+    bool try_rescoring;
     /* Queue reference */
     STAILQ_ENTRY(i2c_queue_item)
     items;
 } i2c_queue_item_t;
 
-esp_err_t i2c_safe_add_work_queue(sdp_peer *peer, char *data, int data_length);
+esp_err_t i2c_safe_add_work_queue(sdp_peer *peer, char *data, int data_length, bool try_rescoring);
 
 esp_err_t i2c_init_worker(work_callback work_cb, poll_callback poll_cb, char *_log_prefix);
 

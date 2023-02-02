@@ -34,7 +34,7 @@ void check_peer(sdp_peer *peer, void *qos_message){
         if((peer->espnow_stats.last_score < UNACCEPTABLE_SCORE) || 
         (peer->espnow_stats.last_score_time < (curr_time - (ESPNOW_HEARTBEAT_MS/portTICK_PERIOD_MS)))) {
                 
-            sdp_send_message_media_type(peer, qos_message, SDP_PREAMBLE_LENGTH + 2, SDP_MT_ESPNOW);
+            sdp_send_message_media_type(peer, qos_message, SDP_PREAMBLE_LENGTH + 2, SDP_MT_ESPNOW, false);
         }
     }
     #endif
@@ -48,7 +48,7 @@ void check_peer(sdp_peer *peer, void *qos_message){
         if((peer->i2c_stats.last_score < UNACCEPTABLE_SCORE) || 
         (peer->i2c_stats.last_score_time < (curr_time - (I2C_HEARTBEAT_MS/portTICK_PERIOD_MS)))) {
                 
-            sdp_send_message_media_type(peer, qos_message, SDP_PREAMBLE_LENGTH + 2, SDP_MT_I2C);
+            sdp_send_message_media_type(peer, qos_message, SDP_PREAMBLE_LENGTH + 2, SDP_MT_I2C, false);
         }
        
     }

@@ -37,12 +37,13 @@ void lora_insert_tail(lora_queue_item_t *new_item) {
     STAILQ_INSERT_TAIL(&lora_work_q, new_item, items);
 }
 
-esp_err_t lora_safe_add_work_queue(sdp_peer *peer, char *data, int data_length) {  
+esp_err_t lora_safe_add_work_queue(sdp_peer *peer, char *data, int data_length, bool try_rescoring) {  
     lora_queue_item_t *new_item = malloc(sizeof(lora_queue_item_t)); 
     new_item->peer = peer;
     new_item->data = malloc(data_length);
     memcpy(new_item->data,data, data_length);
     new_item->data_length = data_length;
+    new_item->try_rescoring = try_rescoring;
 
     return safe_add_work_queue(&lora_queue_context, new_item);
 }

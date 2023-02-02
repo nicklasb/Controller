@@ -37,13 +37,13 @@ void i2c_insert_tail(i2c_queue_item_t *new_item) {
     STAILQ_INSERT_TAIL(&i2c_work_q, new_item, items);
 }
 
-esp_err_t i2c_safe_add_work_queue(sdp_peer *peer, char *data, int data_length) {  
+esp_err_t i2c_safe_add_work_queue(sdp_peer *peer, char *data, int data_length, bool try_rescoring) {  
     i2c_queue_item_t *new_item = malloc(sizeof(i2c_queue_item_t)); 
     new_item->peer = peer;
     new_item->data = malloc(data_length);
     memcpy(new_item->data,data, data_length);
     new_item->data_length = data_length;
-
+    new_item->try_rescoring = try_rescoring;
     return safe_add_work_queue(&i2c_queue_context, new_item);
 }
 void i2c_cleanup_queue_task(i2c_queue_item_t *queue_item) {

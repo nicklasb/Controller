@@ -74,7 +74,7 @@ int lora_send_message(sdp_peer *peer, char *data, int data_length) {
     #ifdef CONFIG_LORA_SX127X
     lora_send_packet((uint8_t *)tmp_data, message_len);
 	#endif
-
+    free(tmp_data);
     ESP_LOGI(lora_messaging_log_prefix, ">> %d byte packet sent...speed %f byte/s", message_len, 
 	(float)(message_len/((float)(esp_timer_get_time()-starttime))*1000000));
 
@@ -117,7 +117,7 @@ int lora_send_message(sdp_peer *peer, char *data, int data_length) {
         }
         if ((memcmp(&buf, &peer->relation_id, 4) == 0) && (message_length >= 6)) {
            if ((buf[4] == 0xff)&& buf[5] == 0x00) {
-                ESP_LOGI(lora_messaging_log_prefix, "<< Success messages from %s.", peer->name); 
+                ESP_LOGI(lora_messaging_log_prefix, "<< Success message from %s.", peer->name); 
                 peer->lora_stats.receive_successes++;
                 return ESP_OK;
            } else if (buf[4] == 0xff && buf[4] == 0x00) {
@@ -145,13 +145,14 @@ void lora_do_on_work_cb(lora_queue_item_t *work_item) {
 
     /* TODO: 
         0. In I2C, if it fails, resend message using send_message(), as it will re-evaluate media choice - Done
-        1. Add a response in the poll 
-        2. Add a check in the send message, model after I2C (can we break out CRC handling and stuff?)
+        1. Add crc check and receipt response in the poll - Done
+        2. Add a receipt check in the send message, model after I2C (can we break out CRC handling and stuff?)
         3. If we fail, retry sending the message using send_message(), as it will re-evaluate media choice
 
      */
-
-    lora_send_message(work_item->peer, work_item->data, work_item->data_length);
+    if (lora_send_message(work_item->peer, work_item->data, work_item->data_length) != ESP_OK) {
+        
+    }
 
 
     #ifdef CONFIG_LORA_SX127X   

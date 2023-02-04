@@ -58,7 +58,7 @@ static esp_err_t i2c_driver_init(bool is_master)
         };
         ESP_ERROR_CHECK(i2c_param_config(CONFIG_I2C_CONTROLLER_NUM, &conf));
 
-        ESP_LOGI(i2c_messaging_log_prefix, "I2C Master - Installing driver");
+        ESP_LOGD(i2c_messaging_log_prefix, "I2C Master - Installing driver");
         return i2c_driver_install(CONFIG_I2C_CONTROLLER_NUM, conf.mode, 0, 0, 0);
     }
     else
@@ -76,7 +76,7 @@ static esp_err_t i2c_driver_init(bool is_master)
         };
         ESP_ERROR_CHECK(i2c_param_config(CONFIG_I2C_CONTROLLER_NUM, &conf));
 
-        ESP_LOGI(i2c_messaging_log_prefix, "I2C Slave - Installing driver");
+        ESP_LOGD(i2c_messaging_log_prefix, "I2C Slave - Installing driver");
         return i2c_driver_install(CONFIG_I2C_CONTROLLER_NUM, conf.mode, I2C_TX_BUF, I2C_RX_BUF, 0);
     }
 }
@@ -127,17 +127,17 @@ int i2c_send_message(sdp_peer *peer, char *data, int data_length)
     {
         gpio_set_level(CONFIG_I2C_SDA_IO, 0);
 
-        ESP_LOGI(i2c_messaging_log_prefix, "I2C Master - >> SDA was high, now set to low.");
+        ESP_LOGI(i2c_messaging_log_prefix, "I2C Master - >> SDA was high, now set to low, sending.");
         int send_retries = 0;
         esp_err_t send_ret = ESP_FAIL;
         do
         {
-            ESP_LOGI(i2c_messaging_log_prefix, "I2C Master - >> Sending, try %i.", send_retries + 1);
+            ESP_LOGD(i2c_messaging_log_prefix, "I2C Master - >> Sending, try %i.", send_retries + 1);
             send_ret = i2c_master_cmd_begin(CONFIG_I2C_CONTROLLER_NUM, cmd, 1000 / portTICK_PERIOD_MS);
             if (send_ret != ESP_OK)
             {
-                ESP_LOGE(i2c_messaging_log_prefix, "I2C Master - >> Send failure, code %i.", send_ret);
-                vTaskDelay(I2C_TIMEOUT_MS / portTICK_PERIOD_MS);
+                ESP_LOGD(i2c_messaging_log_prefix, "I2C Master - >> Send failure, code %i.", send_ret);
+                vTaskDelay((I2C_TIMEOUT_MS/4) / portTICK_PERIOD_MS);
                 // TODO: We need to follow up these small failures
             }
 
@@ -163,17 +163,16 @@ int i2c_send_message(sdp_peer *peer, char *data, int data_length)
             i2c_master_read_byte(cmd, rcv_data + 5, NACK_VAL);
             i2c_master_stop(cmd);
 
-            ESP_LOGI(i2c_messaging_log_prefix, "I2C Master  - << Reading from client.");
             int read_retries = 0;
             int read_ret = ESP_FAIL;
             do
             {
-                ESP_LOGI(i2c_messaging_log_prefix, "I2C Master - << Reading, try %i.", read_retries + 1);
+                ESP_LOGD(i2c_messaging_log_prefix, "I2C Master - << Reading receipt, try %i.", read_retries + 1);
                 read_ret = i2c_master_cmd_begin(CONFIG_I2C_CONTROLLER_NUM, cmd, 1000 / portTICK_PERIOD_MS);
                 if (read_ret != ESP_OK)
                 {
-                    ESP_LOGW(i2c_messaging_log_prefix, "I2C Master - << Read failure, code %i. Waiting a short while.", read_ret);
-                    vTaskDelay(I2C_TIMEOUT_MS / 2 / portTICK_PERIOD_MS);
+                    ESP_LOGI(i2c_messaging_log_prefix, "I2C Master - << Read receipt failure, code %i. Waiting a short while.", read_ret);
+                    vTaskDelay((I2C_TIMEOUT_MS / 4) / portTICK_PERIOD_MS);
                 }
                 read_retries++;
             } while ((read_ret != ESP_OK) && (read_retries < 3)); // We always retries reading three times. TODO: Why?
@@ -208,7 +207,7 @@ int i2c_send_message(sdp_peer *peer, char *data, int data_length)
                         retval = -SDP_ERR_SEND_FAIL;
                     }
                 } else if ((rcv_data[0] == 0x0) && (rcv_data[1] == 0xff)) {
-                    ESP_LOGI(i2c_messaging_log_prefix, "I2C Master - << Slave says it was wrong ");
+                    ESP_LOGW(i2c_messaging_log_prefix, "I2C Master - << Slave says it was wrong ");
                     ESP_LOG_BUFFER_HEXDUMP(i2c_messaging_log_prefix, rcv_data, 6, ESP_LOG_INFO);
                     retval = -SDP_ERR_SEND_FAIL;
                 } else {
@@ -222,14 +221,14 @@ int i2c_send_message(sdp_peer *peer, char *data, int data_length)
             }
             else
             {
-                ESP_LOGE(i2c_messaging_log_prefix, "I2C Master - >> Send failure after %i retries. Error code: %i.", 
+                ESP_LOGE(i2c_messaging_log_prefix, "I2C Master - >> Failed to read receipt after %i retries. Error code: %i.", 
                     read_retries, read_ret);
                 retval = -SDP_ERR_SEND_FAIL;
             }
         }
         else
         {
-            ESP_LOGE(i2c_messaging_log_prefix, "I2C Master - >> Failed to send. Code: %i", send_ret);
+            ESP_LOGE(i2c_messaging_log_prefix, "I2C Master - >> Failed to send after %i retries . Code: %i", send_retries, send_ret);
             retval = -SDP_ERR_SEND_FAIL;
         }
     }
@@ -250,7 +249,7 @@ int i2c_send_message(sdp_peer *peer, char *data, int data_length)
         
     }
 
-    ESP_LOGI(i2c_messaging_log_prefix, "I2C Master - Deleting driver");
+    ESP_LOGD(i2c_messaging_log_prefix, "I2C Master - Deleting driver");
     i2c_driver_delete(CONFIG_I2C_CONTROLLER_NUM);
     // Always go back into listen (slave) mode
     ESP_ERROR_CHECK(i2c_driver_init(false));

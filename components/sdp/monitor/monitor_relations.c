@@ -15,7 +15,7 @@
 #define UNACCEPTABLE_SCORE -90
 #define I2C_HEARTBEAT_MS 20000
 #define ESPNOW_HEARTBEAT_MS 20000
-
+#define LORA_HEARTBEAT_MS 20000
 void check_peer(sdp_peer *peer, void *qos_message){
 
     uint64_t curr_time = esp_timer_get_time();
@@ -40,7 +40,11 @@ void check_peer(sdp_peer *peer, void *qos_message){
     #endif
     #ifdef CONFIG_SDP_LOAD_LoRa
     if (peer->supported_media_types & SDP_MT_LoRa) {
-        // Not Implemented
+        if((peer->i2c_stats.last_score < UNACCEPTABLE_SCORE) || 
+        (peer->i2c_stats.last_score_time < (curr_time - (LORA_HEARTBEAT_MS/portTICK_PERIOD_MS)))) {
+                
+            sdp_send_message_media_type(peer, qos_message, SDP_PREAMBLE_LENGTH + 2, SDP_MT_LoRa, false);
+        }
     }
     #endif
     #ifdef CONFIG_SDP_LOAD_I2C

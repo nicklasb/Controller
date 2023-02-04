@@ -107,11 +107,9 @@ int sdp_peer_send_hi_message(sdp_peer *peer, bool is_reply) {
     if (!is_reply) {
         strcpy(fmt_str, "HI");
         uint8_t *tmp_crc_data = malloc(12);
-        memcpy(tmp_crc_data, peer->base_mac_address, SDP_MAC_ADDR_LEN);
-        memcpy(tmp_crc_data+SDP_MAC_ADDR_LEN, sdp_host.base_mac_address, SDP_MAC_ADDR_LEN);
-        // TODO: Why big endian? Change to little endian everywhere unless BLE have other ideas
 
-        peer->relation_id = crc32_be(0, tmp_crc_data, SDP_MAC_ADDR_LEN * 2);
+
+        peer->relation_id = calc_relation_id(&peer->base_mac_address, &sdp_host.base_mac_address);
         free(tmp_crc_data);
     }
 

@@ -8,6 +8,7 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include <driver/adc.h>
+#include <esp32/rom/crc.h>
 
 #include "sdp_def.h"
 
@@ -225,6 +226,17 @@ void log_media_types(sdp_media_types media_types, char *log_str)
         // Remove last ","
         log_str[strlen(log_str) - 1] = 0;
     }
+}
+
+uint32_t calc_relation_id(sdp_mac_address *mac_1, sdp_mac_address *mac_2) {
+        uint8_t *tmp_crc_data = malloc(12);
+        memcpy(tmp_crc_data, mac_1, SDP_MAC_ADDR_LEN);
+        memcpy(tmp_crc_data+SDP_MAC_ADDR_LEN, mac_2, SDP_MAC_ADDR_LEN);
+        // TODO: Why big endian? Change to little endian everywhere unless BLE have other ideas
+
+        uint32_t relation_id = crc32_be(0, tmp_crc_data, SDP_MAC_ADDR_LEN * 2);
+        free(tmp_crc_data);
+        return relation_id;
 }
 
 void log_peer_info(char *_log_prefix, sdp_peer *peer)

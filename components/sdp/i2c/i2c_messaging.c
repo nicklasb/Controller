@@ -339,6 +339,7 @@ void i2c_do_on_poll_cb(queue_context *q_context)
             
             response[0] = 0xff;
             response[1] = 0x00;   
+            ret = ESP_OK;
         }
         memcpy(&(response[2]) , &crc32_in, (size_t)4);
         ESP_LOG_BUFFER_HEXDUMP(i2c_messaging_log_prefix, &response, 6, ESP_LOG_INFO);

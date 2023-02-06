@@ -16,10 +16,13 @@
 #include <string.h>
 #include "sdp_work_queue.h"
 
+#define SDP_QUEUE_PROBLEM_COUNT 3
+
+
 // The queue context
 queue_context sdp_queue_context;
 
-char *spd_worker_log_prefix;
+char *sdp_worker_log_prefix = NULL;
 
 /* Expands to a declaration for the work queue */
 STAILQ_HEAD(sdp_work_q, work_queue_item)
@@ -60,15 +63,38 @@ void sdp_set_queue_blocked(bool blocked)
     set_queue_blocked(&sdp_queue_context, blocked);
 }
 
+
+void sdp_worker_on_monitor() {
+    // TODO: Looking at the log prefix isn't the best method to see if the queue is running.
+    if (sdp_worker_log_prefix) {
+
+        struct work_queue_item *curr_item;
+        struct work_queue_item *tmp_curr_item;
+        uint16_t itemcount = 0;
+        ESP_LOGI(sdp_worker_log_prefix, "in sdp_worker_on_monitor");
+        STAILQ_FOREACH_SAFE(curr_item, &sdp_work_q, items, tmp_curr_item) {
+            itemcount++;
+        }
+        
+        if (itemcount > SDP_QUEUE_PROBLEM_COUNT) {
+            ESP_LOGW(sdp_worker_log_prefix, "SDP Worker queue has %i items which indicates there is a problem!", itemcount);
+        } else {
+            ESP_LOGI(sdp_worker_log_prefix, "SDP Worker queue has %i items.", itemcount);
+        }
+    }
+
+}
+
+
 void sdp_shutdown_worker()
 {
-    ESP_LOGI(spd_worker_log_prefix, "Telling main sdp worker to shut down.");
+    ESP_LOGI(sdp_worker_log_prefix, "Telling main sdp worker to shut down.");
     sdp_queue_context.shutdown = true;
 }
 
 esp_err_t sdp_init_worker(work_callback *work_cb, char *_log_prefix)
 {
-    spd_worker_log_prefix = _log_prefix;
+    sdp_worker_log_prefix = _log_prefix;
     // Initialize the work queue
     STAILQ_INIT(&sdp_work_q);
 

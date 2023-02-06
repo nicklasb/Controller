@@ -30,14 +30,15 @@ typedef struct i2c_queue_item
     uint16_t data_length;
     /* The peer */  
     struct sdp_peer *peer;
-    /* Continue to try using send_message and rescoring */
-    bool try_rescoring;
+    /* We are just checking a problematic connection, dial down the logging and do not retry using other media. 
+    TODO: Change this into some log level instead? Or is logging even relevant later? We will probably have a centralized logging service. */
+    bool just_checking;
     /* Queue reference */
     STAILQ_ENTRY(i2c_queue_item)
     items;
 } i2c_queue_item_t;
 
-esp_err_t i2c_safe_add_work_queue(sdp_peer *peer, char *data, int data_length, bool try_rescoring);
+esp_err_t i2c_safe_add_work_queue(sdp_peer *peer, char *data, int data_length, bool just_checking);
 
 esp_err_t i2c_init_worker(work_callback work_cb, poll_callback poll_cb, char *_log_prefix);
 

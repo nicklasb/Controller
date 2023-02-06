@@ -158,33 +158,32 @@ int sdp_mesh_peer_add(sdp_peer_name name)
     return peer->peer_handle;
 }
 
-void init_supported_media_types_mac_address(sdp_peer *peer) {
+void init_supported_media_types(sdp_peer *peer) {
 
 
 #ifdef CONFIG_SDP_LOAD_BLE
-        if (peer->supported_media_types & SDP_MT_BLE)
-        {
-            //(mac_address);
-            peer->ble_stats.initial_media = true;
-        }
+    if (peer->supported_media_types & SDP_MT_BLE)
+    {
+        //(mac_address);
         // TODO: Usually BLE sort of finds each other, however we might wan't to do something here
+    }
+    
 #endif
 
 #ifdef CONFIG_SDP_LOAD_ESP_NOW
-        if (peer->supported_media_types & SDP_MT_ESPNOW)
-        {
-            ESP_LOGI(mesh_log_prefix, "Adding espnow peer at:");
-            ESP_LOG_BUFFER_HEX(mesh_log_prefix, peer->base_mac_address, SDP_MAC_ADDR_LEN);
-            peer->espnow_stats.initial_media = true;
-            int rc = espnow_add_peer(peer->base_mac_address);
-        }
+    if ((peer->supported_media_types & SDP_MT_ESPNOW) && (!peer->espnow_peer_added))
+    {
+        ESP_LOGI(mesh_log_prefix, "Adding espnow peer at:");
+        ESP_LOG_BUFFER_HEX(mesh_log_prefix, peer->base_mac_address, SDP_MAC_ADDR_LEN);
+        int rc = espnow_add_peer(peer->base_mac_address);
+        peer->espnow_peer_added = true;
+    }
 #endif
 
 #ifdef CONFIG_SDP_LOAD_LORA
-        if (peer->supported_media_types & SDP_MT_LoRa)
-        {
-            peer->lora_stats.initial_media = true;
-        }
+    if (peer->supported_media_types & SDP_MT_LoRa)
+    {
+    }
 #endif
 
 }
@@ -206,7 +205,7 @@ sdp_peer *sdp_add_init_new_peer(sdp_peer_name peer_name, const sdp_mac_address m
     {
         memcpy(peer->base_mac_address, mac_address, SDP_MAC_ADDR_LEN);
         peer->supported_media_types = media_type;
-        init_supported_media_types_mac_address(peer);
+        init_supported_media_types(peer);
 
     }
     else
@@ -251,8 +250,6 @@ sdp_peer *sdp_add_init_new_peer_i2c(sdp_peer_name peer_name, const uint8_t i2c_a
     {
         peer->i2c_address = i2c_address;
         peer->supported_media_types = SDP_MT_I2C;
-        peer->i2c_stats.initial_media = true;
-
     }
     else
     {

@@ -6,7 +6,7 @@
 
 
 
-int i2c_send_message(sdp_peer *peer, char *data, int data_length);
+int i2c_send_message(sdp_peer *peer, char *data, int data_length, bool just_checking);
 
 
 void i2c_do_on_work_cb(i2c_queue_item_t *work_item);

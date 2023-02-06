@@ -76,7 +76,7 @@ typedef struct {
     uint8_t dest_mac[ESP_NOW_ETH_ALEN];   //MAC address of destination device.
 } espnow_send_param_t;
 
-int espnow_send_message(sdp_mac_address *dest_mac_address, void *data, int data_length);
+int espnow_send_message(sdp_mac_address *dest_mac_address, void *data, int data_length, bool just_checking);
 
 void espnow_messaging_init(char * _log_prefix);
 

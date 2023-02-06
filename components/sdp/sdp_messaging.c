@@ -415,7 +415,7 @@ int broadcast_message(uint16_t conversation_id,
  * @brief Sends to a specified peer
 
  */
-int sdp_send_message_media_type(struct sdp_peer *peer, void *data, int data_length, e_media_type media_type, bool try_rescore)
+int sdp_send_message_media_type(struct sdp_peer *peer, void *data, int data_length, e_media_type media_type, bool just_checking)
 {
     // Should this function also be put in a separate file? Perhaps along with other #ifs? To simplify and clean up this one?
     int rc = 0;
@@ -448,18 +448,23 @@ int sdp_send_message_media_type(struct sdp_peer *peer, void *data, int data_leng
 #ifdef CONFIG_SDP_LOAD_ESP_NOW
     if (media_type == SDP_MT_ESPNOW)
     {
-        ESP_LOGI(messaging_log_prefix, ">> ESP-NOW sending to: ");
-        ESP_LOG_BUFFER_HEX(messaging_log_prefix, peer->base_mac_address, SDP_MAC_ADDR_LEN);
-        ESP_LOGI(messaging_log_prefix, ">> Data (including 4 bytes preamble): ");
-        ESP_LOG_BUFFER_HEXDUMP(messaging_log_prefix, data, data_length, ESP_LOG_INFO);
-        rc = espnow_send_message(peer->base_mac_address, data, data_length);
+        if (!just_checking) {
+            ESP_LOGI(messaging_log_prefix, ">> ESP-NOW sending to: ");
+            ESP_LOG_BUFFER_HEX(messaging_log_prefix, peer->base_mac_address, SDP_MAC_ADDR_LEN);
+            ESP_LOGI(messaging_log_prefix, ">> Data (including 4 bytes preamble): ");
+            ESP_LOG_BUFFER_HEXDUMP(messaging_log_prefix, data, data_length, ESP_LOG_INFO);
+   
+        }
+        rc = espnow_send_message(peer->base_mac_address, data, data_length, just_checking);
         if (rc == 0)
         {
             result = SDP_MT_ESPNOW;
         }
         else
         {
-            ESP_LOGE(messaging_log_prefix, ">> Sending using ESP-NOW failed.");
+            if (!just_checking) {  
+                ESP_LOGE(messaging_log_prefix, ">> Sending using ESP-NOW failed.");
+            }
             result = -SDP_MT_ESPNOW;
             //  TODO: Add start general QoS monitoring, stop using some technologies if they are failing
         }
@@ -477,7 +482,7 @@ int sdp_send_message_media_type(struct sdp_peer *peer, void *data, int data_leng
         ESP_LOGI(messaging_log_prefix, ">> Data (including 4 bytes preamble): ");
         ESP_LOG_BUFFER_HEXDUMP(messaging_log_prefix, data, data_length, ESP_LOG_INFO);
 
-        rc = lora_safe_add_work_queue(peer, data, data_length, try_rescore);
+        rc = lora_safe_add_work_queue(peer, data, data_length, just_checking);
         if (rc == 0)
         {
             result = SDP_MT_LoRa;
@@ -498,7 +503,7 @@ int sdp_send_message_media_type(struct sdp_peer *peer, void *data, int data_leng
         ESP_LOGI(messaging_log_prefix, ">> Data (including 4 bytes preamble): ");
         ESP_LOG_BUFFER_HEXDUMP(messaging_log_prefix, data, data_length, ESP_LOG_INFO);
 
-        rc = i2c_safe_add_work_queue(peer, data, data_length, try_rescore);
+        rc = i2c_safe_add_work_queue(peer, data, data_length, just_checking);
         if (rc == 0)
         {
             result = SDP_MT_I2C;

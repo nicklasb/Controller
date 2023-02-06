@@ -21,7 +21,7 @@
 /* The log prefix for all logging */
 char *lora_messaging_log_prefix;
 
-int lora_send_message(sdp_peer *peer, char *data, int data_length) {
+int lora_send_message(sdp_peer *peer, char *data, int data_length, bool just_checking) {
 
 	// Maximum Payload size of SX1276/77/78/79 is 255
     if (data_length + SDP_MAC_ADDR_LEN > 256) {
@@ -80,7 +80,7 @@ int lora_send_message(sdp_peer *peer, char *data, int data_length) {
 
     // TODO: Add a check for the CRC response
     starttime = esp_timer_get_time();
-    while (1) {
+    do {
         
         while (
         #ifdef CONFIG_LORA_SX127X
@@ -90,8 +90,11 @@ int lora_send_message(sdp_peer *peer, char *data, int data_length) {
         !(GetIrqStatus()  & SX126X_IRQ_RX_DONE)
         #endif
         ) { 
-            if (esp_timer_get_time() > starttime + 5000000){
-                ESP_LOGE(lora_messaging_log_prefix, "<< Timed out waiting for receipt from %s.", peer->name); 
+            if (esp_timer_get_time() > starttime + (CONFIG_SDP_RECEIPT_TIMEOUT_MS * 1000)){
+                if (!just_checking) {
+                    ESP_LOGE(lora_messaging_log_prefix, "<< Timed out waiting for receipt from %s.", peer->name); 
+                }
+                peer->lora_stats.receive_failures++;
                 return ESP_FAIL;
             }
                 
@@ -134,8 +137,13 @@ int lora_send_message(sdp_peer *peer, char *data, int data_length) {
         } else  {
                 ESP_LOGW(lora_messaging_log_prefix, "<< Got a %i-byte message to someone else (not %i, will keep waiting for a response):", message_length, peer->relation_id); 
                 ESP_LOG_BUFFER_HEX(lora_messaging_log_prefix, (uint8_t *)buf, message_length); 
-           }
+                vTaskDelay(1);
+        }
+    } while (esp_timer_get_time() < starttime + (CONFIG_SDP_RECEIPT_TIMEOUT_MS * 1000));
+    if (!just_checking) {
+        ESP_LOGE(lora_messaging_log_prefix, "<< Timed out waiting for a receipt from %s.", peer->name);
     }
+    peer->lora_stats.receive_failures++; 
 	return ESP_FAIL;
 
 }
@@ -143,17 +151,27 @@ int lora_send_message(sdp_peer *peer, char *data, int data_length) {
 void lora_do_on_work_cb(lora_queue_item_t *work_item) {
     ESP_LOGI(lora_messaging_log_prefix, ">> In LoRa work callback.");
 
-    /* TODO: 
-        0. In I2C, if it fails, resend message using send_message(), as it will re-evaluate media choice - Done
-        1. Add crc check and receipt response in the poll - Done
-        2. Add a receipt check in the send message, model after I2C (can we break out CRC handling and stuff?)
-        3. If we fail, retry sending the message using send_message(), as it will re-evaluate media choice
+    int retval = ESP_FAIL;
+    int send_retries = 0;
+    do
+    {
+        int retval = lora_send_message(work_item->peer, work_item->data, work_item->data_length, work_item->just_checking);
+        if ((retval != ESP_OK) && (send_retries < CONFIG_I2C_RESEND_COUNT))
+        {
+            // Call the poll function as it was called by the queue to listen for response before retrying
+            // TODO: There is no special reason why poll needs to have been called by the queue. 
+            // We should probably remove queue context.
+            ESP_LOGI(lora_messaging_log_prefix, ">> Retry %i failed.", send_retries + 1);
+            
+        }
+        lora_do_on_poll_cb(lora_get_queue_context());
+        send_retries++;
 
-     */
-    if (lora_send_message(work_item->peer, work_item->data, work_item->data_length) != ESP_OK) {
-        
+    } while ((retval != ESP_OK) && (send_retries < CONFIG_I2C_RESEND_COUNT));
+    // We have failed retrying, if we are supposed to, try resending (and rescoring)
+    if ((retval != ESP_OK) && (!work_item->just_checking)) {
+        sdp_send_message(work_item->peer, work_item->data, work_item->data_length);
     }
-
 
     #ifdef CONFIG_LORA_SX127X   
     lora_receive();
@@ -171,9 +189,7 @@ int get_rssi() {
 }
 
 void lora_do_on_poll_cb(queue_context *q_context) {
-    // TODO: Should the delay here should be related to the speed of the connection? 
-    // Wait a moment to let any response in.
-    vTaskDelay(100 / portTICK_PERIOD_MS);
+
 
     if (
         #ifdef CONFIG_LORA_SX127X
@@ -195,10 +211,14 @@ void lora_do_on_poll_cb(queue_context *q_context) {
             receive_len = lora_receive_packet(&buf + message_length, sizeof(buf));
             #endif            
             message_length += receive_len;
-            // TODO: Here, the delay here should certainly be related to the speed of the connection
             // TODO: Test without retries, this entire while might be pointless as its always full packets?
-            vTaskDelay(100/portTICK_PERIOD_MS);
+            
             more_data = receive_len > 0;
+            if (more_data) {
+                // TODO: Here, the delay here should certainly be related to the speed of the connection
+                vTaskDelay(100/portTICK_PERIOD_MS);
+            }
+            
         }
         
         ESP_LOGI(lora_messaging_log_prefix, "<< In LoRa POLL callback;lora_received %i bytes.", message_length);

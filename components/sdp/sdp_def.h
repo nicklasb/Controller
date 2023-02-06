@@ -209,8 +209,6 @@ typedef char sdp_peer_name[CONFIG_SDP_PEER_NAME_LEN];
  */
 struct sdp_peer_media_stats
 {
-    /* V 1.0, just save if it has been working at all */
-    bool initial_media;
 
     /* Last time peer was scored TODO: Unclear if this is used*/
     uint64_t last_score_time;
@@ -286,6 +284,7 @@ typedef struct sdp_peer
 
     #if CONFIG_SDP_LOAD_ESP_NOW
     struct sdp_peer_media_stats espnow_stats;
+    bool espnow_peer_added;
     #endif
 
     #if CONFIG_SDP_LOAD_LORA

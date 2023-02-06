@@ -18,7 +18,9 @@
 #ifdef CONFIG_SDP_LOAD_LORA
 #include "lora/lora_peer.h"
 #endif
-
+#ifdef CONFIG_SDP_LOAD_ESP_NOW
+#include "espnow/espnow_peer.h"
+#endif
 char *peer_log_prefix;
 
 
@@ -35,14 +37,14 @@ float add_to_failure_rate_history(struct sdp_peer_media_stats *stats, float rate
     float sum = 0;
     for (int i=0; i< FAILURE_RATE_HISTORY_LENGTH; i++) {
         sum+= stats->failure_rate_history[i];
-        ESP_LOGI(peer_log_prefix, "FRH %i: fr: %f", i, stats->failure_rate_history[i]);
+        ESP_LOGD(peer_log_prefix, "FRH history %i: fr: %f", i, stats->failure_rate_history[i]);
     }   
     sum+=rate;
     // Move the array one step to the left
     memmove((void *)(stats->failure_rate_history), (void *)(stats->failure_rate_history) + sizeof(float),  sizeof(float)* (FAILURE_RATE_HISTORY_LENGTH - 1));
     stats->failure_rate_history[FAILURE_RATE_HISTORY_LENGTH -1] = rate;
 
-    ESP_LOGI(peer_log_prefix, "FRH avg %f", (float)(sum/(FAILURE_RATE_HISTORY_LENGTH + 1)));
+    ESP_LOGD(peer_log_prefix, "FRH avg %f", (float)(sum/(FAILURE_RATE_HISTORY_LENGTH + 1)));
 
     return sum/(FAILURE_RATE_HISTORY_LENGTH + 1);
 }
@@ -173,9 +175,12 @@ int sdp_peer_inform(work_queue_item_t *queue_item) {
         memcpy(&queue_item->peer->base_mac_address, queue_item->parts[7], SDP_MAC_ADDR_LEN);    
         // Also init any other supported media type
         // TODO: sdp_mesh and sdp_pee
-        init_supported_media_types_mac_address(queue_item->peer);
-        ESP_LOGI(peer_log_prefix, "<< Initiated other supported medias");
-    }   
+
+    }  
+    init_supported_media_types(queue_item->peer);
+    ESP_LOGI(peer_log_prefix, "<< Initiated all supported media types");
+
+    
 
     ESP_LOGI(peer_log_prefix, "<< Peer %s now more informed ",queue_item->peer->name);
     log_peer_info(peer_log_prefix, queue_item->peer);
@@ -285,7 +290,7 @@ e_media_type select_media(struct sdp_peer *peer, int data_length)
 
             if (curr_media_type == SDP_MT_ESPNOW)
             {
-                curr_score = 1;
+                curr_score = espnow_score_peer(peer, data_length);
             }
 
 #endif
@@ -316,6 +321,10 @@ void sdp_peer_init_peer(sdp_peer * peer){
     #ifdef CONFIG_SDP_LOAD_LORA
     lora_peer_init_peer(peer);
     #endif
+    #ifdef CONFIG_SDP_LOAD_ESP_NOW
+    peer->espnow_peer_added = false;
+    espnow_peer_init_peer(peer);
+    #endif   
 }
 
 

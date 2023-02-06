@@ -31,18 +31,19 @@ typedef struct lora_queue_item
     /* The peer */  
     struct sdp_peer *peer;
 
-    /* Continue to try using send_message and rescoring */
-    bool try_rescoring;
+    /* We are just checking a problematic connection, dial down the logging and do not retry using other media. */
+    bool just_checking;
 
     /* Queue reference */
     STAILQ_ENTRY(lora_queue_item)
     items;
 } lora_queue_item_t;
 
-esp_err_t lora_safe_add_work_queue(sdp_peer *peer, char *data, int data_length, bool try_rescoring);
+esp_err_t lora_safe_add_work_queue(sdp_peer *peer, char *data, int data_length, bool just_checking);
 
 esp_err_t lora_init_worker(work_callback work_cb, poll_callback poll_cb, char *_log_prefix);
 void lora_set_queue_blocked(bool blocked);
+queue_context *lora_get_queue_context();
 void lora_shutdown_worker();
 void lora_cleanup_queue_task(lora_queue_item_t *queue_item);
 

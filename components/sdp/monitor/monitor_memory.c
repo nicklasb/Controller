@@ -1,16 +1,21 @@
+/**
+ * @file monitor_memory.c
+ * @author Nicklas Börjesson (nicklasb@gmail.com)
+ * @brief
+ * @version 0.1
+ * @date 2023-02-04
+ *
+ * @copyright Copyright (c) 2023
+ *
+ */
+
 #include "monitor_memory.h"
 
+#include <esp_heap_caps.h>
 #include <esp_log.h>
 
-#include <freertos/FreeRTOS.h>
-#include <freertos/semphr.h>
-
-#include <esp_timer.h>
 
 
-
-/* How often should we look */
-#define CONFIG_SDP_MONITOR_DELAY 10000000
 
 #define CONFIG_SDP_MONITOR_HISTORY_LENGTH 5
 
@@ -36,8 +41,8 @@ It is also not recommended to include the first sample as that is taken before s
 and thus less helpful for finding memory leaks. "
 #endif
 
-/* Monitor timer & task */
-esp_timer_handle_t monitor_timer;
+char * memory_monitor_log_prefix;
+
 
 /* Statistics */
 int sample_count = 0;
@@ -48,10 +53,8 @@ int least_memory_available = 0;
 /* This is the first calulated average (first done after CONFIG_SDP_MONITOR_FIRST_AVG_POINT samples) */
 int first_average_memory_available = 0;
 
-/* The log prefix for all logging */
-char *monitor_log_prefix;
 
-bool shutdown = false;
+
 
 struct history_item
 {
@@ -61,12 +64,13 @@ struct history_item
 };
 struct history_item history[CONFIG_SDP_MONITOR_HISTORY_LENGTH];
 
-/** 
+/**
  * The built-in functionality of the SDP monitoring is that of memory
  * This is considered essential.
- * 
- */ 
-void monitor_memory() {
+ *
+ */
+void monitor_memory()
+{
 
     int curr_mem_avail = heap_caps_get_free_size(MALLOC_CAP_EXEC);
     int delta_mem_avail = 0;
@@ -97,7 +101,6 @@ void monitor_memory() {
 
             /* The first is filled with new data */
             history[0].memory_available = curr_mem_avail;
-
         }
     }
 
@@ -116,18 +119,26 @@ void monitor_memory() {
     }
 
     int level = ESP_LOG_INFO;
-    if ((most_memory_available - curr_mem_avail) > CONFIG_SDP_MONITOR_DANGER_USAGE) {
-        ESP_LOGE(monitor_log_prefix, "Dangerously high memory usage at %i bytes! Will report!(CONFIG_SDP_MONITOR_DANGER_USAGE=%i)", 
-        most_memory_available - curr_mem_avail, CONFIG_SDP_MONITOR_WARNING_USAGE);
+    if ((most_memory_available - curr_mem_avail) > CONFIG_SDP_MONITOR_DANGER_USAGE)
+    {
+        ESP_LOGE(memory_monitor_log_prefix, "Dangerously high memory usage at %i bytes! Will report!(CONFIG_SDP_MONITOR_DANGER_USAGE=%i)",
+                 most_memory_available - curr_mem_avail, CONFIG_SDP_MONITOR_WARNING_USAGE);
         // TODO: Implement problem callback!
         level = ESP_LOG_ERROR;
-    } else if ((most_memory_available - curr_mem_avail) > CONFIG_SDP_MONITOR_WARNING_USAGE) {
-        ESP_LOGW(monitor_log_prefix, "Unusually high memory usage at %i bytes(CONFIG_SDP_MONITOR_WARNING_USAGE=%i).", 
-        most_memory_available - curr_mem_avail, CONFIG_SDP_MONITOR_WARNING_USAGE);
+    }
+    else if ((most_memory_available - curr_mem_avail) > CONFIG_SDP_MONITOR_WARNING_USAGE)
+    {
+        ESP_LOGW(memory_monitor_log_prefix, "Unusually high memory usage at %i bytes(CONFIG_SDP_MONITOR_WARNING_USAGE=%i).",
+                 most_memory_available - curr_mem_avail, CONFIG_SDP_MONITOR_WARNING_USAGE);
         // TODO: Implement warning callback!
         level = ESP_LOG_WARN;
     }
-    ESP_LOG_LEVEL(level, monitor_log_prefix, "Monitor reporting on available resources. Memory:\nCurrently: %i, avg mem: %.0f bytes. \nDeltas - Avg vs 1st: %.0f, Last vs now: %i. \nExtremes - Least: %i, Most(before init): %i. ",
-             curr_mem_avail, avg_mem_avail, avg_mem_avail - first_average_memory_available, delta_mem_avail, least_memory_available, most_memory_available);
-    
+    sample_count++;
+    ESP_LOG_LEVEL(level, memory_monitor_log_prefix, "Monitor reporting on available resources. Memory:\nCurrently: %i, avg mem: %.0f bytes. \nDeltas - Avg vs 1st: %.0f, Last vs now: %i. \nExtremes - Least: %i, Most(before init): %i. ",
+                  curr_mem_avail, avg_mem_avail, avg_mem_avail - first_average_memory_available, delta_mem_avail, least_memory_available, most_memory_available);
+}
+
+void memory_monitor_init(char *_log_prefix) {
+    memory_monitor_log_prefix = _log_prefix;
+    ESP_LOGI(memory_monitor_log_prefix, "Launching memory monitor, history length: %i samples.", CONFIG_SDP_MONITOR_HISTORY_LENGTH);
 }

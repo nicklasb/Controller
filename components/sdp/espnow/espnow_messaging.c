@@ -44,6 +44,13 @@ static void espnow_send_cb(const uint8_t *mac_addr, esp_now_send_status_t status
     {
         ESP_LOGW(espnow_messaging_log_prefix, ">> In espnow_send_cb, send failure, mac address:");
         ESP_LOG_BUFFER_HEX(espnow_messaging_log_prefix, mac_addr, SDP_MAC_ADDR_LEN);
+        sdp_peer *peer = sdp_mesh_find_peer_by_base_mac_address(mac_addr);
+        if (peer) {
+            peer->espnow_stats.send_failures++;
+        } else {
+            ESP_LOGE(espnow_messaging_log_prefix, "espnow_send_message() - no peer found matching dest_mac_address.");
+        }
+
     }
 }
 
@@ -125,13 +132,23 @@ static void espnow_deinit(espnow_send_param_t *send_param)
 /**
  * @brief Sends a message through ESPNOW.
  */
-int espnow_send_message(sdp_mac_address *dest_mac_address, void *data, int data_length)
+int espnow_send_message(sdp_mac_address *dest_mac_address, void *data, int data_length, bool just_checking)
 {
     // TODO: Check if this actually needs a worker and a queue.
     int rc = esp_now_send(dest_mac_address, data, data_length);
     if (rc != ESP_OK)
     {
-        if (rc == ESP_ERR_ESPNOW_NOT_INIT)
+        sdp_peer *peer = sdp_mesh_find_peer_by_base_mac_address(dest_mac_address);
+        if (peer) {
+            peer->espnow_stats.send_failures++;
+        } else {
+            ESP_LOGE(espnow_messaging_log_prefix, "espnow_send_message() - no peer found matching dest_mac_address.");
+        }
+        ESP_LOGE(espnow_messaging_log_prefix, "Mac-address:");
+        ESP_LOG_BUFFER_HEX_LEVEL(espnow_messaging_log_prefix, dest_mac_address, SDP_MAC_ADDR_LEN, ESP_LOG_ERROR);
+        if (!just_checking) {
+            // No point in logging the errors from the connections checker. TODO: Should this be a setting?
+        } else if (rc == ESP_ERR_ESPNOW_NOT_INIT)
         {
             ESP_LOGE(espnow_messaging_log_prefix, "ESP-NOW error: ESP_ERR_ESPNOW_NOT_INIT");
         }

@@ -26,6 +26,7 @@ esp_err_t sdp_safe_add_work_queue(work_queue_item_t *new_item);
 void sdp_cleanup_queue_task(work_queue_item_t *queue_item);
 
 void sdp_set_queue_blocked(bool blocked);
+void sdp_worker_on_monitor();
 
 void sdp_shutdown_worker();
 

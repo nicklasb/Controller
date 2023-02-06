@@ -56,7 +56,7 @@ float lora_score_peer(sdp_peer *peer, int data_length)
     // TODO: Obviously, the length score should go down if we are forced to slow down, with a low actual speed.
     float length_score = sdp_helper_calc_suitability(data_length, 50, 100, 0.05);
 
-    ESP_LOGI(lora_peer_log_prefix, "peer: %s ss: %i, rs: %i, sf: %i, rf: %i ", peer->name,
+    ESP_LOGD(lora_peer_log_prefix, "peer: %s ss: %i, rs: %i, sf: %i, rf: %i ", peer->name,
              peer->lora_stats.send_successes, peer->lora_stats.receive_successes,
              peer->lora_stats.send_failures, peer->lora_stats.receive_failures);
     // Success score
@@ -92,8 +92,8 @@ float lora_score_peer(sdp_peer *peer, int data_length)
         total_score = -100;
     }
 
-    ESP_LOGE(lora_peer_log_prefix, "lora - Scoring - peer: %s fr: %f:\nLength  : %f\nSuccess : %f\nTotal  = %f", peer->name,
-             failure_rate, length_score, success_score, total_score);
+    ESP_LOGI(lora_peer_log_prefix, "LoRa - Scoring - peer: %s LSCR  : %f FR: %f, SSCR : %f - TSCR  = %f", peer->name,
+              length_score, failure_rate, success_score, total_score);
 
     peer->lora_stats.last_score = (total_score + peer->lora_stats.last_score) / 2;
     peer->lora_stats.last_score_time = esp_timer_get_time();

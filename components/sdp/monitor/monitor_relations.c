@@ -1,3 +1,17 @@
+/**
+ * @file monitor_relations.c
+ * @author Nicklas Börjesson (nicklasb@gmail.com)
+ * @brief 
+ * @version 0.1
+ * @date 2023-02-04
+ * 
+ * @copyright Copyright (c) 2023
+ * 
+ 
+ * TODO:
+ *          * Have we duplicate, unknown or other peers
+ */
+
 #include "monitor_relations.h"
 #include <freertos/FreeRTOS.h>
 #include <freertos/queue.h>
@@ -16,6 +30,9 @@
 #define I2C_HEARTBEAT_MS 20000
 #define ESPNOW_HEARTBEAT_MS 20000
 #define LORA_HEARTBEAT_MS 20000
+
+
+
 void check_peer(sdp_peer *peer, void *qos_message){
 
     uint64_t curr_time = esp_timer_get_time();
@@ -90,21 +107,5 @@ void monitor_relations(){
         check_peer(peer, qos_message);
            
     }
-
-    // Loop all peers
-        // Loop all supported medias
-            // Calculate points? Or is it enough to stow away the last score?
-            // And if its really low, an the last success was a while ago(?), send a health check message
-                // Should this be a more advanced 000000001111111100001111001101101010101
-                //  (probably this is only the point for extreme LoRa)
-                    // Is a check there a loop or:ing the two values in 
-                    // Order would be most likely, exact, then going 
-
-                    // Is this the direction we always check is? I mean are we always looking at the shorter range? (nope)
-                    // We are just testing everything:
-                    // Low score often.
-                    // High score less often. High score vs speed, for example?
-                    // Or is there more nuance? 
-
 
 }

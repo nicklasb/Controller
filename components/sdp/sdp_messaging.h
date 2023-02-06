@@ -45,7 +45,7 @@ int broadcast_message(uint16_t conversation_id,
 int start_conversation(sdp_peer *peer, e_work_type work_type,
                        const char *reason, const void *data, int data_length);
 int end_conversation(uint16_t conversation_id);
-int sdp_send_message_media_type(struct sdp_peer *peer, void *data, int data_length, e_media_type media_type, bool try_rescore);
+int sdp_send_message_media_type(struct sdp_peer *peer, void *data, int data_length, e_media_type media_type, bool just_checking);
 int sdp_send_message(struct sdp_peer *peer, void *data, int data_length);
 
 

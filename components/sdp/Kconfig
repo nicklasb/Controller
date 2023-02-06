@@ -53,7 +53,14 @@ menu "SDP Configuration"
         default "UNNAMEDPEER"
         help
             The name of the peer 
-            
+    config SDP_RECEIPT_TIMEOUT_MS
+        int "How many milliseconds will SDP wait for a receipt?"
+        default 100
+        help
+            When working synchronously an not broadcasting, SDP will wait for a short while until it gets a receipt from the receiver, saying that the CRC matched. 
+            This indicates that the message was transmitted properly, and can then be reported back to the sending app, if needed.
+            Usually, this is a quite the short time, as the receipt is just a few bytes and the receiver is supposed to do this immidiately, 
+            but networking congestion or other things man cause the receiver to have to wait a little.
     config SDP_SIM
         bool "Run in simulation mode"
         help

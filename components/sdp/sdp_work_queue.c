@@ -86,6 +86,7 @@ void set_queue_blocked(queue_context *q_context, bool blocked)
     }
 }
 
+
 static void sdp_worker(queue_context *q_context)
 {
     ESP_LOGI(spd_work_queue_log_prefix, "Worker task %s now running, context: ", q_context->worker_task_name);
@@ -156,7 +157,7 @@ static void sdp_worker(queue_context *q_context)
         {
             q_context->on_poll_cb(q_context);
         }
-        vTaskDelay(10/ portTICK_PERIOD_MS);
+        vTaskDelay(1);
         // TODO: Use event loop to wait instead?
         
     }

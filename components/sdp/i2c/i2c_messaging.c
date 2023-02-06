@@ -95,7 +95,7 @@ int calc_timeout_ms(uint32_t data_length)
     return timeout_ms;
 }
 
-int i2c_send_message(sdp_peer *peer, char *data, int data_length)
+int i2c_send_message(sdp_peer *peer, char *data, int data_length, bool just_checking)
 {
 
     int retval = ESP_FAIL;
@@ -165,17 +165,18 @@ int i2c_send_message(sdp_peer *peer, char *data, int data_length)
 
             int read_retries = 0;
             int read_ret = ESP_FAIL;
+            // TODO: This should probably use CONFIG_SDP_RECEIPT_TIMEOUT_MS * 1000 in some way.
             do
             {
                 ESP_LOGD(i2c_messaging_log_prefix, "I2C Master - << Reading receipt, try %i.", read_retries + 1);
-                read_ret = i2c_master_cmd_begin(CONFIG_I2C_CONTROLLER_NUM, cmd, 1000 / portTICK_PERIOD_MS);
+                read_ret = i2c_master_cmd_begin(CONFIG_SDP_RECEIPT_TIMEOUT_MS, cmd, 1000 / portTICK_PERIOD_MS);
                 if (read_ret != ESP_OK)
                 {
                     ESP_LOGI(i2c_messaging_log_prefix, "I2C Master - << Read receipt failure, code %i. Waiting a short while.", read_ret);
-                    vTaskDelay((I2C_TIMEOUT_MS / 4) / portTICK_PERIOD_MS);
+                    vTaskDelay((CONFIG_SDP_RECEIPT_TIMEOUT_MS / 4) / portTICK_PERIOD_MS);
                 }
                 read_retries++;
-            } while ((read_ret != ESP_OK) && (read_retries < 3)); // We always retries reading three times. TODO: Why?
+            } while ((read_ret != ESP_OK) && (read_retries < 3)); // We always retry reading three times. TODO: Why?
 
             i2c_cmd_link_delete(cmd);
 
@@ -228,7 +229,10 @@ int i2c_send_message(sdp_peer *peer, char *data, int data_length)
         }
         else
         {
-            ESP_LOGE(i2c_messaging_log_prefix, "I2C Master - >> Failed to send after %i retries . Code: %i", send_retries, send_ret);
+            if (!just_checking) {
+                ESP_LOGE(i2c_messaging_log_prefix, "I2C Master - >> Failed to send after %i retries . Code: %i", send_retries, send_ret);
+            }
+            
             retval = -SDP_ERR_SEND_FAIL;
         }
     }
@@ -379,12 +383,12 @@ void i2c_do_on_work_cb(i2c_queue_item_t *work_item)
 {
     ESP_LOGI(i2c_messaging_log_prefix, ">> In i2c work callback.");
 
-    // TODO: Register failures (negative return values)
+
     int retval = ESP_FAIL;
     int send_retries = 0;
     do
     {
-        retval = i2c_send_message(work_item->peer, work_item->data, work_item->data_length);
+        retval = i2c_send_message(work_item->peer, work_item->data, work_item->data_length, work_item->just_checking);
         if ((retval != ESP_OK) && (send_retries < CONFIG_I2C_RESEND_COUNT))
         {
             // Call the poll function as it was called by the queue to listen for response before retrying
@@ -398,7 +402,7 @@ void i2c_do_on_work_cb(i2c_queue_item_t *work_item)
 
     } while ((retval != ESP_OK) && (send_retries < CONFIG_I2C_RESEND_COUNT));
     // We have failed retrying, if we are supposed to, try resending (and rescoring)
-    if ((retval != ESP_OK) && (work_item->try_rescoring)) {
+    if ((retval != ESP_OK) && (!work_item->just_checking)) {
         sdp_send_message(work_item->peer, work_item->data, work_item->data_length);
     }
 }

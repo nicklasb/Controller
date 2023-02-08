@@ -64,6 +64,10 @@ typedef struct queue_context
   bool blocked;
   /* If set, worker will shut down */
   bool shutdown;
+
+  /* Watchdog timeout in seconds */
+  int watchdog_timeout;
+
   /* Internal semaphores managed by the queue implementation - Do not set. */
   SemaphoreHandle_t __x_queue_semaphore;      // Thread-safe the queue
   SemaphoreHandle_t __x_task_state_semaphore; // Thread-safe the tasks

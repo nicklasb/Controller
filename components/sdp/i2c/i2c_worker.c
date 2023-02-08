@@ -83,6 +83,8 @@ esp_err_t i2c_init_worker(work_callback work_cb, poll_callback poll_cb, char *_l
     i2c_queue_context.max_task_count = 1;
     // This queue cannot start processing items until i2c is initialized
     i2c_queue_context.blocked = true;
+    i2c_queue_context.multitasking = false;
+    i2c_queue_context.watchdog_timeout = 5;
 
     return init_work_queue(&i2c_queue_context, _log_prefix, "i2c Queue");      
 }

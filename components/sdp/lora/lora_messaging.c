@@ -16,6 +16,7 @@
 #include <sdp_messaging.h>
 #include "lora_peer.h"
 
+
 #include <string.h>
 
 /* The log prefix for all logging */
@@ -68,6 +69,7 @@ int lora_send_message(sdp_peer *peer, char *data, int data_length, bool just_che
 	ESP_LOGI(lora_messaging_log_prefix, ">> Data (including all) preamble): ");
     ESP_LOG_BUFFER_HEX(lora_messaging_log_prefix, (uint8_t *)tmp_data, message_len);  
     starttime = esp_timer_get_time();
+
  	#ifdef CONFIG_LORA_SX126X
     LoRaSend((uint8_t *)tmp_data, message_len, SX126x_TXMODE_SYNC);
 	#endif
@@ -75,6 +77,7 @@ int lora_send_message(sdp_peer *peer, char *data, int data_length, bool just_che
     lora_send_packet((uint8_t *)tmp_data, message_len);
 	#endif
     free(tmp_data);
+
     ESP_LOGI(lora_messaging_log_prefix, ">> %d byte packet sent...speed %f byte/s", message_len, 
 	(float)(message_len/((float)(esp_timer_get_time()-starttime))*1000000));
 
@@ -94,9 +97,11 @@ int lora_send_message(sdp_peer *peer, char *data, int data_length, bool just_che
                 if (!just_checking) {
                     ESP_LOGE(lora_messaging_log_prefix, "<< Timed out waiting for receipt from %s.", peer->name); 
                 }
+                vTaskDelay(1);
                 peer->lora_stats.receive_failures++;
                 return ESP_FAIL;
             }
+            vTaskDelay(1);
                 
         }
 
@@ -105,12 +110,14 @@ int lora_send_message(sdp_peer *peer, char *data, int data_length, bool just_che
         int receive_len = 0;
         bool more_data = true;
         while (more_data) {
+
             #ifdef CONFIG_LORA_SX126X
             receive_len = LoRaReceive(&buf + message_length, 255);
             #endif
             #ifdef CONFIG_LORA_SX127X
             receive_len = lora_receive_packet(&buf + message_length, sizeof(buf));
             #endif            
+
             message_length += receive_len;
             // TODO: Here, the delay here should certainly be related to the speed of the connection
             // TODO: Test without retries, this entire while might be pointless as its always full packets?
@@ -150,7 +157,8 @@ int lora_send_message(sdp_peer *peer, char *data, int data_length, bool just_che
 
 void lora_do_on_work_cb(lora_queue_item_t *work_item) {
     ESP_LOGI(lora_messaging_log_prefix, ">> In LoRa work callback.");
-
+    // Listen first
+    lora_do_on_poll_cb(lora_get_queue_context());
     int retval = ESP_FAIL;
     int send_retries = 0;
     do
@@ -162,9 +170,9 @@ void lora_do_on_work_cb(lora_queue_item_t *work_item) {
             // TODO: There is no special reason why poll needs to have been called by the queue. 
             // We should probably remove queue context.
             ESP_LOGI(lora_messaging_log_prefix, ">> Retry %i failed.", send_retries + 1);
-            
+            lora_do_on_poll_cb(lora_get_queue_context());
         }
-        lora_do_on_poll_cb(lora_get_queue_context());
+        
         send_retries++;
 
     } while ((retval != ESP_OK) && (send_retries < CONFIG_I2C_RESEND_COUNT));
@@ -176,7 +184,7 @@ void lora_do_on_work_cb(lora_queue_item_t *work_item) {
     #ifdef CONFIG_LORA_SX127X   
     lora_receive();
     #endif
-
+    lora_do_on_poll_cb(lora_get_queue_context());
 }
 
 int get_rssi() {
@@ -190,7 +198,14 @@ int get_rssi() {
 
 void lora_do_on_poll_cb(queue_context *q_context) {
 
+    // Is there currently activity on the channel, wait until it is not.
 
+    // TODO: Fix this!
+    uint16_t irq_status = GetIrqStatus();
+    while (irq_status & SX126X_IRQ_CAD_DETECTED ) {
+        
+        vTaskDelay(1);
+    }
     if (
         #ifdef CONFIG_LORA_SX127X
         lora_received()
@@ -204,12 +219,14 @@ void lora_do_on_poll_cb(queue_context *q_context) {
         int receive_len = 0;
         bool more_data = true;
         while (more_data) {
+
             #ifdef CONFIG_LORA_SX126X
             receive_len = LoRaReceive(&buf + message_length, 255);
             #endif
             #ifdef CONFIG_LORA_SX127X
             receive_len = lora_receive_packet(&buf + message_length, sizeof(buf));
             #endif            
+
             message_length += receive_len;
             // TODO: Test without retries, this entire while might be pointless as its always full packets?
             
@@ -299,11 +316,12 @@ void lora_do_on_poll_cb(queue_context *q_context) {
 
             ESP_LOG_BUFFER_HEXDUMP(lora_messaging_log_prefix, &response, 6, ESP_LOG_INFO);
             int64_t starttime = esp_timer_get_time();
+            
             #ifdef CONFIG_LORA_SX126X
             LoRaSend(&response, 6, SX126x_TXMODE_SYNC);
             #endif
             #ifdef CONFIG_LORA_SX127X
-            lora_send_packet(&response, 6);
+            lora_send_packet(&response, 6);            
             #endif
             ESP_LOGI(lora_messaging_log_prefix, ">> %d byte packet sent...speed %f byte/s", 6, 
             (float)(6/((float)(esp_timer_get_time()-starttime))*1000000));

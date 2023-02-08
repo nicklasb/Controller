@@ -83,8 +83,12 @@ esp_err_t lora_init_worker(work_callback work_cb, poll_callback poll_cb, char *_
     lora_queue_context.on_work_cb = work_cb; 
     lora_queue_context.on_poll_cb = poll_cb;
     lora_queue_context.max_task_count = 1;
+    lora_queue_context.multitasking = false;
     // This queue cannot start processing items until lora is initialized
     lora_queue_context.blocked = true;
+  /* If set, worker will shut down */
+    lora_queue_context.watchdog_timeout = CONFIG_SDP_RECEIPT_TIMEOUT_MS/1000;
+    
 
     return init_work_queue(&lora_queue_context, _log_prefix, "LoRa Queue");      
 }

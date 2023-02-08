@@ -11,6 +11,7 @@
 
 #include "sdp_work_queue.h"
 #include "sdp_def.h"
+#include "esp_task_wdt.h"
 #include <esp_log.h>
 #include <string.h>
 
@@ -95,7 +96,10 @@ static void sdp_worker(queue_context *q_context)
     ESP_LOGI(spd_work_queue_log_prefix, "first_queue_item_cb: %p", q_context->first_queue_item_cb);
     ESP_LOGI(spd_work_queue_log_prefix, "insert_tail_cb: %p", q_context->insert_tail_cb);
     ESP_LOGI(spd_work_queue_log_prefix, "multitasking: %s", q_context->multitasking ? "true" : "false");
+     ESP_LOGI(spd_work_queue_log_prefix, "watchdog_timeout: %i seconds", q_context->watchdog_timeout);
     ESP_LOGI(spd_work_queue_log_prefix, "---------------------------");
+
+    esp_task_wdt_init(q_context->watchdog_timeout + 10, false);
 
     void *curr_work = NULL;
 

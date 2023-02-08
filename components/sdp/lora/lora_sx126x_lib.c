@@ -252,7 +252,7 @@ void LoRaConfig(uint8_t spreadingFactor, uint8_t bandwidth, uint8_t codingRate, 
 	SetStopRxTimerOnPreambleDetect(false);
 	SetLoRaSymbNumTimeout(0); 
 	SetPacketType(SX126X_PACKET_TYPE_LORA); // SX126x.ModulationParams.PacketType : MODEM_LORA
-	uint8_t ldro = 0; // LowDataRateOptimize OFF // TODO: What is this?
+	uint8_t ldro = 1; // LowDataRateOptimize OFF // TODO: What is this?
 	SetModulationParams(spreadingFactor, bandwidth, codingRate, ldro);
 	
 	PacketParams[0] = (preambleLength >> 8) & 0xFF;

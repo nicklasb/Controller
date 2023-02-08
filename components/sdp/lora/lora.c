@@ -62,19 +62,19 @@ void init_lora() {
     #endif
     #if CONFIG_LORA_FREQUENCY_169MHZ
         ESP_LOGI(lora_log_prefix, "Frequency is 169MHz");
-        lora_compat_set_frequency(169e6); // 169MHz
+        long frequency = 169e6; // 169MHz
     #elif CONFIG_LORA_FREQUENCY_433MHZ
         ESP_LOGI(lora_log_prefix, "Frequency is 433MHz");
-        lora_compat_set_frequency(433e6); // 433MHz
+        long frequency = 433e6; // 433MHz
     #elif CONFIG_LORA_FREQUENCY_470MHZ
         ESP_LOGI(lora_log_prefix, "Frequency is 470MHz");
-        lora_compat_set_frequency(470e6); // 470MHz
+        long frequency = 470e6; // 470MHz
     #elif CONFIG_LORA_FREQUENCY_866MHZ
         ESP_LOGI(lora_log_prefix, "Frequency is 866MHz");
-        lora_compat_set_frequency(866e6); // 866MHz
+        long frequency = 866e6; // 866MHz
     #elif CONFIG_LORA_FREQUENCY_915MHZ
         ESP_LOGI(lora_log_prefix, "Frequency is 915MHz");
-        lora_compat_set_frequency(915e6); // 915MHz
+        long frequency = 915e6; // 915MHz
     #elif CONFIG_LORA_FREQUENCY_OTHER
         ESP_LOGI(lora_log_prefix, "Frequency is %d MHz", CONFIG_LORA_OTHER_FREQUENCY);
         long frequency = CONFIG_LORA_OTHER_FREQUENCY * 1000000;
@@ -98,6 +98,7 @@ void init_lora() {
 	
     float tcxoVoltage = 3.3; // use TCXO
 	bool useRegulatorLDO = true; // use TCXO
+
     int8_t txPowerInDbm = 22;
     LoRaDebugPrint(true); // TODO: Check out why this is needed.
     int ret = LoRaBegin(frequency, txPowerInDbm, tcxoVoltage, useRegulatorLDO);

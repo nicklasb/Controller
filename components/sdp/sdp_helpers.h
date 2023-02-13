@@ -22,7 +22,7 @@ int add_to_message(uint8_t **message, const char *format, ...);
 void *sdp_add_preamble(e_work_type work_type, uint16_t conversation_id, const void *data, int data_length);
 
 void log_peer_info(char * _log_prefix, sdp_peer *peer);
-
+void log_media_types(sdp_media_types media_types, char *log_str);
 uint32_t calc_relation_id(sdp_mac_address *mac_1, sdp_mac_address *mac_2);
 
 float sdp_read_battery();

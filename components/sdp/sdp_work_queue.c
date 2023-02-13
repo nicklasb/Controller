@@ -99,7 +99,14 @@ static void sdp_worker(queue_context *q_context)
      ESP_LOGI(spd_work_queue_log_prefix, "watchdog_timeout: %i seconds", q_context->watchdog_timeout);
     ESP_LOGI(spd_work_queue_log_prefix, "---------------------------");
 
-    esp_task_wdt_init(q_context->watchdog_timeout + 10, false);
+    // Adjust the watchdog, connections can take a long time sometimes.
+    const esp_task_wdt_config_t watchdog_config = {
+        .timeout_ms = (q_context->watchdog_timeout + 10),
+        .idle_core_mask = (1 << portNUM_PROCESSORS) - 1,    // Bitmask of all cores
+        .trigger_panic = false
+    };
+    esp_task_wdt_deinit();
+    esp_task_wdt_init(&watchdog_config);
 
     void *curr_work = NULL;
 
@@ -228,7 +235,8 @@ esp_err_t init_work_queue(queue_context *q_context, char *_log_prefix, const cha
  */
 void cleanup_queue_task(queue_context *q_context)
 {
-    ESP_LOGI(spd_work_queue_log_prefix, "Cleaning up tasks. Handle %u.", (uint32_t)q_context->worker_task_handle);
+    ESP_LOGI(spd_work_queue_log_prefix, "Cleaning up tasks.");
     alter_task_count(q_context, -1);
     vTaskDelete(NULL);
+
 }

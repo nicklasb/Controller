@@ -104,7 +104,7 @@ esp_err_t sdp_init_worker(work_callback *work_cb, char *_log_prefix)
     sdp_queue_context.on_work_cb = work_cb,
     sdp_queue_context.max_task_count = 0;
     sdp_queue_context.multitasking = true;
-    sdp_queue_context.watchdog_timeout = 10;
+    sdp_queue_context.watchdog_timeout = 20000;
     init_work_queue(&sdp_queue_context, _log_prefix, "SDP Queue");
 
     return ESP_OK;

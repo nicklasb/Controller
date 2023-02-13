@@ -252,7 +252,7 @@ void log_peer_info(char *_log_prefix, sdp_peer *peer)
     char mt_log[1000] = "";
     log_media_types(peer->supported_media_types, &mt_log);
     ESP_LOGI(_log_prefix, "Supported media types:%s", mt_log);
-    ESP_LOGI(_log_prefix, "Relation id:           %u", peer->relation_id);
+    ESP_LOGI(_log_prefix, "Relation id:           %lu", peer->relation_id);
     ESP_LOGI(_log_prefix, "Protocol version:      %i", peer->protocol_version);
     ESP_LOGI(_log_prefix, "Next availability:     %lli", peer->next_availability);
     ESP_LOGI(_log_prefix, "Handle:                %i", peer->peer_handle);

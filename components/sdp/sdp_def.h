@@ -171,6 +171,8 @@ typedef enum e_media_type
  */
 typedef uint8_t sdp_media_types;
 
+sdp_media_types get_host_supported_media_types();
+void add_host_supported_media_type (e_media_type supported_media_type);
 /* SDP peer stat, broadly categorizes the credibility of the peer */
 typedef enum e_peer_state
 {
@@ -240,6 +242,9 @@ struct sdp_peer_media_stats
     
 
 };
+
+
+
 /* This is the maximum number of peers */
 /* NOTE: A list of relations, it relations+mac_addresses (4 + 6 * SDP_MAX_PEERS) is stored
 * in RTC memory, so 32 peers mean 320 bytes of the 8K RTC memory

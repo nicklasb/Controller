@@ -1,5 +1,6 @@
-#include "lora_messaging.h"
 
+#include "lora_messaging.h"
+#include "lora_peer.h"
 #ifdef CONFIG_LORA_SX126X
 #include "lora_sx126x_lib.h"
 #endif
@@ -11,16 +12,19 @@
 #include <esp_log.h>
 #include <esp_timer.h>
 #include <sdp_mesh.h>
-#include <sdp_peer.h>
 #include <sdp_helpers.h>
 #include <sdp_messaging.h>
-#include "lora_peer.h"
-
 
 #include <string.h>
 
+
 /* The log prefix for all logging */
 char *lora_messaging_log_prefix;
+
+
+int lora_unknown_counter = 0;
+int lora_unknown_failures = 0;
+int lora_crc_failures = 0;
 
 int lora_send_message(sdp_peer *peer, char *data, int data_length, bool just_checking) {
 
@@ -36,7 +40,7 @@ int lora_send_message(sdp_peer *peer, char *data, int data_length, bool just_che
 	if (peer->state != PEER_UNKNOWN) {
         uint8_t relation_size = sizeof(peer->relation_id);
         // We have an established relation, use the relation id
-        ESP_LOGI(lora_messaging_log_prefix, ">> Relation id > 0: %i, size: %hhu.", peer->relation_id, relation_size);
+        ESP_LOGI(lora_messaging_log_prefix, ">> Relation id > 0: %"PRIu32", size: %hhu.", peer->relation_id, relation_size);
         message_len = relation_size + data_length;
         tmp_data = malloc(message_len);
         // Add the destination address
@@ -142,7 +146,7 @@ int lora_send_message(sdp_peer *peer, char *data, int data_length, bool just_che
            }
             
         } else  {
-                ESP_LOGW(lora_messaging_log_prefix, "<< Got a %i-byte message to someone else (not %i, will keep waiting for a response):", message_length, peer->relation_id); 
+                ESP_LOGW(lora_messaging_log_prefix, "<< Got a %i-byte message to someone else (not %"PRIu32", will keep waiting for a response):", message_length, peer->relation_id); 
                 ESP_LOG_BUFFER_HEX(lora_messaging_log_prefix, (uint8_t *)buf, message_length); 
                 vTaskDelay(1);
         }
@@ -201,11 +205,13 @@ void lora_do_on_poll_cb(queue_context *q_context) {
     // Is there currently activity on the channel, wait until it is not.
 
     // TODO: Fix this!
+    #ifdef CONFIG_LORA_SX126X
     uint16_t irq_status = GetIrqStatus();
     while (irq_status & SX126X_IRQ_CAD_DETECTED ) {
-        
+        irq_status = GetIrqStatus()
         vTaskDelay(1);
     }
+    #endif
     if (
         #ifdef CONFIG_LORA_SX127X
         lora_received()
@@ -265,7 +271,7 @@ void lora_do_on_poll_cb(queue_context *q_context) {
                 }                
             } else {
                 memcpy(&relation_id, buf, 4);
-                ESP_LOGI(lora_messaging_log_prefix, "Relation id in first bytes %u", relation_id);
+                ESP_LOGI(lora_messaging_log_prefix, "Relation id in first bytes %"PRIu32"", relation_id);
                 src_mac_addr = relation_id_to_mac_address(relation_id);
                 if (src_mac_addr == NULL) {
                     ESP_LOGI(lora_messaging_log_prefix, "<< %d byte packet to someone else received:[%.*s], RSSI %i", 
@@ -282,13 +288,13 @@ void lora_do_on_poll_cb(queue_context *q_context) {
             uint8_t *rcv_data = &buf[data_start];
             uint32_t crc32_in = 0;
             memcpy(&crc32_in, rcv_data, 4);
-            unsigned int crc_calc = crc32_be(0, rcv_data + 4, message_length - data_start - 4);
+            uint32_t crc_calc = crc32_be(0, rcv_data + 4, message_length - data_start - 4);
             uint8_t response[6];
             memcpy(&response, &relation_id, 4);
             int ret = ESP_OK;
             if (crc32_in != crc_calc)
             {
-                ESP_LOGW(lora_messaging_log_prefix, "<< LoRa - CRC Mismatch crc32_in: %u,crc_calc: %u. Create response:", 
+                ESP_LOGW(lora_messaging_log_prefix, "<< LoRa - CRC Mismatch crc32_in: %"PRIu32",crc_calc: %"PRIu32" Create response:", 
                     crc32_in, crc_calc);
                 response[4] = 0x00;
                 response[5] = 0xff;
@@ -308,7 +314,7 @@ void lora_do_on_poll_cb(queue_context *q_context) {
                 }
                 ret = ESP_FAIL;
             }  else {
-                ESP_LOGI(lora_messaging_log_prefix, "<< LoRa - Got %i bytes of data. crc32 : %u, create response.", 6, crc_calc);
+                ESP_LOGI(lora_messaging_log_prefix, "<< LoRa - Got %i bytes of data. crc32 : %"PRIu32", create response.", 6, crc_calc);
                                 
                 response[4] = 0xff;
                 response[5] = 0x00;   

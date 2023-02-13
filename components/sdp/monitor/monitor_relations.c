@@ -17,6 +17,7 @@
 #include <freertos/queue.h>
 
 #include <esp_log.h>
+#include <esp_timer.h>
 
 #include "sdp_peer.h"
 
@@ -36,7 +37,7 @@
 void check_peer(sdp_peer *peer, void *qos_message){
 
     uint64_t curr_time = esp_timer_get_time();
-    #ifdef CONFIG_SDP_LOAD_TTL
+    #ifdef CONFIG_SDP_LOAD_TTL 
     if (peer->supported_media_types & SDP_MT_TTL) {
         // Not Implemented
     }

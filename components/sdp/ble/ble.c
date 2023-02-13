@@ -120,7 +120,7 @@ void ble_init(char *_log_prefix)
 
     /* Start the thread for the host stack, pass the client task which nimble_port_run */
     nimble_port_freertos_init(ble_host_task);
-
+    add_host_supported_media_type(SDP_MT_BLE);
     ESP_LOGI(ble_init_log_prefix, "BLE initialized.");
 }
 

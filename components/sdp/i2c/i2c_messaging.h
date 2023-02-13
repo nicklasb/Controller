@@ -7,7 +7,7 @@
 
 
 int i2c_send_message(sdp_peer *peer, char *data, int data_length, bool just_checking);
-
+esp_err_t i2c_driver_init(bool is_master);
 
 void i2c_do_on_work_cb(i2c_queue_item_t *work_item);
 void i2c_do_on_poll_cb(queue_context *q_context);

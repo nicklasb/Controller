@@ -63,15 +63,16 @@ sdp_mesh_find_peer_by_base_mac_address(sdp_mac_address mac_address)
 
     SLIST_FOREACH(peer, &sdp_peers, next)
     {
-        ESP_LOGI(mesh_log_prefix, "sdp_mesh_find_peer_by_base_mac_address (peer->base..., mac_address):");
-        ESP_LOG_BUFFER_HEX(mesh_log_prefix, peer->base_mac_address, SDP_MAC_ADDR_LEN);
-        ESP_LOG_BUFFER_HEX(mesh_log_prefix, mac_address, SDP_MAC_ADDR_LEN);
+        
         if (memcmp(peer->base_mac_address, mac_address, SDP_MAC_ADDR_LEN) == 0)
-        {
+        {   
+        ESP_LOGI(mesh_log_prefix, "sdp_mesh_find_peer_by_base_mac_address found:");
+            ESP_LOG_BUFFER_HEX(mesh_log_prefix, mac_address, SDP_MAC_ADDR_LEN);           
             return peer;
         }
     }
-
+    ESP_LOGI(mesh_log_prefix, "sdp_mesh_find_peer_by_base_mac_address NOT found:");
+    ESP_LOG_BUFFER_HEX(mesh_log_prefix, mac_address, SDP_MAC_ADDR_LEN);
     return NULL;
 }
 

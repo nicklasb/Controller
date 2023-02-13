@@ -2,17 +2,12 @@
 
 #include <esp_log.h>
 
-
-#include "sdp_def.h"
-
 #include "esp_timer.h"
 
 #include <string.h>
 
 char * i2c_peer_log_prefix;
-int i2c_unknown_counter = 0;
-int i2c_unknown_failures = 0;
-int i2c_crc_failures = 0;
+
 
 /**
  * @brief Reset stats count.
@@ -21,8 +16,6 @@ int i2c_crc_failures = 0;
  */
 void i2c_stat_reset(sdp_peer *peer)
 {
-    i2c_unknown_failures = 0;
-    i2c_crc_failures = 0;
     peer->i2c_stats.send_successes = 0;
     peer->i2c_stats.send_failures = 0;
     peer->i2c_stats.receive_successes = 0;
@@ -56,7 +49,7 @@ float i2c_score_peer(sdp_peer *peer, int data_length)
     // TODO: Obviously, the length score should go down if we are forced to slow down, with a low actual speed.
     float length_score = sdp_helper_calc_suitability(data_length, 50, 1000, 0.005);
  
-    ESP_LOGD(i2c_peer_log_prefix, "peer: %s ss: %i, rs: %i, sf: %i, rf: %i ", peer->name,
+    ESP_LOGD(i2c_peer_log_prefix, "peer: %s ss: %"PRIu32", rs: %"PRIu32", sf: %"PRIu32", rf: %"PRIu32" ", peer->name,
              peer->i2c_stats.send_successes, peer->i2c_stats.receive_successes,
              peer->i2c_stats.send_failures, peer->i2c_stats.receive_failures);
     // Success score
@@ -101,8 +94,18 @@ float i2c_score_peer(sdp_peer *peer, int data_length)
 
     return peer->i2c_stats.last_score;
 }
+/*
+void set_i2c_unknown_counter(uint32_t) = 0;
+int i2c_unknown_failures = 0;
+int i2c_crc_failures;
+
+*/
+
+
 
 void i2c_peer_init(char * _log_prefix) {
 
     i2c_peer_log_prefix = _log_prefix;
+
+  
 };

@@ -9,9 +9,7 @@
 #include <string.h>
 
 char * lora_peer_log_prefix;
-int lora_unknown_counter = 0;
-int lora_unknown_failures = 0;
-int lora_crc_failures = 0;
+
 
 /**
  * @brief Reset stats count.
@@ -20,8 +18,7 @@ int lora_crc_failures = 0;
  */
 void lora_stat_reset(sdp_peer *peer)
 {
-    lora_unknown_failures = 0;
-    lora_crc_failures = 0;
+
     peer->lora_stats.send_successes = 0;
     peer->lora_stats.send_failures = 0;
     peer->lora_stats.receive_successes = 0;
@@ -56,7 +53,7 @@ float lora_score_peer(sdp_peer *peer, int data_length)
     // TODO: Obviously, the length score should go down if we are forced to slow down, with a low actual speed.
     float length_score = sdp_helper_calc_suitability(data_length, 50, 100, 0.05);
 
-    ESP_LOGD(lora_peer_log_prefix, "peer: %s ss: %i, rs: %i, sf: %i, rf: %i ", peer->name,
+    ESP_LOGD(lora_peer_log_prefix, "peer: %s ss: %"PRIu32", rs: %"PRIu32", sf: %"PRIu32", rf: %"PRIu32"", peer->name,
              peer->lora_stats.send_successes, peer->lora_stats.receive_successes,
              peer->lora_stats.send_failures, peer->lora_stats.receive_failures);
     // Success score

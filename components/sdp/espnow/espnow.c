@@ -13,12 +13,9 @@
 
 #include "espnow_messaging.h"
 #include "espnow_peer.h"
+#include "sdp_def.h"
 
-#if ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(5, 0, 0)
-#include <driver/adc.h>
-#else
 #include <esp_adc/adc_oneshot.h>
-#endif
 
 /* The log prefix for all logging */
 char *espnow_log_prefix;
@@ -78,6 +75,7 @@ void espnow_init(char *_log_prefix)
     
     espnow_messaging_init(_log_prefix);
     espnow_peer_init(_log_prefix);
+    add_host_supported_media_type(SDP_MT_ESPNOW);
     ESP_LOGI(espnow_log_prefix, "ESP-NOW initialized.");
 }
 

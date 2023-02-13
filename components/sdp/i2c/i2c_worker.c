@@ -75,7 +75,7 @@ esp_err_t i2c_init_worker(work_callback work_cb, poll_callback poll_cb, char *_l
     // Initialize the work queue
     STAILQ_INIT(&i2c_work_q);
 
-    i2c_queue_context.first_queue_item_cb = &i2c_first_queueitem; 
+    i2c_queue_context.first_queue_item_cb = i2c_first_queueitem; 
     i2c_queue_context.remove_first_queueitem_cb = &i2c_remove_first_queue_item; 
     i2c_queue_context.insert_tail_cb = &i2c_insert_tail;
     i2c_queue_context.on_work_cb = work_cb; 
@@ -84,7 +84,7 @@ esp_err_t i2c_init_worker(work_callback work_cb, poll_callback poll_cb, char *_l
     // This queue cannot start processing items until i2c is initialized
     i2c_queue_context.blocked = true;
     i2c_queue_context.multitasking = false;
-    i2c_queue_context.watchdog_timeout = 5;
+    i2c_queue_context.watchdog_timeout = 5000;
 
     return init_work_queue(&i2c_queue_context, _log_prefix, "i2c Queue");      
 }

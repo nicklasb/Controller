@@ -93,7 +93,7 @@ float espnow_score_peer(sdp_peer *peer, int data_length)
     // TODO: Obviously, the length score should go down if we are forced to slow down, with a low actual speed.
     float length_score = sdp_helper_calc_suitability(data_length, 55, 1000, 0.0005);
  
-    ESP_LOGD(espnow_peer_log_prefix, "peer: %s ss: %i, rs: %i, sf: %i, rf: %i ", peer->name,
+    ESP_LOGD(espnow_peer_log_prefix, "peer: %s ss: %"PRIu32", rs: %"PRIu32", sf: %"PRIu32", rf: %"PRIu32" ", peer->name,
              peer->espnow_stats.send_successes, peer->espnow_stats.receive_successes,
              peer->espnow_stats.send_failures, peer->espnow_stats.receive_failures);
     // Success score

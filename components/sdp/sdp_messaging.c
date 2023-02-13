@@ -45,8 +45,6 @@
 #include "i2c/i2c_messaging.h"
 #endif
 
-
-
 int callcount = 0;
 
 filter_callback *on_filter_request_cb = NULL;
@@ -180,8 +178,8 @@ int safe_add_conversation(sdp_peer *peer, const char *reason, int conversation_i
 
 int handle_incoming(sdp_peer *peer, const uint8_t *data, int data_len, e_media_type media_type)
 {
-    ESP_LOGI(messaging_log_prefix, "<< Payload length: %i, call count %i, CRC32: %u.", data_len, callcount++,
-             (uint32_t)crc32_be(0, data, data_len));
+    ESP_LOGI(messaging_log_prefix, "<< Payload length: %i, call count %i, CRC32: %"PRIu32".", data_len, callcount++,
+             crc32_be(0, data, data_len));
 
     ESP_LOG_BUFFER_HEXDUMP(messaging_log_prefix, data, data_len, ESP_LOG_INFO);
 
@@ -422,6 +420,10 @@ int sdp_send_message_media_type(struct sdp_peer *peer, void *data, int data_leng
     int result = ESP_FAIL;
     ESP_LOGI(messaging_log_prefix, ">> sdp_send_message_media_type called, media type: %hhx ", media_type);
 
+    sdp_media_types host_supported_media_types = get_host_supported_media_types;
+    if (!(host_supported_media_types & media_type)) {
+        return -SDP_ERR_NOT_SUPPORTED;
+    }
 
 #ifdef CONFIG_SDP_LOAD_BLE
 

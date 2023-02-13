@@ -18,6 +18,7 @@
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "sdp_def.h"
 
 //#include "../secret/local_settings.h"
 
@@ -44,7 +45,7 @@ char *lora_log_prefix;
  * @brief Initiate LoRa
  * 
  */
-void init_lora() {
+int init_lora() {
 
     ESP_LOGI(lora_log_prefix, "Initializing LoRa");
     
@@ -55,9 +56,7 @@ void init_lora() {
     #ifdef CONFIG_LORA_SX127X
 	if (lora_init_local() == 0) {
 		ESP_LOGE(lora_log_prefix, "Does not recognize the module");
-		while(1) {
-			vTaskDelay(1);
-		}
+        return ESP_FAIL;
 	}
     #endif
     #if CONFIG_LORA_FREQUENCY_169MHZ
@@ -113,7 +112,7 @@ void init_lora() {
     #endif
     
     #ifdef CONFIG_LORA_SX127X    
-    lora_set_frequency(frequency)
+    lora_set_frequency(frequency);
     lora_set_tx_power(1);
 	lora_set_coding_rate(cr);
 	lora_set_bandwidth(bw);
@@ -134,6 +133,7 @@ void init_lora() {
 	LoRaConfig(sf, bw, cr, preambleLength, payloadLen, crcOn, invertIrq);
 
     #endif
+    return ESP_OK;
 }
 
 void lora_shutdown() {
@@ -154,11 +154,13 @@ void lora_init(char * _log_prefix) {
     lora_peer_init(lora_log_prefix);
     lora_messaging_init(lora_log_prefix);
 
-    init_lora();
+    if (init_lora() != ESP_OK) {
+       goto fail;
+    }
     if (lora_init_worker(&lora_do_on_work_cb, &lora_do_on_poll_cb, lora_log_prefix) != ESP_OK)
     {
        ESP_LOGE(lora_log_prefix, "Failed initializing LoRa"); 
-       return;
+       goto fail;
     }
     lora_set_queue_blocked(false);
     #ifdef CONFIG_LORA_SX127X
@@ -166,7 +168,14 @@ void lora_init(char * _log_prefix) {
     #endif
     #ifdef CONFIG_LORA_SX126X
     #endif
+    add_host_supported_media_type(SDP_MT_LoRa);
     ESP_LOGI(lora_log_prefix, "LoRa initialized.");
+fail:
+    ESP_LOGI(lora_log_prefix, "LoRa failed to initialize.");
+    // TODO: All medias need to have this handling.
+    
+
+
 }
 
 #endif

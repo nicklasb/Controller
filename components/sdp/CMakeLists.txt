@@ -32,5 +32,5 @@ endif()
 
 idf_component_register(SRCS ${sdp_sources} 
 INCLUDE_DIRS . 
-REQUIRES driver esp_netif nvs_flash esp_timer esp_wifi #mqtt esp_modem esp_adc #bt
+REQUIRES driver esp_netif nvs_flash esp_timer esp_wifi mqtt  esp_adc bt #esp_modem
 )

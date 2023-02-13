@@ -1,3 +1,8 @@
+
+#include "lora_sx126x_lib.h"
+#include "sdkconfig.h"
+#ifdef CONFIG_LORA_SX126X
+
 #include <stdio.h>
 #include <inttypes.h>
 #include <string.h>
@@ -10,7 +15,7 @@
 #include <driver/gpio.h>
 #include "esp_log.h"
 
-#include "lora_sx126x_lib.h"
+
 
 #define TAG "RA01S"
 
@@ -1038,4 +1043,4 @@ void ReadCommand(uint8_t cmd, uint8_t* data, uint8_t numBytes) {
 }
 
 
-
+#endif

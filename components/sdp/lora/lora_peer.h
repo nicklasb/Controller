@@ -3,12 +3,6 @@
 
 #include "sdp_peer.h"
 
-int lora_unknown_counter;
-int lora_unknown_failures;
-int lora_crc_failures;
-
-
-
 void lora_stat_reset(sdp_peer *peer);
 void lora_peer_init_peer(sdp_peer *peer);
 

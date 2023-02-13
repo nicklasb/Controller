@@ -78,20 +78,7 @@ int sdp_peer_send_hi_message(sdp_peer *peer, bool is_reply) {
     int retval;
 
     /* Gather the configured protocol support*/
-    uint8_t supported_media_types = 0
-    #ifdef CONFIG_SDP_LOAD_BLE
-    + SDP_MT_BLE
-    #endif
-    #ifdef CONFIG_SDP_LOAD_ESP_NOW
-    + SDP_MT_ESPNOW
-    #endif
-    #ifdef CONFIG_SDP_LOAD_LORA
-    + SDP_MT_LoRa
-    #endif
-     #ifdef CONFIG_SDP_LOAD_I2C
-    + SDP_MT_I2C
-    #endif   
-    ;
+ 
 
     int pv = SDP_PROTOCOL_VERSION;
     int pvm = SDP_PROTOCOL_VERSION_MIN;
@@ -128,7 +115,7 @@ int sdp_peer_send_hi_message(sdp_peer *peer, bool is_reply) {
     
     uint8_t *hi_msg = NULL;
     int hi_length = add_to_message(&hi_msg, strcat(fmt_str, "|%u|%u|%s|%hhu|%u|%hhu|%b6"), 
-        pv, pvm, sdp_host.name, supported_media_types, peer->relation_id, i2c_address,sdp_host.base_mac_address);
+        pv, pvm, sdp_host.name, get_host_supported_media_types(), peer->relation_id, i2c_address,sdp_host.base_mac_address);
     if (hi_length > 0) {
         void *new_data = sdp_add_preamble(HANDSHAKE, 0, hi_msg, hi_length);
         retval = sdp_send_message(peer, new_data, hi_length+ SDP_PREAMBLE_LENGTH);
@@ -207,7 +194,7 @@ sdp_mac_address *relation_id_to_mac_address(uint32_t relation_id) {
         }
         rel_idx++;
     }
-    ESP_LOGI(peer_log_prefix, "Relation %u not found.", relation_id);
+    ESP_LOGI(peer_log_prefix, "Relation %lu not found.", relation_id);
     return NULL;
 }
 
@@ -268,8 +255,12 @@ e_media_type select_media(struct sdp_peer *peer, int data_length)
     e_media_type top_media_type = 0;
     float top_score  = 0;
     float curr_score = 0;
-    for (unsigned int curr_media_type = 1; curr_media_type < SDP_MT_ANY; curr_media_type = curr_media_type * 2)
+    sdp_media_types host_supported_media_types = get_host_supported_media_types();
+    for (e_media_type curr_media_type = 1; curr_media_type < SDP_MT_ANY; curr_media_type = curr_media_type * 2)
     {
+        if (!(host_supported_media_types & curr_media_type)) {
+            continue;
+        };
         if (peer->supported_media_types & curr_media_type)
         {
 #ifdef CONFIG_SDP_LOAD_BLE
@@ -290,6 +281,7 @@ e_media_type select_media(struct sdp_peer *peer, int data_length)
 
             if (curr_media_type == SDP_MT_ESPNOW)
             {
+                ESP_LOGE("AAAA", "Calling espnow_score_peer");
                 curr_score = espnow_score_peer(peer, data_length);
             }
 

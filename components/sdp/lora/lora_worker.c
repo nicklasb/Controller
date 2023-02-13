@@ -87,7 +87,7 @@ esp_err_t lora_init_worker(work_callback work_cb, poll_callback poll_cb, char *_
     // This queue cannot start processing items until lora is initialized
     lora_queue_context.blocked = true;
   /* If set, worker will shut down */
-    lora_queue_context.watchdog_timeout = CONFIG_SDP_RECEIPT_TIMEOUT_MS/1000;
+    lora_queue_context.watchdog_timeout = CONFIG_SDP_RECEIPT_TIMEOUT_MS;
     
 
     return init_work_queue(&lora_queue_context, _log_prefix, "LoRa Queue");      

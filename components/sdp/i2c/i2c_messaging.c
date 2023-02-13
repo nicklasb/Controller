@@ -34,6 +34,9 @@
 /* The log prefix for all logging */
 char *i2c_messaging_log_prefix;
 
+uint32_t i2c_unknown_counter = 0;
+uint32_t i2c_unknown_failures = 0;
+uint32_t i2c_crc_failures = 0;
 
 
 uint8_t *rcv_data;
@@ -41,7 +44,7 @@ uint8_t *rcv_data;
 /**
  * @brief i2c initialization
  */
-static esp_err_t i2c_driver_init(bool is_master)
+esp_err_t i2c_driver_init(bool is_master)
 {
 
     if (is_master)
@@ -72,6 +75,7 @@ static esp_err_t i2c_driver_init(bool is_master)
             .scl_pullup_en = GPIO_PULLUP_ENABLE,
             //.master.clk_speed = I2C_FREQ_HZ,
             .slave.slave_addr = CONFIG_I2C_ADDR,
+            .slave.addr_10bit_en = false,
             .clk_flags = I2C_SCLK_SRC_FLAG_FOR_NOMAL,
         };
         ESP_ERROR_CHECK(i2c_param_config(CONFIG_I2C_CONTROLLER_NUM, &conf));
@@ -100,7 +104,7 @@ int i2c_send_message(sdp_peer *peer, char *data, int data_length, bool just_chec
 
     int retval = ESP_FAIL;
     ESP_LOGI(i2c_messaging_log_prefix, ">> I2C send message to %hhu,  %i bytes.", peer->i2c_address, data_length);
-    unsigned int crc_msg = crc32_be(0, (uint8_t *)data + 4, data_length - 4);
+    uint32_t crc_msg = crc32_be(0, (uint8_t *)data + 4, data_length - 4);
     esp_err_t delete_ret = ESP_FAIL;
 
     delete_ret = i2c_driver_delete(CONFIG_I2C_CONTROLLER_NUM);
@@ -128,6 +132,7 @@ int i2c_send_message(sdp_peer *peer, char *data, int data_length, bool just_chec
         gpio_set_level(CONFIG_I2C_SDA_IO, 0);
 
         ESP_LOGI(i2c_messaging_log_prefix, "I2C Master - >> SDA was high, now set to low, sending.");
+        gpio_set_level(CONFIG_I2C_SDA_IO, 0);
         int send_retries = 0;
         esp_err_t send_ret = ESP_FAIL;
         do
@@ -165,11 +170,15 @@ int i2c_send_message(sdp_peer *peer, char *data, int data_length, bool just_chec
 
             int read_retries = 0;
             int read_ret = ESP_FAIL;
+            
             // TODO: This should probably use CONFIG_SDP_RECEIPT_TIMEOUT_MS * 1000 in some way.
+            // And SDP_RECEIPT must be recalculated based on transmission speeds.
+            // Also, the delay here is slightly strange. 
+            vTaskDelay(30 / portTICK_PERIOD_MS);
             do
             {
                 ESP_LOGD(i2c_messaging_log_prefix, "I2C Master - << Reading receipt, try %i.", read_retries + 1);
-                read_ret = i2c_master_cmd_begin(CONFIG_SDP_RECEIPT_TIMEOUT_MS, cmd, 1000 / portTICK_PERIOD_MS);
+                read_ret = i2c_master_cmd_begin(CONFIG_I2C_CONTROLLER_NUM, cmd, 1000 / portTICK_PERIOD_MS);
                 if (read_ret != ESP_OK)
                 {
                     ESP_LOGI(i2c_messaging_log_prefix, "I2C Master - << Read receipt failure, code %i. Waiting a short while.", read_ret);
@@ -182,7 +191,7 @@ int i2c_send_message(sdp_peer *peer, char *data, int data_length, bool just_chec
 
             if (read_ret == ESP_OK)
             {
-                unsigned int crc_response;
+                uint32_t crc_response;
                 //
                 if ((rcv_data[0] == 0xff) && (rcv_data[1] == 0x00)) {
                     ESP_LOGI(i2c_messaging_log_prefix, "I2C Master - << Slave says it was correct");
@@ -195,13 +204,13 @@ int i2c_send_message(sdp_peer *peer, char *data, int data_length, bool just_chec
 
                     if (crc_msg == crc_response)
                     {
-                        ESP_LOGI(i2c_messaging_log_prefix, "I2C Master - << Got a matching crc %u.", crc_response);
-                        ESP_LOGI(i2c_messaging_log_prefix, "I2C Master - II %i", peer->i2c_stats.send_successes);
+                        ESP_LOGI(i2c_messaging_log_prefix, "I2C Master - << Got a matching crc %"PRIu32".", crc_response);
+                        ESP_LOGI(i2c_messaging_log_prefix, "I2C Master - II %"PRIu32"", peer->i2c_stats.send_successes);
                         retval = ESP_OK;
                     }
                     else
                     {
-                        ESP_LOGE(i2c_messaging_log_prefix, "I2C Master - << Got a bad crc: %u! (correct would be %u",
+                        ESP_LOGE(i2c_messaging_log_prefix, "I2C Master - << Got a bad crc: %"PRIu32"! (correct would be %"PRIu32"",
                                 crc_response, crc_msg);
                         ESP_LOG_BUFFER_HEXDUMP(i2c_messaging_log_prefix, rcv_data, 6, ESP_LOG_ERROR);
                         i2c_crc_failures++;
@@ -249,7 +258,7 @@ int i2c_send_message(sdp_peer *peer, char *data, int data_length, bool just_chec
     else
     {
         peer->i2c_stats.send_successes++;
-        ESP_LOGI(i2c_messaging_log_prefix, "I2C Master Peer name: %s - II 2 %i", peer->name, peer->i2c_stats.send_successes);
+        ESP_LOGI(i2c_messaging_log_prefix, "I2C Master Peer name: %s - II 2 %"PRIu32"", peer->name, peer->i2c_stats.send_successes);
         
     }
 
@@ -262,12 +271,8 @@ int i2c_send_message(sdp_peer *peer, char *data, int data_length, bool just_chec
 }
 
 
-
-
-
 void i2c_do_on_poll_cb(queue_context *q_context)
 {
-
     int retries = 0;
 
     int ret;
@@ -303,14 +308,16 @@ void i2c_do_on_poll_cb(queue_context *q_context)
         uint8_t i2c_address = (uint8_t)rcv_data[0];
         uint32_t crc32_in = 0;
         memcpy(&crc32_in, rcv_data + 1, 4);
-        unsigned int crc_calc = crc32_be(0, rcv_data + 5, data_len - 5);
+        uint32_t crc_calc = crc32_be(0, rcv_data + 5, data_len - 5);
 
+        // TODO: It is not optimal to do this here, the lookup may be really fast, but the receipt should be immidiate. 
+        // Probably the logging above needs to go as well.
         sdp_peer *peer = sdp_mesh_find_peer_by_i2c_address(i2c_address);
 
         uint8_t response[6];
         if (crc32_in != crc_calc)
         {
-            ESP_LOGW(i2c_messaging_log_prefix, "I2C Slave - << CRC Mismatch crc32_in: %u,crc_calc: %u. Create response:", crc32_in, crc_calc);
+            ESP_LOGW(i2c_messaging_log_prefix, "I2C Slave - << CRC Mismatch crc32_in: %"PRIu32",crc_calc: %"PRIu32". Create response:", crc32_in, crc_calc);
             response[0] = 0x00;
             response[1] = 0xff;
             if (peer) {
@@ -329,12 +336,12 @@ void i2c_do_on_poll_cb(queue_context *q_context)
             }
             ret = ESP_FAIL;
         }  else {
-            ESP_LOGI(i2c_messaging_log_prefix, "I2C Slave - << Got %i bytes of data from %hhu. crc32 : %u, create response.", data_len, i2c_address, crc_calc);
+            ESP_LOGI(i2c_messaging_log_prefix, "I2C Slave - << Got %i bytes of data from %hhu. crc32 : %"PRIu32", create response.", data_len, i2c_address, crc_calc);
             
             if (!peer)
             {
                 char *new_name;
-                asprintf(&new_name, "UNKNOWN_%i", i2c_unknown_counter++);
+                asprintf(&new_name, "UNKNOWN_%"PRIu32"", i2c_unknown_counter++);
                 ESP_LOGI(i2c_messaging_log_prefix, "I2C Slave - >> New peer, adding.");
                 peer = sdp_add_init_new_peer_i2c(new_name, i2c_address);
             }
@@ -359,7 +366,7 @@ void i2c_do_on_poll_cb(queue_context *q_context)
         }
         else
         {
-            ESP_LOGI(i2c_messaging_log_prefix, "I2C Slave - >> Sent a %i bytes with length of %i bytes and crc of %u. ", ret, data_len, crc_calc);
+            ESP_LOGI(i2c_messaging_log_prefix, "I2C Slave - >> Sent a %i bytes with length of %i bytes and crc of %"PRIu32".", ret, data_len, crc_calc);
             peer->i2c_stats.send_successes++;       
         }
 

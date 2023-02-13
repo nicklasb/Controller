@@ -29,12 +29,18 @@
 #include "sdp_messaging.h"
 #include "sdp_helpers.h"
 
+#if ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(5, 0, 0)
+#error "Currenctly, SDP requires at least ESP-IDF version 5."
+#endif
+
+
 #ifdef CONFIG_SDP_LOAD_BLE
 #include "ble/ble.h"
 #endif
 
 #ifdef CONFIG_SDP_LOAD_ESP_NOW
 #include "espnow/espnow.h"
+#include "esp_interface.h"
 #endif
 
 #ifdef CONFIG_SDP_LOAD_UMTS
@@ -106,10 +112,12 @@ void warn_if_simulating() {
     #endif
 }
 
+
 int sdp_init(work_callback *work_cb, work_callback *priority_cb, before_sleep *before_sleep_cb, char *_log_prefix, bool is_conductor)
 {
     sdp_log_prefix = _log_prefix;
     // Begin with initialising the monitor to capture initial memory state.
+
 
     warn_if_simulating();
 
@@ -167,7 +175,9 @@ int sdp_init(work_callback *work_cb, work_callback *priority_cb, before_sleep *b
 #ifdef CONFIG_SDP_LOAD_LORA
     lora_init(_log_prefix);
 #endif
-
+    char mt_log[1000] = "";
+    log_media_types(get_host_supported_media_types(), &mt_log);
+    ESP_LOGI(_log_prefix, "Supported media types:%s", mt_log);
     ESP_LOGI(_log_prefix, "SDP initiated!");
     return 0;
 }

@@ -47,12 +47,6 @@ void espnow_shutdown()
     esp_wifi_set_mode(WIFI_MODE_NULL);
     ESP_LOGI(espnow_log_prefix, " - wifi deinit");
     esp_wifi_deinit();
-    ESP_LOGI(espnow_log_prefix, " - power of adc");
-#if ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(5, 0, 0)
-    adc_power_release();
-
-#endif
-
     ESP_LOGI(espnow_log_prefix, "ESP-NOW shut down.");
 }
 

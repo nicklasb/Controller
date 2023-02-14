@@ -208,7 +208,7 @@ void lora_do_on_poll_cb(queue_context *q_context) {
     #ifdef CONFIG_LORA_SX126X
     uint16_t irq_status = GetIrqStatus();
     while (irq_status & SX126X_IRQ_CAD_DETECTED ) {
-        irq_status = GetIrqStatus()
+        irq_status = GetIrqStatus();
         vTaskDelay(1);
     }
     #endif

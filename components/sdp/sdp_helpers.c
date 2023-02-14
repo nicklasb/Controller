@@ -7,8 +7,8 @@
 #include <esp_log.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
-#include <driver/adc.h>
 #include <esp32/rom/crc.h>
+#include <esp_adc/adc_oneshot.h>
 
 #include "sdp_def.h"
 
@@ -178,16 +178,6 @@ void sdp_blink_led(gpio_num_t gpio_num, uint16_t time_on, uint16_t time_off, uin
         count++;
     }
     gpio_set_level(gpio_num, pre_level);
-}
-
-float sdp_read_battery()
-{
-
-    int volt;
-
-    adc2_get_raw(ADC2_CHANNEL_7, ADC_WIDTH_BIT_12, &volt);
-    float battery_voltage = ((float)volt / 4095.0) * 2.0 * 3.3;
-    return battery_voltage;
 }
 
 void log_media_types(sdp_media_types media_types, char *log_str)

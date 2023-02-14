@@ -289,6 +289,7 @@ int handle_incoming(sdp_peer *peer, const uint8_t *data, int data_len, e_media_t
         {
             // We have already added it as a peer, lets get any information
             sdp_peer_inform(new_item);
+            
             // If its wasn't a reply, we reply with our information
             if (strcmp(new_item->parts[0], "HIR") != 0)
             {
@@ -418,10 +419,14 @@ int sdp_send_message_media_type(struct sdp_peer *peer, void *data, int data_leng
     // Should this function also be put in a separate file? Perhaps along with other #ifs? To simplify and clean up this one?
     int rc = 0;
     int result = ESP_FAIL;
-    ESP_LOGI(messaging_log_prefix, ">> sdp_send_message_media_type called, media type: %hhx ", media_type);
+    
 
-    sdp_media_types host_supported_media_types = get_host_supported_media_types;
+    sdp_media_types host_supported_media_types = get_host_supported_media_types();
+
+    ESP_LOGI(messaging_log_prefix, ">> sdp_send_message_media_type called, media type: %hhu ", media_type);
+
     if (!(host_supported_media_types & media_type)) {
+        ESP_LOGE(messaging_log_prefix, ">> sdp_send_message_media_type called, media type %hhu not supported, available are %hhu", media_type, host_supported_media_types);
         return -SDP_ERR_NOT_SUPPORTED;
     }
 
@@ -537,15 +542,16 @@ int sdp_send_message(struct sdp_peer *peer, void *data, int data_length)
     {
         // For each try, we need to reevalue what media we are selecting.
         e_media_type selected_media_type = select_media(peer, data_length);
-        rc = sdp_send_message_media_type(peer, data, data_length, selected_media_type, true);
+        rc = sdp_send_message_media_type(peer, data, data_length, selected_media_type, false);
         if (rc < 0)
         {
-            ESP_LOGE(messaging_log_prefix, ">> Failed to send. Analyzing. ");
             if (retries < 4) {
-                retries++;
-                ESP_LOGE(messaging_log_prefix, ">> Retrying for the %ith time ", retries);
+                ESP_LOGI(messaging_log_prefix, ">> Send failed; retrying %i more times ", 3 - retries );
+            } else {
+                ESP_LOGE(messaging_log_prefix, ">> Send failed, will not retry any more.");
             }
         }
+        retries++;
         
     } while ((rc < 0) && (retries < 4)); // We need to have a general retry limit here? Or is it even at this level we retry?
         

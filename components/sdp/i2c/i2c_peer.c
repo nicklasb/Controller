@@ -94,12 +94,7 @@ float i2c_score_peer(sdp_peer *peer, int data_length)
 
     return peer->i2c_stats.last_score;
 }
-/*
-void set_i2c_unknown_counter(uint32_t) = 0;
-int i2c_unknown_failures = 0;
-int i2c_crc_failures;
 
-*/
 
 
 

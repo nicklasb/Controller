@@ -94,7 +94,7 @@ int init_lora() {
 #endif
 
     #ifdef CONFIG_LORA_SX126X
-	
+	ESP_LOGI(lora_log_prefix, "Initializing SX126X..");
     float tcxoVoltage = 3.3; // use TCXO
 	bool useRegulatorLDO = true; // use TCXO
 
@@ -112,6 +112,7 @@ int init_lora() {
     #endif
     
     #ifdef CONFIG_LORA_SX127X    
+    ESP_LOGI(lora_log_prefix, "Initializing SX127X..");
     lora_set_frequency(frequency);
     lora_set_tx_power(1);
 	lora_set_coding_rate(cr);
@@ -139,7 +140,7 @@ int init_lora() {
 void lora_shutdown() {
     ESP_LOGI(lora_log_prefix, "Shutting down LoRa:");
     //TODO: Something needed here?
-    ESP_LOGI(lora_log_prefix, "ESP-NOW shut down.");
+    ESP_LOGI(lora_log_prefix, "Lora shut down.");
 }
 
 /**

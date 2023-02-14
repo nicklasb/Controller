@@ -172,7 +172,9 @@ typedef enum e_media_type
 typedef uint8_t sdp_media_types;
 
 sdp_media_types get_host_supported_media_types();
+
 void add_host_supported_media_type (e_media_type supported_media_type);
+
 /* SDP peer stat, broadly categorizes the credibility of the peer */
 typedef enum e_peer_state
 {

@@ -11,6 +11,7 @@
 #include "esp_log.h"
 
 #include "esp_crc.h"
+#include "esp_now.h"
 
 #include "../sdp_mesh.h"
 #include "../sdp_messaging.h"
@@ -54,19 +55,25 @@ static void espnow_send_cb(const uint8_t *mac_addr, esp_now_send_status_t status
     }
 }
 
+//static void espnow_recv_cb(const esp_now_recv_info_t *esp_now_info, const uint8_t *data, int len)
 static void espnow_recv_cb(const uint8_t *mac_addr, const uint8_t *data, int len)
+
 {
     // TODO: In ESP-IDF 5, this callback gets much more information from the first parameter, use it.
+    //if (recv_info->src_addr == NULL || data == NULL || len <= 0)
     if (mac_addr == NULL || data == NULL || len <= 0)
     {
         ESP_LOGE(espnow_messaging_log_prefix, "<< In espnow_recv_cb, either parameter was NULL or 0.");
         return;
     }
 
+    //sdp_peer *peer = sdp_mesh_find_peer_by_base_mac_address(esp_now_info->des_addr);
     sdp_peer *peer = sdp_mesh_find_peer_by_base_mac_address(mac_addr);
     if (peer != NULL)
     {
         ESP_LOGI(espnow_messaging_log_prefix, "<< espnow_recv_cb got a message from a peer. Data:");
+        //ESP_LOGI(espnow_messaging_log_prefix, "<< espnow_recv_cb got a message from a peer. rssi: %i, rate %u, data:",
+        //esp_now_info->rx_ctrl->rssi, esp_now_info->rx_ctrl->rate);
         ESP_LOG_BUFFER_HEX(espnow_messaging_log_prefix, data, len);
     }
     else
@@ -81,7 +88,6 @@ static void espnow_recv_cb(const uint8_t *mac_addr, const uint8_t *data, int len
         espnow_peer->encrypt = false;
         espnow_peer->ifidx = ESP_IF_WIFI_STA;
         memcpy(espnow_peer->peer_addr, mac_addr, SDP_MAC_ADDR_LEN);
-        /* TODO: The espnow_peer structure is never used?? */
 
         char *new_name;
         asprintf(&new_name, "UNKNOWN_%i", unknown_counter);
@@ -111,7 +117,6 @@ static esp_err_t espnow_init(void)
 #endif
     /* Set primary master key. */
     ESP_ERROR_CHECK(esp_now_set_pmk((uint8_t *)(CONFIG_ESPNOW_PMK)));
-
 
     return ESP_OK;
 }

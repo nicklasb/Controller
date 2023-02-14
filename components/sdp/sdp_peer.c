@@ -281,7 +281,6 @@ e_media_type select_media(struct sdp_peer *peer, int data_length)
 
             if (curr_media_type == SDP_MT_ESPNOW)
             {
-                ESP_LOGE("AAAA", "Calling espnow_score_peer");
                 curr_score = espnow_score_peer(peer, data_length);
             }
 

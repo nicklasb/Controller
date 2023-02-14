@@ -42,10 +42,29 @@ uint32_t i2c_crc_failures = 0;
 uint8_t *rcv_data;
 
 /**
- * @brief i2c initialization
+ * @brief i2c mode setting initialization
+ *
+ * @param is_master To set to master mode, set this to true. False for slave mode.
+ * @param dont_delete Don't delete the driver (likely because it is the first call)
+ * @return esp_err_t 
  */
-esp_err_t i2c_driver_init(bool is_master)
+esp_err_t i2c_driver_set_master(bool is_master, bool dont_delete)
 {
+    if (is_master) {
+        ESP_LOGI(i2c_messaging_log_prefix, "Setting I2C driver to master mode.");
+    } else {
+        ESP_LOGI(i2c_messaging_log_prefix, "Setting I2C driver to slave mode.");
+    }
+    
+    if (!dont_delete) {
+        esp_err_t delete_ret = ESP_FAIL;
+        delete_ret = i2c_driver_delete(CONFIG_I2C_CONTROLLER_NUM);
+        if (delete_ret == ESP_ERR_INVALID_ARG)
+        {
+            ESP_LOGE(i2c_messaging_log_prefix, ">> Deleting driver caused an invalid arg-error.");
+            return ESP_ERR_INVALID_ARG;
+        }
+    }
 
     if (is_master)
     {
@@ -99,22 +118,14 @@ int calc_timeout_ms(uint32_t data_length)
     return timeout_ms;
 }
 
+
 int i2c_send_message(sdp_peer *peer, char *data, int data_length, bool just_checking)
 {
 
     int retval = ESP_FAIL;
     ESP_LOGI(i2c_messaging_log_prefix, ">> I2C send message to %hhu,  %i bytes.", peer->i2c_address, data_length);
     uint32_t crc_msg = crc32_be(0, (uint8_t *)data + 4, data_length - 4);
-    esp_err_t delete_ret = ESP_FAIL;
-
-    delete_ret = i2c_driver_delete(CONFIG_I2C_CONTROLLER_NUM);
-    if (delete_ret == ESP_ERR_INVALID_ARG)
-    {
-        ESP_LOGE(i2c_messaging_log_prefix, ">> Deleting driver caused an invalid arg-error.");
-    }
-
-    // Init as a master.
-    ESP_ERROR_CHECK(i2c_driver_init(true));
+    ESP_ERROR_CHECK(i2c_driver_set_master(true, false));
 
     uint64_t starttime;
     starttime = esp_timer_get_time();
@@ -259,13 +270,9 @@ int i2c_send_message(sdp_peer *peer, char *data, int data_length, bool just_chec
     {
         peer->i2c_stats.send_successes++;
         ESP_LOGI(i2c_messaging_log_prefix, "I2C Master Peer name: %s - II 2 %"PRIu32"", peer->name, peer->i2c_stats.send_successes);
-        
     }
 
-    ESP_LOGD(i2c_messaging_log_prefix, "I2C Master - Deleting driver");
-    i2c_driver_delete(CONFIG_I2C_CONTROLLER_NUM);
-    // Always go back into listen (slave) mode
-    ESP_ERROR_CHECK(i2c_driver_init(false));
+    ESP_ERROR_CHECK(i2c_driver_set_master(false, false));
 
     return retval;
 }
@@ -273,6 +280,7 @@ int i2c_send_message(sdp_peer *peer, char *data, int data_length, bool just_chec
 
 void i2c_do_on_poll_cb(queue_context *q_context)
 {
+
     int retries = 0;
 
     int ret;
@@ -422,5 +430,5 @@ void i2c_messaging_init(char *_log_prefix)
     i2c_messaging_log_prefix = _log_prefix;
     rcv_data = malloc(I2C_RX_BUF);
 
-    ESP_ERROR_CHECK(i2c_driver_init(false));
+    ESP_ERROR_CHECK(i2c_driver_set_master(false, true));
 }

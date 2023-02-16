@@ -1,10 +1,12 @@
 #include "ui.h"
+#include "default_ui.h"
+#include "qrcode.h"
 
 char * ui_log_prefix;
 
 void ui_init(char *_log_prefix) {
     // Init ui
-
+    default_ui_init(_log_prefix);
     /**
      * @brief 
      * Plain output - no touch

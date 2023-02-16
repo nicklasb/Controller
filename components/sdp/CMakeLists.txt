@@ -2,7 +2,7 @@ FILE(GLOB sdp_sources
 "./*.c" "./*.h"
 "sleep/sleep.h" "sleep/sleep.c"
 "orchestration/orchestration.h" "orchestration/orchestration.c"
-"monitor/*.h" "monitor/*.c"
+"monitor/*.h" "monitor/*.c", "ui/*.*"
 )
 
 if (CONFIG_SDP_LOAD_UMTS)
@@ -32,5 +32,5 @@ endif()
 
 idf_component_register(SRCS ${sdp_sources} 
 INCLUDE_DIRS . 
-REQUIRES driver esp_netif nvs_flash esp_timer esp_wifi mqtt  esp_adc bt #esp_modem
+REQUIRES driver esp_netif nvs_flash esp_timer esp_wifi mqtt  esp_adc bt ssd1306 #esp_modem
 )

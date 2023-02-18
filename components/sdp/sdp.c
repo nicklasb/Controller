@@ -179,7 +179,7 @@ int sdp_init(work_callback *work_cb, work_callback *priority_cb, before_sleep *b
     log_media_types(get_host_supported_media_types(), &mt_log);
     ESP_LOGI(_log_prefix, "Supported media types:%s", mt_log);
     ESP_LOGI(_log_prefix, "SDP initiated!");
-    return 0;
+    return ESP_OK;
 }
 
 #endif

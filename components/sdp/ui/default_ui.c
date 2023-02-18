@@ -61,8 +61,6 @@ void display_qr_code(SSD1306_t *oled, const char * message, uint16_t x_coord, ui
 	ssd1306_bitmaps(oled, x_coord, y_coord, &dest, 72, 64, true);
 
 
-
-
 }
 
 void init_default_ui() {
@@ -121,7 +119,8 @@ void init_default_ui() {
 	ssd1306_clear_screen(&dev, false);
     ssd1306_contrast(&dev, 128);
 	display_qr_code(&dev, "https://github.com/RobustoFramework\0", 0, 0);
-	vTaskDelay(3000 / portTICK_PERIOD_MS);
+	
+    ssd1306_display_text_x3(&dev, 0, "Hello", 5, false);
 
 
 	// Restart module

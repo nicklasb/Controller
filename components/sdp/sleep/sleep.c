@@ -33,7 +33,6 @@ char *sleep_log_prefix;
 void goto_sleep_for_microseconds(uint64_t microsecs)
 {
 
-
     ESP_LOGI(sleep_log_prefix, "---------------------------------------- S L E E P ----------------------------------------");
     ESP_LOGI(sleep_log_prefix, "At %lli and going to sleep for %llu microseconds", esp_timer_get_time(), microsecs);
 
